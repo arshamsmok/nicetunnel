@@ -8,7 +8,7 @@
 # downloading (handy when a server cannot reach GitHub):  bash install.sh
 set -euo pipefail
 
-GITHUB_USER="YOUR_GITHUB_USERNAME"   # <-- EDIT: your GitHub username
+GITHUB_USER="arshamsmok"   # <-- EDIT: your GitHub username
 GITHUB_REPO="nicetunnel"             # <-- EDIT only if your repository has another name
 REPO_RAW="${NICETUNNEL_RAW:-https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/main}"
 
