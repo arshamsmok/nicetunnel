@@ -28,7 +28,7 @@
 ۴. روی `install.sh` کلیک کنید ← آیکون مداد (Edit) ← در بالای فایل خط زیر را پیدا کنید و `YOUR_GITHUB_USERNAME` را با یوزرنیم GitHub خودتان عوض کنید:
 
    ```bash
-   GITHUB_USER="YOUR_GITHUB_USERNAME"
+   GITHUB_USER="arshamsmok"
    ```
 
    بعد **Commit changes**.
@@ -36,7 +36,7 @@
 ۵. لینک دانلود (raw) شما این است:
 
    ```
-   https://raw.githubusercontent.com/یوزرنیم_شما/nicetunnel/main/install.sh
+   https://raw.githubusercontent.com/arshamsmok/nicetunnel/main/install.sh
    ```
 
    آن را در مرورگر باز کنید. باید متن اسکریپت را ببینید، نه صفحه خطا.
@@ -46,7 +46,7 @@
 با `ssh root@IP` وارد سرور شوید (مستقیم با root، چون `sudo` با این دستور کار نمی‌کند؛ اگر یوزر root نیستید اول `sudo -i` بزنید)، بعد:
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/یوزرنیم_شما/nicetunnel/main/install.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/arshamsmok/nicetunnel/main/install.sh)
 ```
 
 نصب انجام می‌شود و منو باز می‌شود. بعداً هر وقت خواستید منو را باز کنید:
