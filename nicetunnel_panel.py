@@ -410,7 +410,7 @@ function loginView(){
       await load(); } catch(e){ msg(e.message,false); } };
   $('#pw').onkeydown = e => { if(e.key==='Enter') $('#go').click(); };
 }
-const PAGES = [['dash','&#9673;','Dashboard'],['tun','&#8644;','Tunnels'],['new','&#10010;','Create'],['test','&#9889;','Spoof tester'],['logs','&#9776;','Logs']];
+const PAGES = [['dash','&#9673;','Dashboard'],['tun','&#8644;','Tunnels'],['new','&#10010;','Create'],['mon','&#9737;','Monitoring'],['test','&#9889;','Spoof tester'],['logs','&#9776;','Logs']];
 function shell(){
   $('#app').innerHTML = `<div id="shell"><div id="side" class="glass"><div class="brand">NiceTunnel<small>Spoof Panel v2</small></div>
     ${PAGES.map(p=>`<div class="nav" data-p="${p[0]}"><i>${p[1]}</i>${p[2]}</div>`).join('')}
@@ -430,6 +430,7 @@ function shell(){
     </div>
     <div class="sec glass"><h2>Tunnel status</h2><div id="mon"></div></div>
   </div>
+  <div class="page" id="p-mon"><div class="cards" id="mcards"></div><div class="sec glass"><h2>Tunnel monitor <small style="color:#9aa6d6;font-weight:400">(auto refresh 3s)</small></h2><div id="mtun"></div></div></div>
   <div class="page" id="p-tun"><div class="sec glass"><h2>Spoof tunnels on this server</h2><div id="tbl"></div></div></div>
   <div class="page" id="p-new"><div class="sec glass"><h2>Create spoof tunnel</h2><div class="row">
     <div><label>This server is</label><select id="role">
@@ -469,6 +470,7 @@ function go(p){
   document.querySelectorAll('.nav[data-p]').forEach(e=>e.classList.toggle('on', e.dataset.p===p));
   $('#ttl').textContent = PAGES.filter(x=>x[0]===p)[0][2];
   if(p==='test') tstatus();
+  if(p==='mon') monitor();
   refresh();
 }
 function spark(id, arr, color){
@@ -505,6 +507,22 @@ async function refresh(){
     $('#mon').innerHTML = slotTable(sl.slots, false); $('#tbl').innerHTML = slotTable(sl.slots, true);
   } catch(e){ if(/login|auth|401/i.test(e.message)) load(); else msg(e.message,false); }
 }
+async function monitor(){
+  try {
+    const r = await api('/api/monitor'), t = r.tunnels;
+    const up = t.filter(x=>x.state==='active').length, bad = t.length-up;
+    const rs = t.reduce((a,x)=>a+(+x.restarts||0),0);
+    $('#mcards').innerHTML = `<div class="card glass"><div class="k">Active</div><div class="v active">${up}</div></div>
+      <div class="card glass"><div class="k">Down</div><div class="v ${bad?'failed':''}">${bad}</div></div>
+      <div class="card glass"><div class="k">Total restarts</div><div class="v">${rs}</div></div>
+      <div class="card glass"><div class="k">Memory used</div><div class="v">${fmtB(t.reduce((a,x)=>a+x.mem,0))}</div></div>`;
+    $('#mtun').innerHTML = t.length ? t.map(x=>`<div style="margin-bottom:14px;padding:12px;border-radius:12px;background:rgba(0,0,0,.25)">
+      <b>#${x.slot}</b> ${esc(x.side)} · ${esc(x.transport)}:${esc(x.port)} ↔ ${esc(x.peer)}
+      <span class="${esc(x.state)}" style="float:right"><span class="dot"></span>${esc(x.state)}</span>
+      <div class="s" style="color:#b8c2ee;font-size:12px;margin:6px 0">PID ${esc(x.pid)} · restarts ${esc(x.restarts)} · mem ${fmtB(x.mem)}${x.since?' · since '+esc(x.since):''}</div>
+      <pre style="max-height:90px">${esc(x.last||'(no logs)')}</pre></div>`).join('') : '<p>No spoof tunnel yet.</p>';
+  } catch(e){ msg(e.message,false); }
+}
 function tmodeView(){ const s=$('#tmode').value==='send';
   document.querySelectorAll('.tsend').forEach(e=>e.classList.toggle('hide',!s));
   document.querySelectorAll('.trecv').forEach(e=>e.classList.toggle('hide',s)); }
@@ -524,7 +542,7 @@ async function load(){
   clearInterval(timer);
   try { state = await api('/api/state');
     if(!state.logged){ loginView(); return; }
-    shell(); go(page); timer = setInterval(()=>{ if(page==='dash'||page==='tun') refresh(); }, 3000);
+    shell(); go(page); timer = setInterval(()=>{ if(page==='dash'||page==='tun') refresh(); if(page==='mon') monitor(); }, 3000);
   } catch(e){ loginView(); msg(e.message,false); }
 }
 async function act(n, a){ try { const r = await api(`/api/slot/${n}/${a}`, {}); msg(`Tunnel ${n}: ${r.state}`, true); refresh(); } catch(e){ msg(e.message,false);} }
@@ -616,6 +634,25 @@ def collect_stats():
     return st
 
 
+
+def collect_monitor():
+    out = []
+    for sl in list_spoof_slots():
+        n = sl["slot"]
+        _, o = run(["systemctl", "show", "nicetunnel@%d" % n, "-p",
+                    "ActiveState,NRestarts,MemoryCurrent,ActiveEnterTimestamp,MainPID"])
+        p = dict(l.split("=", 1) for l in o.splitlines() if "=" in l)
+        mem = p.get("MemoryCurrent", "")
+        sl["restarts"] = p.get("NRestarts", "0")
+        sl["since"] = p.get("ActiveEnterTimestamp", "") if sl["state"] == "active" else ""
+        sl["mem"] = int(mem) if mem.isdigit() else 0
+        sl["pid"] = p.get("MainPID", "0")
+        _, lg = run(["journalctl", "-u", "nicetunnel@%d" % n, "-n", "4", "--no-pager", "-o", "cat"])
+        sl["last"] = lg.strip()[-400:]
+        out.append(sl)
+    return out
+
+
 class Handler(http.server.BaseHTTPRequestHandler):
     server_version = "NiceTunnelPanel"
 
@@ -695,6 +732,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
             if not self.require_login():
                 return
             return self.send_json(collect_stats())
+        if path == "/api/monitor":
+            if not self.require_login():
+                return
+            return self.send_json({"tunnels": collect_monitor()})
         if path == "/api/test/status":
             if not self.require_login():
                 return
