@@ -9,7 +9,7 @@
 #   NICETUNNEL_SIMPLE=1                         numbered prompts instead of arrow-key lists
 #   NO_COLOR=1                                  no colors at all
 
-VERSION="1.1.0"
+VERSION="1.2.0"
 CONF_DIR="${NICETUNNEL_CONF_DIR:-/etc/nicetunnel}"
 APP_DIR="${NICETUNNEL_APP_DIR:-/opt/nicetunnel}"
 BIN_PATH="${NICETUNNEL_BIN:-/usr/local/bin/nicetunnel}"
@@ -121,7 +121,7 @@ header() {
   [ "$COLOR" = 1 ] && printf '\033[H\033[2J'
   echo
   banner
-  printf '  %s%s v%s %s  %sFast reverse tunnels for two servers%s\n' "$REV" "$A" "$VERSION" "$NC" "$DM" "$NC"
+  printf '  %s%s v%s %s  %sReverse and spoof tunnels for two servers%s\n' "$REV" "$A" "$VERSION" "$NC" "$DM" "$NC"
   printf '  %smade by Arsham Smoke%s\n' "$DM" "$NC"
   hr
   echo
@@ -224,6 +224,20 @@ select_menu() {
 is_port() { [[ "$1" =~ ^[0-9]+$ ]] && [ "$1" -ge 1 ] && [ "$1" -le 65535 ]; }
 valid_host() { [[ "$1" =~ ^[A-Za-z0-9._:-]+$ ]]; }
 valid_token() { [[ "$1" =~ ^[A-Za-z0-9._-]{16,}$ ]]; }
+valid_ipv4() {
+  local o
+  [[ "$1" =~ ^[0-9]{1,3}(\.[0-9]{1,3}){3}$ ]] || return 1
+  for o in ${1//./ }; do [ "$((10#$o))" -le 255 ] || return 1; done
+}
+# host:port (host may be an IPv4 address or a name)
+valid_hostport() { [[ "$1" =~ ^[A-Za-z0-9._-]+:[0-9]+$ ]] && is_port "${1##*:}"; }
+# list of spoof addresses; the engine does the real parsing. Sets SPOOF_COUNT.
+valid_spoof_list() {
+  [[ "$1" =~ ^[A-Za-z0-9./,@_:-]+$ ]] || return 1
+  SPOOF_COUNT="$(python3 "$APP_DIR/nicetunnel.py" spoof-check --ips "$1" 2>/dev/null)" || return 1
+  [[ "$SPOOF_COUNT" =~ ^[0-9]+$ ]]
+}
+engine() { python3 "$APP_DIR/nicetunnel.py" "$@"; }
 
 # 443,8443:8080  (public[:target])
 valid_ports() {
@@ -238,6 +252,7 @@ valid_ports() {
 }
 
 port_in_use() { ss -H -lnt "sport = :$1" 2>/dev/null | grep -q .; }
+udp_port_in_use() { ss -H -lnu "sport = :$1" 2>/dev/null | grep -q .; }
 gen_token() { python3 -c 'import secrets; print(secrets.token_hex(16))'; }
 
 # --------------------------------------------------------------------------
@@ -261,12 +276,13 @@ first_free_slot() {
 }
 
 load_slot() {
-  ROLE=""; BRIDGE=""; PORTS=""; SERVER_IP=""; TARGET_HOST=""; NICETUNNEL_TOKEN=""
+  TYPE=tcp; ROLE=""; BRIDGE=""; PORTS=""; SERVER_IP=""; TARGET_HOST=""; NICETUNNEL_TOKEN=""
+  TRANSPORT=""; TPORT=""; PEER_IP=""; SPOOF_IPS=""; LISTEN_PORT=""; FORWARD=""
   # shellcheck disable=SC1090
   . "$(slot_file "$1")"
 }
 
-write_slot() { # slot role bridge ports server_ip target_host token
+write_slot() { # slot role bridge ports server_ip target_host token   (reverse TCP tunnel)
   local args
   if [ "$2" = server ]; then
     args="server --bridge $3 --ports $4"
@@ -277,6 +293,7 @@ write_slot() { # slot role bridge ports server_ip target_host token
   (
     umask 077
     cat >"$(slot_file "$1")" <<EOF
+TYPE=tcp
 ROLE=$2
 BRIDGE=$3
 PORTS=$4
@@ -288,18 +305,54 @@ EOF
   )
 }
 
+# slot role transport port peer_ip spoof_ips listen_port forward token   (spoof tunnel)
+#   role server = Iran side (entry, apps send UDP to listen_port)
+#   role client = foreign side (exit, forwards to "forward" = host:port)
+write_spoof_slot() {
+  local args
+  args="--peer $5 --spoof-ip $6 --transport $3 --port $4"
+  if [ "$2" = server ]; then
+    args="spoof-entry $args --listen-port $7"
+  else
+    args="spoof-exit $args --forward $8"
+  fi
+  mkdir -p "$CONF_DIR" && chmod 700 "$CONF_DIR" || return 1
+  (
+    umask 077
+    cat >"$(slot_file "$1")" <<EOF
+TYPE=spoof
+ROLE=$2
+TRANSPORT=$3
+TPORT=$4
+PEER_IP=$5
+SPOOF_IPS=$6
+LISTEN_PORT=$7
+FORWARD=$8
+NICETUNNEL_TOKEN=$9
+RT_ARGS="$args"
+EOF
+  )
+}
+
 role_name() { if [ "$1" = server ]; then echo "Iran"; else echo "Foreign"; fi; }
+type_name() { if [ "$1" = spoof ]; then echo "Spoof"; else echo "TCP"; fi; }
 
 print_slots() {
   local n what found=0 st col
-  printf '  %s%-5s %-9s %-7s %-24s %s%s\n' "$BD" Slot Side Bridge "Ports / Server" State "$NC"
+  printf '  %s%-5s %-9s %-6s %-30s %s%s\n' "$BD" Slot Side Type Details State "$NC"
   for n in $(list_slots); do
     found=1
     load_slot "$n"
-    if [ "$ROLE" = server ]; then what="$PORTS"; else what="$SERVER_IP"; fi
+    if [ "$TYPE" = spoof ]; then
+      if [ "$ROLE" = server ]; then what="$TRANSPORT:$TPORT, apps -> :$LISTEN_PORT"; else what="$TRANSPORT:$TPORT, to $FORWARD"; fi
+    elif [ "$ROLE" = server ]; then
+      what="bridge $BRIDGE, ports $PORTS"
+    else
+      what="to $SERVER_IP:$BRIDGE"
+    fi
     st="$(slot_state "$n")"
     if [ "$st" = active ]; then col="$GR"; else col="$RD"; fi
-    printf '  %-5s %-9s %-7s %-24s %s%s%s\n' "$n" "$(role_name "$ROLE")" "$BRIDGE" "$what" "$col" "$st" "$NC"
+    printf '  %-5s %-9s %-6s %-30s %s%s%s\n' "$n" "$(role_name "$ROLE")" "$(type_name "$TYPE")" "${what:0:30}" "$col" "$st" "$NC"
   done
   [ "$found" = 1 ] || printf '  %s(no tunnels yet - choose "Create tunnel" to add one)%s\n' "$DM" "$NC"
 }
@@ -308,20 +361,36 @@ show_settings() {
   load_slot "$1"
   echo
   kv "Slot" "$1"
+  kv "Type" "$(type_name "$TYPE") tunnel"
   kv "Side" "$(role_name "$ROLE") server"
-  kv "Bridge port" "$BRIDGE"
-  if [ "$ROLE" = server ]; then
-    kv "Public ports" "$PORTS"
+  if [ "$TYPE" = spoof ]; then
+    kv "Packet type" "$TRANSPORT"
+    [ "$TRANSPORT" = icmp ] || kv "Tunnel port" "$TPORT"
+    kv "Other server" "$PEER_IP"
+    kv "Source IPs" "${SPOOF_IPS:0:50}"
+    if [ "$ROLE" = server ]; then
+      kv "Apps send to" "UDP port $LISTEN_PORT"
+    else
+      kv "Forwards to" "UDP $FORWARD"
+    fi
   else
-    kv "Iran server" "$SERVER_IP"
-    kv "Forwards to" "$TARGET_HOST"
+    kv "Bridge port" "$BRIDGE"
+    if [ "$ROLE" = server ]; then
+      kv "Public ports" "$PORTS"
+    else
+      kv "Iran server" "$SERVER_IP"
+      kv "Forwards to" "$TARGET_HOST"
+    fi
   fi
   kv "Token" "$NICETUNNEL_TOKEN"
   kv "State" "$(slot_state "$1")"
-  if [ "$ROLE" = server ]; then
+  if [ "$TYPE" = tcp ] && [ "$ROLE" = server ]; then
     echo
-    printf '  %sOn the foreign server open "nicetunnel" > Create tunnel > Foreign server,%s\n' "$DM" "$NC"
-    printf '  %sthen enter this server'"'"'s IP, bridge port %s and the token above.%s\n' "$DM" "$BRIDGE" "$NC"
+    printf '  %sOn the foreign server open "nicetunnel" > Create tunnel > TCP tunnel >%s\n' "$DM" "$NC"
+    printf '  %sForeign server, then enter this server'"'"'s IP, bridge port %s and the token.%s\n' "$DM" "$BRIDGE" "$NC"
+  elif [ "$TYPE" = spoof ]; then
+    echo
+    printf '  %sThe other server needs the same token, packet type and tunnel port.%s\n' "$DM" "$NC"
   fi
 }
 
@@ -364,12 +433,30 @@ wiz_screen() { # step total
 }
 
 create_tunnel() {
-  local role="" slot="" bridge="" ports="" server_ip="" target="" token="" gen
-  local step=1 total=6 kind msg="" item p
-  local -a items open_ports
+  local type="" role="" slot="" bridge="" ports="" server_ip="" target="" token="" gen
+  local transport="" tport="" peer="" spoofs="" lport="" forward="" cnt="" chk=""
+  local i=0 total kind msg="" item p saved=0
+  local -a items open_ports steps
 
   gen="$(gen_token)"
   HIST=()
+
+  # The list of pages depends on the answers so far (these helpers use the
+  # local variables of create_tunnel).
+  wiz_plan() {
+    if [ "$type" = spoof ]; then
+      steps=(type role slot peer transport)
+      [ "$transport" = icmp ] || steps+=(tport)
+      steps+=(spoofs)
+      if [ "$role" = client ]; then steps+=(forward); else steps+=(lport); fi
+      steps+=(token confirm)
+    else
+      steps=(type role slot bridge)
+      if [ "$role" = client ]; then steps+=(serverip token target confirm); else steps+=(ports token confirm); fi
+    fi
+  }
+  wiz_back() { hist_pop; i=$((i - 1)); }
+  wiz_next() { i=$((i + 1)); }
 
   collect_open_ports() {
     open_ports=("$bridge")
@@ -378,98 +465,178 @@ create_tunnel() {
   }
 
   while true; do
-    if [ "$role" = client ]; then total=7; else total=6; fi
-    case "$step" in
-      1) kind=role ;;
-      2) kind=slot ;;
-      3) kind=bridge ;;
-      4) if [ "$role" = server ]; then kind=ports; else kind=serverip; fi ;;
-      5) kind=token ;;
-      6) if [ "$role" = server ]; then kind=confirm; else kind=target; fi ;;
-      *) kind=confirm ;;
-    esac
+    wiz_plan
+    total=${#steps[@]}
+    kind="${steps[i]}"
 
-    wiz_screen "$step" "$total"
+    wiz_screen "$((i + 1))" "$total"
     if [ -n "$msg" ]; then err "  $msg"; echo; msg=""; fi
 
     case "$kind" in
+      type)
+        select_menu "Which kind of tunnel?" \
+          "1|TCP tunnel|for VLESS, Trojan, SSH and any other TCP traffic" \
+          "2|Spoof tunnel|UDP only (WireGuard); packets carry other source IPs" || return 1
+        if [ "$SEL" = 1 ]; then type=tcp; else type=spoof; fi
+        hist_add "Which kind of tunnel?" "$SEL_LABEL"; wiz_next ;;
+
       role)
-        select_menu "Which server is this?" \
-          "1|Iran server|users connect to this one" \
-          "2|Foreign server|this one dials the tunnel to Iran" || return 1
+        if [ "$type" = spoof ]; then
+          select_menu "Which server is this?" \
+            "1|Iran server|your apps send their UDP traffic to this one" \
+            "2|Foreign server|passes it on to WireGuard or another UDP service" || { wiz_back; continue; }
+        else
+          select_menu "Which server is this?" \
+            "1|Iran server|users connect to this one" \
+            "2|Foreign server|this one dials the tunnel to Iran" || { wiz_back; continue; }
+        fi
         if [ "$SEL" = 1 ]; then role=server; else role=client; fi
-        hist_add "Which server is this?" "$SEL_LABEL"; step=2 ;;
+        hist_add "Which server is this?" "$SEL_LABEL"; wiz_next ;;
 
       slot)
-        ask "Slot number (1-$MAX_SLOT)" "${slot:-$(first_free_slot)}" || { hist_pop; step=1; continue; }
+        ask "Slot number (1-$MAX_SLOT)" "${slot:-$(first_free_slot)}" || { wiz_back; continue; }
         if ! [[ "$REPLY" =~ ^[0-9]+$ ]] || [ "$REPLY" -lt 1 ] || [ "$REPLY" -gt "$MAX_SLOT" ]; then
           msg="Slot must be a number from 1 to $MAX_SLOT."; continue
         fi
-        slot="$REPLY"; hist_add "Slot number" "$slot"; step=3 ;;
+        slot="$REPLY"; hist_add "Slot number" "$slot"; wiz_next ;;
 
       bridge)
-        ask "Bridge port (same on both servers)" "${bridge:-7000}" || { hist_pop; step=2; continue; }
+        ask "Bridge port (same on both servers)" "${bridge:-7000}" || { wiz_back; continue; }
         is_port "$REPLY" || { msg="That is not a valid port number (1-65535)."; continue; }
-        bridge="$REPLY"; hist_add "Bridge port" "$bridge"; step=4 ;;
+        bridge="$REPLY"; hist_add "Bridge port" "$bridge"; wiz_next ;;
 
       ports)
-        ask "Public ports users connect to (e.g. 443 or 443,8443:8080)" "$ports" || { hist_pop; step=3; continue; }
+        ask "Public ports users connect to (e.g. 443 or 443,8443:8080)" "$ports" || { wiz_back; continue; }
         valid_ports "$REPLY" || { msg="Invalid ports. Use numbers like 443 or 8443:8080, separated by commas."; continue; }
-        ports="$REPLY"; hist_add "Public ports" "$ports"; step=5 ;;
+        ports="$REPLY"; hist_add "Public ports" "$ports"; wiz_next ;;
 
       serverip)
-        ask "IP address or hostname of the Iran server" "$server_ip" || { hist_pop; step=3; continue; }
+        ask "IP address or hostname of the Iran server" "$server_ip" || { wiz_back; continue; }
         valid_host "$REPLY" || { msg="That is not a valid address."; continue; }
-        server_ip="$REPLY"; hist_add "Iran server" "$server_ip"; step=5 ;;
+        server_ip="$REPLY"; hist_add "Iran server" "$server_ip"; wiz_next ;;
+
+      peer)
+        if [ "$role" = server ]; then
+          ask "Real IP address of the foreign server" "$peer" || { wiz_back; continue; }
+        else
+          ask "Real IP address of the Iran server" "$peer" || { wiz_back; continue; }
+        fi
+        valid_ipv4 "$REPLY" || { msg="That is not an IPv4 address (like 203.0.113.5)."; continue; }
+        peer="$REPLY"; hist_add "Other server" "$peer"; wiz_next ;;
+
+      transport)
+        select_menu "Packet type (must be the same on both servers)" \
+          "1|udp|looks like ordinary UDP traffic" \
+          "2|tcp|TCP packets (SYN); TCP is often the last thing blocked" \
+          "3|icmp|looks like ping; needs no port" || { wiz_back; continue; }
+        transport="$SEL_LABEL"
+        [ "$transport" = icmp ] && tport=4500
+        hist_add "Packet type" "$transport"; wiz_next ;;
+
+      tport)
+        ask "Tunnel port (same on both servers)" "${tport:-4500}" || { wiz_back; continue; }
+        is_port "$REPLY" || { msg="That is not a valid port number (1-65535)."; continue; }
+        tport="$REPLY"; hist_add "Tunnel port" "$tport"; wiz_next ;;
+
+      spoofs)
+        printf '  %sFake source addresses this server puts on its packets. Find working ones with%s\n' "$DM" "$NC"
+        printf '  %s"Spoof tester" in the main menu. Examples: 1.2.3.4  10.0.0.0/28  5.5.5.1-5.5.5.9  @file%s\n\n' "$DM" "$NC"
+        ask "Source IP addresses" "$spoofs" || { wiz_back; continue; }
+        REPLY="${REPLY// /}"
+        valid_spoof_list "$REPLY" || { msg="Could not read that list. Use addresses, ranges like 10.0.0.0/28 or 5.5.5.1-9, or @file."; continue; }
+        spoofs="$REPLY"; cnt="$SPOOF_COUNT"
+        hist_add "Source IPs" "${spoofs:0:30} ($cnt)"; wiz_next ;;
+
+      lport)
+        ask "UDP port for your apps (WireGuard endpoint)" "${lport:-51820}" || { wiz_back; continue; }
+        is_port "$REPLY" || { msg="That is not a valid port number (1-65535)."; continue; }
+        if [ "$transport" = udp ] && [ "$REPLY" = "$tport" ]; then
+          msg="That must differ from the tunnel port ($tport)."; continue
+        fi
+        lport="$REPLY"; hist_add "Apps send to" "UDP port $lport"; wiz_next ;;
+
+      forward)
+        ask "Forward to (HOST:PORT of the UDP service here)" "${forward:-127.0.0.1:51820}" || { wiz_back; continue; }
+        valid_hostport "$REPLY" || { msg="Use the form HOST:PORT, for example 127.0.0.1:51820."; continue; }
+        forward="$REPLY"; hist_add "Forward to" "UDP $forward"; wiz_next ;;
 
       token)
         if [ "$role" = server ]; then
-          ask "Token (Enter keeps the suggested one)" "${token:-$gen}" || { hist_pop; step=4; continue; }
+          ask "Token (Enter keeps the suggested one)" "${token:-$gen}" || { wiz_back; continue; }
         else
-          ask "Token (copy it from the Iran server)" "$token" || { hist_pop; step=4; continue; }
+          ask "Token (copy it from the Iran server)" "$token" || { wiz_back; continue; }
         fi
         valid_token "$REPLY" || { msg="Token must be at least 16 characters (letters, digits, . _ -)."; continue; }
-        token="$REPLY"; hist_add "Token" "${token:0:8}..."; step=6 ;;
+        token="$REPLY"; hist_add "Token" "${token:0:8}..."; wiz_next ;;
 
       target)
-        ask "Send forwarded connections to (on this machine)" "${target:-127.0.0.1}" || { hist_pop; step=5; continue; }
+        ask "Send forwarded connections to (on this machine)" "${target:-127.0.0.1}" || { wiz_back; continue; }
         valid_host "$REPLY" || { msg="That is not a valid address."; continue; }
-        target="$REPLY"; hist_add "Forward to" "$target"; step=7 ;;
+        target="$REPLY"; hist_add "Forward to" "$target"; wiz_next ;;
 
       confirm)
-        [ -n "$target" ] || target=127.0.0.1
         printf '  %sReview%s\n' "$BD" "$NC"
-        kv "Side" "$(role_name "$role") server"
-        kv "Slot" "$slot"
-        kv "Bridge port" "$bridge"
-        if [ "$role" = server ]; then
-          kv "Public ports" "$ports"
+        if [ "$type" = spoof ]; then
+          kv "Type" "Spoof tunnel"
+          kv "Side" "$(role_name "$role") server"
+          kv "Slot" "$slot"
+          kv "Other server" "$peer"
+          kv "Packet type" "$transport"
+          [ "$transport" = icmp ] || kv "Tunnel port" "$tport"
+          kv "Source IPs" "${spoofs:0:40} ($cnt)"
+          if [ "$role" = server ]; then
+            kv "Apps send to" "UDP port $lport"
+          else
+            kv "Forwards to" "UDP $forward"
+          fi
         else
-          kv "Iran server" "$server_ip:$bridge"
-          kv "Forwards to" "$target"
+          kv "Type" "TCP tunnel"
+          kv "Side" "$(role_name "$role") server"
+          kv "Slot" "$slot"
+          kv "Bridge port" "$bridge"
+          if [ "$role" = server ]; then
+            kv "Public ports" "$ports"
+          else
+            kv "Iran server" "$server_ip:$bridge"
+            kv "Forwards to" "${target:-127.0.0.1}"
+          fi
         fi
         kv "Token" "${token:-$gen}"
         echo
+        if [ "$type" = spoof ]; then
+          chk="$(engine spoof-check --raw 2>&1)"
+          if [ "$chk" != ok ]; then warn "  This server cannot use raw packets: $chk"; echo; fi
+          printf '  %sTip: try the "Spoof tester" (main menu) first. The tunnel only works when the%s\n' "$DM" "$NC"
+          printf '  %snetwork lets packets with other source addresses through.%s\n\n' "$DM" "$NC"
+        fi
         if slot_exists "$slot"; then
           warn "  Slot $slot already exists and will be replaced."
           echo
-        elif [ "$role" = server ]; then
+        elif [ "$type" = tcp ] && [ "$role" = server ]; then
           collect_open_ports
           for p in "${open_ports[@]}"; do
             if port_in_use "$p"; then warn "  Port $p is already in use by another program."; fi
           done
+        elif [ "$type" = spoof ] && [ "$role" = server ]; then
+          if udp_port_in_use "$lport"; then warn "  UDP port $lport is already in use by another program."; fi
         fi
         if select_menu "Everything correct?" \
              "1|Create tunnel|save it and start it now" \
              "2|Go back|change an answer" && [ "$SEL" = 1 ]; then
           break
         fi
-        hist_pop; step=$((step - 1)) ;;
+        wiz_back ;;
     esac
   done
 
   slot_exists "$slot" && systemctl stop "nicetunnel@$slot" >/dev/null 2>&1
-  if ! write_slot "$slot" "$role" "$bridge" "$ports" "$server_ip" "$target" "$token"; then
+  if [ "$type" = spoof ]; then
+    write_spoof_slot "$slot" "$role" "$transport" "$tport" "$peer" "$spoofs" "$lport" "$forward" "$token" && saved=1
+  else
+    [ -n "$target" ] || target=127.0.0.1
+    write_slot "$slot" "$role" "$bridge" "$ports" "$server_ip" "$target" "$token" && saved=1
+  fi
+  if [ "$saved" != 1 ]; then
     header
     err "  Could not save the tunnel settings in $CONF_DIR."
     pause
@@ -482,12 +649,23 @@ create_tunnel() {
   header
   ok "$CHK Tunnel $slot created ($(role_name "$role") server) - state: $(slot_state "$slot")"
   show_settings "$slot"
-  if [ "$role" = server ]; then
+  if [ "$type" = tcp ] && [ "$role" = server ]; then
     collect_open_ports
     maybe_open_ufw "${open_ports[@]}"
     echo
     warn "  Also open these ports in your hosting provider's firewall panel, if it has one."
+  elif [ "$type" = spoof ]; then
+    echo
+    if [ "$(slot_state "$slot")" != active ]; then
+      warn "  The tunnel is not running yet. Last log lines:"
+      journalctl -u "nicetunnel@$slot" -n 6 --no-pager 2>&1 | sed 's/^/    /'
+      echo
+    fi
+    warn "  Now create the matching tunnel on the other server (same token, packet type, port)."
+    say "  Then open Manage tunnels > Logs. The Iran side prints \"the spoof tunnel is working\""
+    say "  as soon as the other server answers."
   fi
+  return 0
 }
 
 # --------------------------------------------------------------------------
@@ -538,7 +716,11 @@ manage_tunnel() {
     opts=()
     for n in $(list_slots); do
       load_slot "$n"
-      opts+=("$n|Tunnel $n|$(role_name "$ROLE") - bridge $BRIDGE - $(slot_state "$n")")
+      if [ "$TYPE" = spoof ]; then
+        opts+=("$n|Tunnel $n|$(role_name "$ROLE") - spoof $TRANSPORT - $(slot_state "$n")")
+      else
+        opts+=("$n|Tunnel $n|$(role_name "$ROLE") - bridge $BRIDGE - $(slot_state "$n")")
+      fi
     done
     if [ "${#opts[@]}" -eq 0 ]; then
       warn "  No tunnels yet. Choose \"Create tunnel\" first."
@@ -628,26 +810,132 @@ uninstall_all() {
   exit 0
 }
 
+# --------------------------------------------------------------------------
+# spoof tester: which fake source addresses does the network let through?
+# --------------------------------------------------------------------------
+# sets T_TRANSPORT and T_PORT; returns 1 when the user goes back
+tester_transport() {
+  select_menu "Packet type to test" \
+    "1|udp|ordinary UDP packets" \
+    "2|tcp|TCP packets (SYN)" \
+    "3|icmp|ping packets" || return 1
+  T_TRANSPORT="$SEL_LABEL"; T_PORT=4500
+  if [ "$T_TRANSPORT" != icmp ]; then
+    while true; do
+      ask "Test port (same on both servers)" "$T_PORT" || return 1
+      is_port "$REPLY" && break
+      err "  That is not a valid port number (1-65535)."
+    done
+    T_PORT="$REPLY"
+  fi
+  return 0
+}
+
+tester_recv() {
+  local secs=120 out
+  header
+  say "  Step 1. This server LISTENS. Start \"Send\" on the OTHER server while it waits."
+  echo
+  tester_transport || return 0
+  while true; do
+    ask "Seconds to wait for test packets" "$secs" || return 0
+    if [[ "$REPLY" =~ ^[0-9]+$ ]] && [ "$REPLY" -ge 10 ] && [ "$REPLY" -le 3600 ]; then break; fi
+    err "  Enter a number of seconds between 10 and 3600."
+  done
+  secs="$REPLY"
+  mkdir -p "$CONF_DIR" && chmod 700 "$CONF_DIR"
+  out="$CONF_DIR/working-ips-$T_TRANSPORT.txt"
+  rm -f "$out"
+  echo
+  engine spoof-test recv --transport "$T_TRANSPORT" --port "$T_PORT" --seconds "$secs" --out "$out"
+  if [ -s "$out" ]; then
+    echo
+    say "  The full list is saved in $out on this server."
+    say "  The OTHER server uses these addresses as its \"Source IPs\" when you create its tunnel."
+  fi
+  echo
+  printf '  %sFor the other direction, run Receive on the other server and Send on this one.%s\n' "$DM" "$NC"
+}
+
+tester_send() {
+  local peer="" list=""
+  header
+  say "  Step 2. Run this on the OTHER server, after \"Receive\" has started there."
+  echo
+  while true; do
+    ask "Real IP address of the server that is receiving" "$peer" || return 0
+    valid_ipv4 "$REPLY" && break
+    err "  That is not an IPv4 address (like 203.0.113.5)."
+  done
+  peer="$REPLY"
+  tester_transport || return 0
+  printf '  %sAddresses to try as fake sources: 1.2.3.4  10.0.0.0/28  5.5.5.1-5.5.5.9  @file%s\n' "$DM" "$NC"
+  while true; do
+    ask "Addresses to test" "$list" || return 0
+    REPLY="${REPLY// /}"
+    valid_spoof_list "$REPLY" && break
+    err "  Could not read that list."
+  done
+  list="$REPLY"
+  echo
+  engine spoof-test send --peer "$peer" --transport "$T_TRANSPORT" --port "$T_PORT" --spoof-ip "$list"
+}
+
+check_this_server() {
+  local out
+  header
+  out="$(engine spoof-check --raw 2>&1)"
+  if [ "$out" = ok ]; then
+    ok "  $CHK This server can send and capture raw packets (the spoof tunnel needs that)."
+  else
+    err "  Problem: $out"
+    say "  The spoof tunnel needs root and a normal Linux kernel. Some VPS types (OpenVZ, LXC) refuse it."
+  fi
+  echo
+  say "  Whether the hosting network lets fake source addresses leave is what Receive/Send find out."
+}
+
+spoof_tester() {
+  while true; do
+    header
+    printf '  %sTest packets leave one server with fake source addresses and the other server lists%s\n' "$DM" "$NC"
+    printf '  %sthe ones that arrived. Start Receive on one server, then Send on the other.%s\n\n' "$DM" "$NC"
+    select_menu "Spoof tester" \
+      "1|Receive|step 1: run on the server that receives the test packets" \
+      "2|Send|step 2: run on the other server" \
+      "3|Check this server|can it create raw packets at all?" \
+      "0|Back|" || return 0
+    case "$SEL" in
+      1) tester_recv; pause ;;
+      2) tester_send; pause ;;
+      3) check_this_server; pause ;;
+      0) return 0 ;;
+    esac
+  done
+}
+
 main_menu() {
   while true; do
     header
     print_slots
     echo
     select_menu "What do you want to do?" \
-      "1|Create tunnel|set up the Iran side or the foreign side" \
+      "1|Create tunnel|TCP tunnel or spoof tunnel, Iran or foreign side" \
       "2|Manage tunnels|start, stop, logs, delete" \
-      "3|Optimize server|turn on BBR congestion control" \
-      "4|Theme|change the colors of this menu" \
-      "5|Update|get the newest version from GitHub" \
-      "6|Uninstall|remove NiceTunnel and all tunnels" \
+      "3|Spoof tester|find out which fake source IPs get through" \
+      "4|Optimize server|turn on BBR congestion control" \
+      "5|Theme|change the colors of this menu" \
+      "6|Update|get the newest version from GitHub" \
+      "7|Uninstall|remove NiceTunnel and all tunnels" \
       "0|Exit|" || continue
     case "$SEL" in
       1) create_tunnel && pause ;;
       2) manage_tunnel ;;
-      3) optimize_server; pause ;;
-      4) theme_menu ;;
-      5) update_all; pause ;;
-      6) uninstall_all; pause ;;
+      3) spoof_tester ;;
+      4) optimize_server; pause ;;
+      5) theme_menu ;;
+      6) update_all; pause ;;
+      7) uninstall_all; pause ;;
       0) [ "$COLOR" = 1 ] && printf '\033[H\033[2J'; exit 0 ;;
     esac
   done
