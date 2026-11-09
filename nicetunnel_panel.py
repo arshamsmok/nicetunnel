@@ -653,6 +653,68 @@ def cmd_set_password(_args):
     print("Password saved.")
 
 
+UNIT_PATH = "/etc/systemd/system/nicetunnel-panel.service"
+PANEL_PORT = 8787
+
+
+def public_ip_guess():
+    try:
+        out = subprocess.run(["hostname", "-I"], stdout=subprocess.PIPE,
+                             universal_newlines=True).stdout.split()
+        for ip in out:
+            if ":" not in ip and not ip.startswith("127."):
+                return ip
+    except Exception:
+        pass
+    return "SERVER_IP"
+
+
+def cmd_install(args):
+    """Installs and starts the panel as a systemd service, then prints how to open it."""
+    if os.geteuid() != 0:
+        sys.exit("error: run as root")
+    if not os.path.exists(ENGINE):
+        sys.exit("error: %s not found. Install NiceTunnel first." % ENGINE)
+    here = os.path.abspath(__file__)
+    target = os.path.join(APP_DIR, "nicetunnel_panel.py")
+    if here != target:
+        os.makedirs(APP_DIR, exist_ok=True)
+        with open(here, "rb") as src, open(target + ".new", "wb") as dst:
+            dst.write(src.read())
+        os.chmod(target + ".new", 0o755)
+        os.replace(target + ".new", target)
+    if "password" not in load_panel_conf():
+        print("Set the panel password (min 8 characters):")
+        cmd_set_password(args)
+    unit = (
+        "[Unit]\nDescription=NiceTunnel Spoof Panel\nAfter=network-online.target\n"
+        "Wants=network-online.target\n\n[Service]\n"
+        "ExecStart=%s %s serve --bind 127.0.0.1 --port %d\nRestart=on-failure\nRestartSec=3\n\n"
+        "[Install]\nWantedBy=multi-user.target\n"
+    ) % (sys.executable, target, PANEL_PORT)
+    with open(UNIT_PATH, "w") as f:
+        f.write(unit)
+    subprocess.run(["systemctl", "daemon-reload"])
+    subprocess.run(["systemctl", "enable", "--now", "nicetunnel-panel"])
+    print("")
+    print("Panel installed. It listens only on 127.0.0.1:%d on this server." % PANEL_PORT)
+    print("Open an SSH tunnel from your computer, then browse to the address below:")
+    print("  ssh -L %d:127.0.0.1:%d root@%s" % (PANEL_PORT, PANEL_PORT, public_ip_guess()))
+    print("  then open:  http://127.0.0.1:%d" % PANEL_PORT)
+    print("Login password: the one you just set.")
+
+
+def cmd_uninstall(_args):
+    if os.geteuid() != 0:
+        sys.exit("error: run as root")
+    subprocess.run(["systemctl", "disable", "--now", "nicetunnel-panel"],
+                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    if os.path.exists(UNIT_PATH):
+        os.remove(UNIT_PATH)
+    subprocess.run(["systemctl", "daemon-reload"])
+    print("Panel service removed.")
+
+
 def cmd_serve(args):
     if os.geteuid() != 0:
         sys.exit("error: run as root (the panel manages systemd services)")
@@ -672,6 +734,8 @@ def main():
     p = argparse.ArgumentParser(description="NiceTunnel web panel for spoof tunnels")
     sub = p.add_subparsers(dest="cmd", required=True)
     sub.add_parser("set-password", help="set or change the panel password").set_defaults(func=cmd_set_password)
+    sub.add_parser("install", help="install and start the panel service").set_defaults(func=cmd_install)
+    sub.add_parser("uninstall", help="remove the panel service").set_defaults(func=cmd_uninstall)
     s = sub.add_parser("serve", help="run the web panel")
     s.add_argument("--bind", default="127.0.0.1", help="address to listen on (default 127.0.0.1)")
     s.add_argument("--port", type=int, default=8787)

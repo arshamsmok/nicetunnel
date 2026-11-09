@@ -14,6 +14,7 @@ CONF_DIR="${NICETUNNEL_CONF_DIR:-/etc/nicetunnel}"
 APP_DIR="${NICETUNNEL_APP_DIR:-/opt/nicetunnel}"
 BIN_PATH="${NICETUNNEL_BIN:-/usr/local/bin/nicetunnel}"
 UNIT_FILE="${NICETUNNEL_UNIT_DIR:-/etc/systemd/system}/nicetunnel@.service"
+PANEL_UNIT="${NICETUNNEL_UNIT_DIR:-/etc/systemd/system}/nicetunnel-panel.service"
 SYSCTL_FILE="${NICETUNNEL_SYSCTL_DIR:-/etc/sysctl.d}/99-nicetunnel.conf"
 TTY="${NICETUNNEL_TTY:-/dev/tty}"
 MAX_SLOT=10
@@ -802,6 +803,8 @@ uninstall_all() {
   ask "Type yes to continue"
   [ "$REPLY" = yes ] || { say "  Cancelled."; return; }
   for n in $(list_slots); do systemctl disable --now "nicetunnel@$n" >/dev/null 2>&1; done
+  systemctl disable --now nicetunnel-panel >/dev/null 2>&1
+  rm -f "$PANEL_UNIT"
   rm -f "$UNIT_FILE"
   systemctl daemon-reload >/dev/null 2>&1
   rm -rf "$CONF_DIR" "$APP_DIR"
@@ -895,6 +898,96 @@ check_this_server() {
   say "  Whether the hosting network lets fake source addresses leave is what Receive/Send find out."
 }
 
+# --------------------------------------------------------------------------
+# web panel (spoof tunnels only, browser UI on 127.0.0.1)
+# --------------------------------------------------------------------------
+panel_installed() { [ -f "$APP_DIR/nicetunnel_panel.py" ] && [ -f "$PANEL_UNIT" ]; }
+
+panel_state() {
+  if ! panel_installed; then echo "not installed"; return; fi
+  systemctl is-active nicetunnel-panel >/dev/null 2>&1 && echo "running" || echo "stopped"
+}
+
+panel_menu() {
+  while true; do
+    header
+    say "  Web panel: manage spoof tunnels from a browser. Reverse TCP tunnels stay in this menu."
+    say "  State: $(panel_state)"
+    echo
+    select_menu "Web panel" \
+      "1|Install / repair|download the panel and start it as a service" \
+      "2|Show access info|how to open it through an SSH tunnel" \
+      "3|Change password|set a new panel password" \
+      "4|Restart|restart the panel service" \
+      "5|Remove|stop the panel and delete its service" \
+      "0|Back|" || return 0
+    case "$SEL" in
+      1) panel_install; pause ;;
+      2) panel_info; pause ;;
+      3) panel_password; pause ;;
+      4) systemctl restart nicetunnel-panel 2>/dev/null && ok "  $CHK Restarted." || err "  Panel is not installed."; pause ;;
+      5) panel_remove; pause ;;
+      0) return 0 ;;
+    esac
+  done
+}
+
+panel_fetch() { # downloads nicetunnel_panel.py into $1 (uses REPO_RAW from source.conf)
+  local dest="$1" src
+  if [ -f "$APP_DIR/nicetunnel_panel.py" ] && [ ! -f "$CONF_DIR/source.conf" ]; then
+    cp "$APP_DIR/nicetunnel_panel.py" "$dest"; return 0
+  fi
+  if [ -f "$CONF_DIR/source.conf" ]; then . "$CONF_DIR/source.conf"; fi
+  src="${REPO_RAW:-}"
+  [ -n "$src" ] || { err "  No GitHub source is recorded on this server."; return 1; }
+  curl -fsSL --retry 3 --connect-timeout 15 "$src/nicetunnel_panel.py" -o "$dest" || return 1
+  python3 -c 'import ast,sys; ast.parse(open(sys.argv[1]).read())' "$dest" 2>/dev/null
+}
+
+panel_install() {
+  local tmp
+  header
+  tmp="$(mktemp -d)"
+  say "  Downloading the panel..."
+  if ! panel_fetch "$tmp/nicetunnel_panel.py"; then
+    err "  Could not download nicetunnel_panel.py. Check the network or copy the file to $APP_DIR."
+    rm -rf "$tmp"; return 1
+  fi
+  install -d -m 755 "$APP_DIR"
+  install -m 755 "$tmp/nicetunnel_panel.py" "$APP_DIR/nicetunnel_panel.py"
+  rm -rf "$tmp"
+  NICETUNNEL_APP_DIR="$APP_DIR" NICETUNNEL_CONF_DIR="$CONF_DIR" python3 "$APP_DIR/nicetunnel_panel.py" install <&3
+}
+
+panel_info() {
+  header
+  if ! panel_installed; then err "  The panel is not installed. Choose \"Install / repair\" first."; return; fi
+  local ip
+  ip="$(hostname -I 2>/dev/null | tr ' ' '\n' | grep -v : | grep -v '^127\.' | head -n1)"
+  say "  State: $(panel_state)"
+  echo
+  say "  On your own computer run:"
+  ok  "    ssh -L 8787:127.0.0.1:8787 root@${ip:-SERVER_IP}"
+  say "  Then open in your browser:"
+  ok  "    http://127.0.0.1:8787"
+  say "  Login with the panel password (change it from this menu if you forgot it)."
+}
+
+panel_password() {
+  header
+  if ! panel_installed; then err "  The panel is not installed."; return; fi
+  NICETUNNEL_CONF_DIR="$CONF_DIR" python3 "$APP_DIR/nicetunnel_panel.py" set-password <&3
+}
+
+panel_remove() {
+  header
+  ask "Type yes to remove the web panel (tunnels are kept)"
+  [ "$REPLY" = yes ] || { say "  Cancelled."; return; }
+  NICETUNNEL_APP_DIR="$APP_DIR" NICETUNNEL_CONF_DIR="$CONF_DIR" python3 "$APP_DIR/nicetunnel_panel.py" uninstall
+  rm -f "$APP_DIR/nicetunnel_panel.py"
+  ok "  $CHK Web panel removed."
+}
+
 spoof_tester() {
   while true; do
     header
@@ -923,19 +1016,21 @@ main_menu() {
       "1|Create tunnel|TCP tunnel or spoof tunnel, Iran or foreign side" \
       "2|Manage tunnels|start, stop, logs, delete" \
       "3|Spoof tester|find out which fake source IPs get through" \
-      "4|Optimize server|turn on BBR congestion control" \
-      "5|Theme|change the colors of this menu" \
-      "6|Update|get the newest version from GitHub" \
-      "7|Uninstall|remove NiceTunnel and all tunnels" \
+      "4|Web panel|manage spoof tunnels from a browser" \
+      "5|Optimize server|turn on BBR congestion control" \
+      "6|Theme|change the colors of this menu" \
+      "7|Update|get the newest version from GitHub" \
+      "8|Uninstall|remove NiceTunnel and all tunnels" \
       "0|Exit|" || continue
     case "$SEL" in
       1) create_tunnel && pause ;;
       2) manage_tunnel ;;
       3) spoof_tester ;;
-      4) optimize_server; pause ;;
-      5) theme_menu ;;
-      6) update_all; pause ;;
-      7) uninstall_all; pause ;;
+      4) panel_menu ;;
+      5) optimize_server; pause ;;
+      6) theme_menu ;;
+      7) update_all; pause ;;
+      8) uninstall_all; pause ;;
       0) [ "$COLOR" = 1 ] && printf '\033[H\033[2J'; exit 0 ;;
     esac
   done

@@ -8,7 +8,7 @@
 # downloading (handy when a server cannot reach GitHub):  bash install.sh
 set -euo pipefail
 
-GITHUB_USER="arshamsmok"   # <-- EDIT: your GitHub username
+GITHUB_USER="YOUR_GITHUB_USERNAME"   # <-- EDIT: your GitHub username
 GITHUB_REPO="nicetunnel"             # <-- EDIT only if your repository has another name
 REPO_RAW="${NICETUNNEL_RAW:-https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/main}"
 
@@ -44,6 +44,7 @@ trap 'rm -rf "$WORK"' EXIT
 if [ "$LOCAL" = 1 ]; then
   echo "Installing from local files in $HERE"
   cp "$HERE/nicetunnel.py" "$HERE/nicetunnel.sh" "$WORK/"
+  [ -f "$HERE/nicetunnel_panel.py" ] && cp "$HERE/nicetunnel_panel.py" "$WORK/"
 else
   case "$REPO_RAW" in
     *YOUR_GITHUB_USERNAME*) die "open install.sh and set GITHUB_USER to your GitHub username first." ;;
@@ -52,7 +53,7 @@ else
     need apt-get && apt-get install -y curl || die "curl is required."
   fi
   echo "Downloading from $REPO_RAW ..."
-  for f in nicetunnel.py nicetunnel.sh; do
+  for f in nicetunnel.py nicetunnel.sh nicetunnel_panel.py; do
     curl -fsSL --retry 3 --connect-timeout 15 "$REPO_RAW/$f" -o "$WORK/$f" \
       || die "could not download $f. If this server cannot reach GitHub, copy the files here with scp and run: bash install.sh"
   done
@@ -68,6 +69,7 @@ install -d -m 700 "$CONF_DIR"
 
 install -m 755 "$WORK/nicetunnel.py" "$APP_DIR/nicetunnel.py.new" && mv -f "$APP_DIR/nicetunnel.py.new" "$APP_DIR/nicetunnel.py"
 install -m 755 "$WORK/nicetunnel.sh" "$BIN_PATH.new" && mv -f "$BIN_PATH.new" "$BIN_PATH"
+[ -f "$WORK/nicetunnel_panel.py" ] && install -m 755 "$WORK/nicetunnel_panel.py" "$APP_DIR/nicetunnel_panel.py"
 
 PYBIN="$(command -v python3)"
 cat >"$UNIT_DIR/nicetunnel@.service" <<EOF
