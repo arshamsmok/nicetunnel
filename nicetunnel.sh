@@ -966,11 +966,12 @@ panel_info() {
   ip="$(hostname -I 2>/dev/null | tr ' ' '\n' | grep -v : | grep -v '^127\.' | head -n1)"
   say "  State: $(panel_state)"
   echo
-  say "  On your own computer run:"
-  ok  "    ssh -L 8787:127.0.0.1:8787 root@${ip:-SERVER_IP}"
-  say "  Then open in your browser:"
-  ok  "    http://127.0.0.1:8787"
-  say "  Login with the panel password (change it from this menu if you forgot it)."
+  local port user
+  port="$(python3 -c "import json;print(json.load(open('$CONF_DIR/panel.json')).get('port',''))" 2>/dev/null)"
+  user="$(python3 -c "import json;print(json.load(open('$CONF_DIR/panel.json')).get('username','admin'))" 2>/dev/null)"
+  say "  Open in your browser:"
+  ok  "    http://${ip:-SERVER_IP}:${port}"
+  say "  Username: ${user}   (open TCP port ${port} in your provider firewall)"
 }
 
 panel_password() {

@@ -26,7 +26,9 @@ import http.server
 import ipaddress
 import json
 import os
+import random
 import re
+import shutil
 import secrets
 import subprocess
 import sys
@@ -344,11 +346,13 @@ async function api(path, body){
 }
 function loginView(){
   $('#app').innerHTML = `<h1>NiceTunnel Panel</h1><div class="box"><div id="msg"></div>
-  <div class="row"><div><label>${state.needSetup?'Create admin password (min 8 chars)':'Password'}</label>
+  <div class="row"><div><label>Username</label>
+  <input id="un" value="admin" autocomplete="username"></div>
+  <div><label>${state.needSetup?'Create admin password (min 8 chars)':'Password'}</label>
   <input id="pw" type="password"></div>
   <button class="ok" id="go">${state.needSetup?'Save password':'Login'}</button></div></div>`;
   $('#go').onclick = async () => { try {
-      await api(state.needSetup ? '/api/setup' : '/api/login', {password:$('#pw').value});
+      await api(state.needSetup ? '/api/setup' : '/api/login', {username:$('#un').value,password:$('#pw').value});
       await load(); } catch(e){ msg(e.message,false); } };
   $('#pw').onkeydown = e => { if(e.key==='Enter') $('#go').click(); };
 }
@@ -556,6 +560,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             if len(pw) < 8:
                 return self.send_json({"error": "password must be at least 8 characters"}, 400)
             conf["password"] = hash_password(pw)
+            conf["username"] = str(body.get("username", "admin")).strip() or "admin"
             save_panel_conf(conf)
             return self.send_json({"ok": True})
 
@@ -568,7 +573,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 if cnt >= LOGIN_FAILS_MAX:
                     return self.send_json({"error": "too many attempts, wait 15 minutes"}, 429)
             conf = load_panel_conf()
-            if not conf.get("password") or not check_password(str(body.get("password", "")), conf["password"]):
+            if not conf.get("password") or not hmac.compare_digest(
+                    str(body.get("username", "")), conf.get("username", "admin")) or not check_password(str(body.get("password", "")), conf["password"]):
                 with lock:
                     fails[ip] = [cnt + 1, first]
                 time.sleep(1)
@@ -648,9 +654,12 @@ def cmd_set_password(_args):
     if len(pw) < 8 or pw != getpass.getpass("Repeat: "):
         sys.exit("error: passwords do not match or are too short")
     conf = load_panel_conf()
+    old = conf.get("username", "admin")
+    user = input("Username [%s]: " % old).strip() or old
+    conf["username"] = user
     conf["password"] = hash_password(pw)
     save_panel_conf(conf)
-    print("Password saved.")
+    print("Saved. Username: %s" % user)
 
 
 UNIT_PATH = "/etc/systemd/system/nicetunnel-panel.service"
@@ -683,25 +692,33 @@ def cmd_install(args):
             dst.write(src.read())
         os.chmod(target + ".new", 0o755)
         os.replace(target + ".new", target)
-    if "password" not in load_panel_conf():
+    conf = load_panel_conf()
+    if "port" not in conf:
+        conf["port"] = random.randint(20000, 60000)
+        save_panel_conf(conf)
+    port = int(conf["port"])
+    if "password" not in conf:
         print("Set the panel password (min 8 characters):")
         cmd_set_password(args)
     unit = (
         "[Unit]\nDescription=NiceTunnel Spoof Panel\nAfter=network-online.target\n"
         "Wants=network-online.target\n\n[Service]\n"
-        "ExecStart=%s %s serve --bind 127.0.0.1 --port %d\nRestart=on-failure\nRestartSec=3\n\n"
+        "ExecStart=%s %s serve --bind 0.0.0.0 --port %d\nRestart=on-failure\nRestartSec=3\n\n"
         "[Install]\nWantedBy=multi-user.target\n"
-    ) % (sys.executable, target, PANEL_PORT)
+    ) % (sys.executable, target, port)
     with open(UNIT_PATH, "w") as f:
         f.write(unit)
     subprocess.run(["systemctl", "daemon-reload"])
     subprocess.run(["systemctl", "enable", "--now", "nicetunnel-panel"])
+    subprocess.run(["systemctl", "restart", "nicetunnel-panel"])
+    if shutil.which("ufw"):
+        subprocess.run(["ufw", "allow", "%d/tcp" % port], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     print("")
-    print("Panel installed. It listens only on 127.0.0.1:%d on this server." % PANEL_PORT)
-    print("Open an SSH tunnel from your computer, then browse to the address below:")
-    print("  ssh -L %d:127.0.0.1:%d root@%s" % (PANEL_PORT, PANEL_PORT, public_ip_guess()))
-    print("  then open:  http://127.0.0.1:%d" % PANEL_PORT)
-    print("Login password: the one you just set.")
+    print("Panel installed.")
+    print("  URL:      http://%s:%d" % (public_ip_guess(), port))
+    print("  Username: %s" % load_panel_conf().get("username", "admin"))
+    print("  Password: the one you set.")
+    print("Open TCP port %d in your provider firewall if the page does not load." % port)
 
 
 def cmd_uninstall(_args):
@@ -723,7 +740,7 @@ def cmd_serve(args):
     if "password" not in load_panel_conf():
         sys.exit("error: set a password first: python3 %s set-password" % sys.argv[0])
     srv = http.server.ThreadingHTTPServer((args.bind, args.port), Handler)
-    print("NiceTunnel panel on http://%s:%d  (use an SSH tunnel for remote access)" % (args.bind, args.port))
+    print("NiceTunnel panel on http://%s:%d  " % (args.bind, args.port))
     try:
         srv.serve_forever()
     except KeyboardInterrupt:
