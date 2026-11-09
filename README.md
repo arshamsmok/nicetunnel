@@ -1,7 +1,7 @@
 # NiceTunnel (نایس تانل)
 
 ساخته‌شده توسط **Arsham Smoke** (آرشام اسموک) · لایسنس MIT
-
+برای اطلاع از ابدیت ها و ارتباط با ما  https://t.me/DarkCore_Vpn  چنل تلگرام مارا دنبال کنید
 دو نوع تانل بین دو سرور (مثلاً ایران و خارج) با منوی تعاملی. روی هر دو سرور با یک دستور نصب می‌شود.
 
 | نوع | برای چه | چه چیزی عبور می‌کند |
@@ -19,24 +19,12 @@
 - منوی رنگی با بنر گرادیانی، مراحل ساخت تونل با شماره قدم و تیک سبز، انتخاب با کلیدهای جهت‌نما، و چند تم رنگی.
 - تونل‌ها ترافیک را **رمز نمی‌کنند**. روی آن‌ها پروتکل‌هایی را عبور بدهید که خودشان رمزنگاری دارند (TLS، VLESS، Trojan، SSH، WireGuard و مانند آن).
 
-## ۱. گذاشتن سورس روی GitHub
-
-۱. در github.com وارد حسابتان شوید (اگر حساب ندارید، Sign up).
-
-۲. دکمه **+** بالای صفحه ← **New repository**:
-   - Repository name: `nicetunnel`
-   - حتماً **Public** را انتخاب کنید (برای ریپوی Private لینک raw بدون توکن کار نمی‌کند)
-   - **Create repository**
-
-۳. در صفحه ریپوی خالی روی لینک **uploading an existing file** بزنید، پنج فایل `install.sh`، `nicetunnel.sh`، `nicetunnel.py`، `README.md` و `LICENSE` را بکشید و رها کنید، بعد **Commit changes**.
-
-۴. روی `install.sh` کلیک کنید ← آیکون مداد (Edit) ← در بالای فایل خط زیر را پیدا کنید و `YOUR_GITHUB_USERNAME` را با یوزرنیم GitHub خودتان عوض کنید:
 
    ```bash
-   GITHUB_USER="YOUR_GITHUB_USERNAME"
+   GITHUB_USER="arshamsmok"
    ```
 
-   بعد **Commit changes**.
+
 
 ۵. لینک دانلود (raw) شما این است:
 
