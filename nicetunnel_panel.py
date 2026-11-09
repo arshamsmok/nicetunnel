@@ -420,7 +420,7 @@ async function tstatus(){
   clearTimeout(tTimer);
   try { const r = await api('/api/test/status');
     const state = r.running ? 'running...' : (r.code === null ? 'idle' : 'finished (exit '+r.code+')');
-    $('#tbox').textContent = (r.title ? '['+r.title+'] ' : '') + state + '\n' + (r.log || '');
+    $('#tbox').textContent = (r.title ? '['+r.title+'] ' : '') + state + '\\n' + (r.log || '');
     if (r.running) tTimer = setTimeout(tstatus, 2000);
   } catch(e){ msg(e.message,false); } }
 async function load(){
