@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # NiceTunnel installer (by Arsham Smoke, MIT License) - run it on BOTH servers (as root):
 #
-#   bash <(curl -Ls https://raw.githubusercontent.com/YOUR_GITHUB_USERNAME/nicetunnel/main/install.sh)
+#   bash <(curl -Ls https://raw.githubusercontent.com/arshamsmok/nicetunnel/main/install.sh)
 #
 # It installs the tunnel engine and the "nicetunnel" menu command, then opens the menu.
 # If the files nicetunnel.py and nicetunnel.sh sit next to this script, they are used instead of
 # downloading (handy when a server cannot reach GitHub):  bash install.sh
 set -euo pipefail
 
-GITHUB_USER="YOUR_GITHUB_USERNAME"   # <-- EDIT: your GitHub username
+GITHUB_USER="arshamsmok"   # <-- EDIT: your GitHub username
 GITHUB_REPO="nicetunnel"             # <-- EDIT only if your repository has another name
 REPO_RAW="${NICETUNNEL_RAW:-https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/main}"
 
