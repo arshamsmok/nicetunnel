@@ -331,8 +331,9 @@ pre{background:#000;padding:10px;overflow:auto;max-height:300px;font-size:12px}
 label{font-size:13px;color:#aaa}
 </style>
 <body>
-<div id="app"></div>
+<div id="app">Loading...</div>
 <script>
+window.onerror=(m,u,l)=>{document.getElementById("app").textContent="JS error: "+m+" line "+l;};
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let state = {logged: false, needSetup: false};
