@@ -29,6 +29,7 @@ import os
 import random
 import re
 import shutil
+import socket
 import secrets
 import subprocess
 import sys
@@ -315,28 +316,79 @@ def validate_test(kind, d):
 # --------------------------------------------------------------------------
 # web page
 # --------------------------------------------------------------------------
-PAGE = """<!doctype html><html lang="en"><meta charset="utf-8">
+PAGE = r"""<!doctype html><html lang="en"><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>NiceTunnel Panel</title>
 <style>
-body{font-family:system-ui,sans-serif;background:#111;color:#ddd;margin:20px auto;padding:0 20px;max-width:980px}
-h1{font-size:20px} h2{font-size:16px;margin-top:28px;border-bottom:1px solid #333;padding-bottom:6px}
-input,select,button{background:#1c1c1c;color:#eee;border:1px solid #444;border-radius:6px;padding:7px;margin:3px 0}
-button{cursor:pointer} button.danger{border-color:#803} button.ok{border-color:#276}
-table{width:100%;border-collapse:collapse;font-size:14px} td,th{border-bottom:1px solid #2a2a2a;padding:6px;text-align:left}
-.active{color:#6d6} .inactive,.failed{color:#e66} .box{background:#181818;padding:12px;border-radius:8px}
-.row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end} .row>div{display:flex;flex-direction:column;min-width:200px}
-pre{background:#000;padding:10px;overflow:auto;max-height:300px;font-size:12px}
-.msg{padding:8px;border-radius:6px;margin:8px 0} .good{background:#163}.bad{background:#411}
-label{font-size:13px;color:#aaa}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font-family:system-ui,Segoe UI,sans-serif;color:#e8ecff;background:#070b1a;overflow-x:hidden}
+#bg{position:fixed;inset:0;z-index:-2;background:
+ radial-gradient(60vw 60vw at 15% 10%,rgba(99,102,241,.55),transparent 60%),
+ radial-gradient(50vw 50vw at 90% 20%,rgba(236,72,153,.40),transparent 60%),
+ radial-gradient(55vw 55vw at 70% 100%,rgba(20,184,166,.45),transparent 60%),
+ radial-gradient(40vw 40vw at 0% 100%,rgba(56,189,248,.35),transparent 60%),#070b1a;
+ animation:drift 18s ease-in-out infinite alternate}
+@keyframes drift{from{filter:hue-rotate(0deg) saturate(1)}to{filter:hue-rotate(35deg) saturate(1.25)}}
+#grid{position:fixed;inset:0;z-index:-1;opacity:.25;
+ background-image:linear-gradient(rgba(255,255,255,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.08) 1px,transparent 1px);
+ background-size:46px 46px;mask-image:radial-gradient(circle at 50% 40%,#000,transparent 75%);-webkit-mask-image:radial-gradient(circle at 50% 40%,#000,transparent 75%)}
+.glass{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.16);border-radius:16px;
+ backdrop-filter:blur(18px) saturate(140%);-webkit-backdrop-filter:blur(18px) saturate(140%);box-shadow:0 8px 32px rgba(0,0,0,.35)}
+#shell{display:flex;min-height:100vh;gap:16px;padding:16px}
+#side{width:230px;flex:none;padding:18px 12px;display:flex;flex-direction:column;gap:6px;position:sticky;top:16px;height:calc(100vh - 32px)}
+.brand{font-weight:700;font-size:18px;padding:6px 10px 14px;letter-spacing:.3px}
+.brand small{display:block;font-weight:400;font-size:11px;color:#9aa6d6}
+.nav{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:12px;cursor:pointer;color:#c9d2ff;border:1px solid transparent;transition:.2s;user-select:none}
+.nav:hover{background:rgba(255,255,255,.09)}
+.nav.on{background:linear-gradient(135deg,rgba(99,102,241,.55),rgba(56,189,248,.35));border-color:rgba(255,255,255,.25);color:#fff}
+.nav i{font-style:normal;width:20px;text-align:center}
+.sp{flex:1}
+#main{flex:1;min-width:0;display:flex;flex-direction:column;gap:16px}
+#top{padding:14px 20px;display:flex;justify-content:space-between;align-items:center}
+#top h1{margin:0;font-size:19px}
+.page{display:none;flex-direction:column;gap:16px}.page.on{display:flex}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px}
+.card{padding:16px}
+.card .k{font-size:12px;color:#9aa6d6;text-transform:uppercase;letter-spacing:.8px}
+.card .v{font-size:28px;font-weight:700;margin:6px 0}
+.card .s{font-size:12px;color:#b8c2ee}
+.bar{height:7px;border-radius:6px;background:rgba(255,255,255,.12);overflow:hidden;margin-top:8px}
+.bar b{display:block;height:100%;width:0;background:linear-gradient(90deg,#38bdf8,#818cf8,#ec4899);transition:width .6s}
+canvas{width:100%;height:90px;display:block}
+.sec{padding:18px}.sec h2{margin:0 0 12px;font-size:16px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+td,th{padding:10px 8px;text-align:left;border-bottom:1px solid rgba(255,255,255,.1)}
+th{color:#9aa6d6;font-weight:500;font-size:12px;text-transform:uppercase}
+input,select,button{font:inherit;color:#fff;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.22);border-radius:10px;padding:9px 11px;outline:none}
+input:focus,select:focus{border-color:#818cf8;box-shadow:0 0 0 3px rgba(129,140,248,.25)}
+select option{color:#111}
+input::placeholder{color:#7f8bb8}
+button{cursor:pointer;transition:.15s}button:hover{background:rgba(255,255,255,.18)}
+button.ok{background:linear-gradient(135deg,#6366f1,#06b6d4);border-color:transparent;font-weight:600}
+button.danger{background:rgba(244,63,94,.25);border-color:rgba(244,63,94,.6)}
+button.sm{padding:5px 9px;font-size:12px;margin:1px}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
+.row>div{display:flex;flex-direction:column;min-width:200px;flex:1}
+label{font-size:12px;color:#aab4e6;margin-bottom:4px}
+pre{background:rgba(0,0,0,.45);border-radius:10px;padding:12px;overflow:auto;max-height:340px;font-size:12px;margin:0;white-space:pre-wrap}
+.msg{padding:10px 12px;border-radius:10px;margin-bottom:10px}.good{background:rgba(16,185,129,.25)}.bad{background:rgba(244,63,94,.25)}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;background:#888}
+.active .dot{background:#34d399;box-shadow:0 0 8px #34d399}.inactive .dot,.failed .dot{background:#f43f5e}
+.active{color:#6ee7b7}.inactive,.failed{color:#fda4af}
+code{background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px;word-break:break-all}
+#login{max-width:400px;margin:12vh auto;padding:28px}#login h1{margin-top:0}#login .row>div{min-width:100%}
+.hide{display:none!important}
+@media(max-width:820px){#shell{flex-direction:column}#side{width:auto;height:auto;position:static;flex-direction:row;flex-wrap:wrap}.brand,.sp{display:none}}
 </style>
 <body>
+<div id="bg"></div><div id="grid"></div>
 <div id="app">Loading...</div>
 <script>
 window.onerror=(m,u,l)=>{document.getElementById("app").textContent="JS error: "+m+" line "+l;};
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let state = {logged: false, needSetup: false};
+let state = {logged: false, needSetup: false}, page = 'dash', hist = {cpu:[],rx:[],tx:[]}, timer = null, tTimer = null;
 function msg(t, ok){ const m=$('#msg'); if(m){ m.className='msg '+(ok?'good':'bad'); m.textContent=t; } else alert(t); }
 async function api(path, body){
   const r = await fetch(path, {method: body===undefined?'GET':'POST', headers:{'Content-Type':'application/json'},
@@ -345,37 +397,41 @@ async function api(path, body){
   if(!r.ok) throw new Error(j.error || ('HTTP '+r.status));
   return j;
 }
+const fmtB = n => { const u=['B','KB','MB','GB','TB']; let i=0; n=+n||0; while(n>=1024&&i<4){n/=1024;i++;} return n.toFixed(i?1:0)+' '+u[i]; };
+const fmtUp = s => { s=Math.floor(s); const d=Math.floor(s/86400),h=Math.floor(s%86400/3600),m=Math.floor(s%3600/60); return (d?d+'d ':'')+h+'h '+m+'m'; };
+
 function loginView(){
-  $('#app').innerHTML = `<h1>NiceTunnel Panel</h1><div class="box"><div id="msg"></div>
-  <div class="row"><div><label>Username</label>
-  <input id="un" value="admin" autocomplete="username"></div>
-  <div><label>${state.needSetup?'Create admin password (min 8 chars)':'Password'}</label>
-  <input id="pw" type="password"></div>
-  <button class="ok" id="go">${state.needSetup?'Save password':'Login'}</button></div></div>`;
+  $('#app').innerHTML = `<div id="login" class="glass"><h1>NiceTunnel Panel</h1><div id="msg"></div>
+  <div class="row"><div><label>Username</label><input id="un" value="admin" autocomplete="username"></div>
+  <div><label>${state.needSetup?'Create admin password (min 8 chars)':'Password'}</label><input id="pw" type="password"></div>
+  <div><button class="ok" id="go">${state.needSetup?'Save password':'Login'}</button></div></div></div>`;
   $('#go').onclick = async () => { try {
       await api(state.needSetup ? '/api/setup' : '/api/login', {username:$('#un').value,password:$('#pw').value});
       await load(); } catch(e){ msg(e.message,false); } };
   $('#pw').onkeydown = e => { if(e.key==='Enter') $('#go').click(); };
 }
-function dashView(d){
-  const rows = d.slots.map(s => `<tr><td>${s.slot}</td><td>${esc(s.side)}</td><td>${esc(s.transport)}:${esc(s.port)}</td>
-    <td>${esc(s.peer)}</td><td>${esc(s.spoof_ips)}</td>
-    <td>${s.role==='server'?'listen UDP '+esc(s.listen_port):'forward '+esc(s.forward)}</td>
-    <td class="${esc(s.state)}">${esc(s.state)}</td>
-    <td><button class="ok" onclick="act(${s.slot},'start')">Connect</button>
-    <button onclick="act(${s.slot},'restart')">Restart</button>
-    <button onclick="act(${s.slot},'stop')">Stop</button>
-    <button onclick="logs(${s.slot})">Logs</button>
-    <button class="danger" onclick="del(${s.slot})">Delete</button></td></tr>`).join('');
-  $('#app').innerHTML = `
-  <div class="row" style="justify-content:space-between"><h1>NiceTunnel Spoof Panel</h1>
-    <button onclick="logout()">Logout</button></div>
-  <div id="msg"></div>
-  <h2>Spoof tunnels on this server</h2>
-  ${d.slots.length? `<table><tr><th>Slot</th><th>Side</th><th>Type:port</th><th>Other server</th><th>Source IPs</th><th>Ports</th><th>State</th><th></th></tr>${rows}</table>`
-    : '<p>No spoof tunnel yet. Create one below.</p>'}
-  <h2>Create spoof tunnel</h2>
-  <div class="box"><div class="row">
+const PAGES = [['dash','&#9673;','Dashboard'],['tun','&#8644;','Tunnels'],['new','&#10010;','Create'],['test','&#9889;','Spoof tester'],['logs','&#9776;','Logs']];
+function shell(){
+  $('#app').innerHTML = `<div id="shell"><div id="side" class="glass"><div class="brand">NiceTunnel<small>Spoof Panel v2</small></div>
+    ${PAGES.map(p=>`<div class="nav" data-p="${p[0]}"><i>${p[1]}</i>${p[2]}</div>`).join('')}
+    <div class="sp"></div><div class="nav" id="lo"><i>&#10162;</i>Logout</div></div>
+  <div id="main"><div id="top" class="glass"><h1 id="ttl"></h1><span id="host" style="color:#9aa6d6;font-size:13px"></span></div><div id="msg"></div>
+  <div class="page" id="p-dash">
+    <div class="cards">
+      <div class="card glass"><div class="k">CPU</div><div class="v" id="cpu">-</div><div class="bar"><b id="cpub"></b></div><div class="s" id="load"></div></div>
+      <div class="card glass"><div class="k">Memory</div><div class="v" id="mem">-</div><div class="bar"><b id="memb"></b></div><div class="s" id="memt"></div></div>
+      <div class="card glass"><div class="k">Disk</div><div class="v" id="disk">-</div><div class="bar"><b id="diskb"></b></div><div class="s" id="diskt"></div></div>
+      <div class="card glass"><div class="k">Uptime</div><div class="v" id="up">-</div><div class="s" id="tuns"></div></div>
+    </div>
+    <div class="cards">
+      <div class="card glass"><div class="k">Network download</div><div class="v" id="rx">-</div><canvas id="crx"></canvas><div class="s" id="rxt"></div></div>
+      <div class="card glass"><div class="k">Network upload</div><div class="v" id="tx">-</div><canvas id="ctx"></canvas><div class="s" id="txt"></div></div>
+      <div class="card glass"><div class="k">CPU history</div><div class="v">&nbsp;</div><canvas id="ccpu"></canvas></div>
+    </div>
+    <div class="sec glass"><h2>Tunnel status</h2><div id="mon"></div></div>
+  </div>
+  <div class="page" id="p-tun"><div class="sec glass"><h2>Spoof tunnels on this server</h2><div id="tbl"></div></div></div>
+  <div class="page" id="p-new"><div class="sec glass"><h2>Create spoof tunnel</h2><div class="row">
     <div><label>This server is</label><select id="role">
       <option value="server">Iran (entry: apps send UDP here)</option>
       <option value="client">Foreign (exit: forwards to a UDP service)</option></select></div>
@@ -384,62 +440,103 @@ function dashView(d){
     <div><label>Tunnel port (both sides)</label><input id="port" value="4500"></div>
     <div><label>Fake source IPs (from Spoof tester)</label><input id="spoof_ips" placeholder="10.0.0.0/28 or 1.2.3.4,5.5.5.1-5.5.5.9"></div>
     <div id="lp"><label>Listen UDP port (apps send here)</label><input id="listen_port" value="51820"></div>
-    <div id="fw" style="display:none"><label>Forward to HOST:PORT</label><input id="forward" value="127.0.0.1:51820"></div>
+    <div id="fw" class="hide"><label>Forward to HOST:PORT</label><input id="forward" value="127.0.0.1:51820"></div>
     <div><label>Token (empty = generate)</label><input id="token" placeholder="min 16 chars"></div>
-  </div><p><button class="ok" id="create">Create and connect</button></p>
-  <div id="newtoken"></div></div>
-  <h2>Spoof tester</h2>
-  <p>Run <b>Receive</b> on the receiving server first, then <b>Send</b> on the sending server, with the same packet type and port. The result lists the fake source IPs that arrived. Copy them into "Fake source IPs" above.</p>
-  <div class="box"><div class="row">
+  </div><p><button class="ok" id="create">Create and connect</button></p><div id="newtoken"></div></div></div>
+  <div class="page" id="p-test"><div class="sec glass"><h2>Spoof tester</h2>
+  <p style="color:#b8c2ee;font-size:14px">Run <b>Receive</b> on the receiving server first, then <b>Send</b> on the sending server, with the same packet type and port. Copy the fake source IPs that arrived into "Create".</p>
+  <div class="row">
     <div><label>Mode</label><select id="tmode"><option value="recv">Receive (run first)</option><option value="send">Send (run second)</option></select></div>
     <div><label>Packet type</label><select id="ttr"><option>udp</option><option>tcp</option><option>icmp</option></select></div>
     <div><label>Port</label><input id="tport" value="4500"></div>
     <div class="trecv"><label>Listen seconds (5-300)</label><input id="tsec" value="60"></div>
-    <div class="tsend" style="display:none"><label>Other server real IP</label><input id="tpeer" placeholder="203.0.113.5"></div>
-    <div class="tsend" style="display:none"><label>Fake source IPs to test</label><input id="tspoof" placeholder="10.0.0.0/28"></div>
-    <div class="tsend" style="display:none"><label>Packets per address (1-10)</label><input id="tcount" value="5"></div>
-  </div><p><button class="ok" id="tstart">Start test</button> <button onclick="tstatus()">Refresh result</button></p>
-  <pre id="tbox">No test run yet.</pre></div>
-  <h2>Logs</h2><pre id="logbox">Click Logs on a tunnel.</pre>
-  <p><button onclick="load()">Refresh</button></p>`;
-  $('#role').onchange = () => { const s=$('#role').value==='server'; $('#lp').style.display=s?'':'none'; $('#fw').style.display=s?'none':''; };
+    <div class="tsend hide"><label>Other server real IP</label><input id="tpeer" placeholder="203.0.113.5"></div>
+    <div class="tsend hide"><label>Fake source IPs to test</label><input id="tspoof" placeholder="10.0.0.0/28"></div>
+    <div class="tsend hide"><label>Packets per address (1-10)</label><input id="tcount" value="5"></div>
+  </div><p><button class="ok" id="tstart">Start test</button> <button id="tref">Refresh result</button></p>
+  <pre id="tbox">No test run yet.</pre></div></div>
+  <div class="page" id="p-logs"><div class="sec glass"><h2>Logs</h2><pre id="logbox">Open Tunnels and click Logs on a tunnel.</pre></div></div>
+  </div></div>`;
+  document.querySelectorAll('.nav[data-p]').forEach(e=>e.onclick=()=>go(e.dataset.p));
+  $('#lo').onclick = logout;
+  $('#role').onchange = () => { const s=$('#role').value==='server'; $('#lp').classList.toggle('hide',!s); $('#fw').classList.toggle('hide',s); };
   $('#create').onclick = create;
-  $('#tmode').onchange = tmodeView;
-  $('#tstart').onclick = tstart;
-  tmodeView();
-  tstatus();
+  $('#tmode').onchange = tmodeView; $('#tstart').onclick = tstart; $('#tref').onclick = tstatus;
 }
-function tmodeView(){ const s=$('#tmode').value==='send'; document.querySelectorAll('.tsend').forEach(e=>e.style.display=s?'':'none');
-  document.querySelectorAll('.trecv').forEach(e=>e.style.display=s?'none':''); }
+function go(p){
+  page = p;
+  document.querySelectorAll('.page').forEach(e=>e.classList.toggle('on', e.id==='p-'+p));
+  document.querySelectorAll('.nav[data-p]').forEach(e=>e.classList.toggle('on', e.dataset.p===p));
+  $('#ttl').textContent = PAGES.filter(x=>x[0]===p)[0][2];
+  if(p==='test') tstatus();
+  refresh();
+}
+function spark(id, arr, color){
+  const c=$(id); if(!c) return; const w=c.width=c.clientWidth*2, h=c.height=180, x=c.getContext('2d');
+  x.clearRect(0,0,w,h); if(arr.length<2) return;
+  const mx=Math.max(...arr,1), st=w/(arr.length-1);
+  x.beginPath(); arr.forEach((v,i)=>{ const y=h-8-(v/mx)*(h-20); i?x.lineTo(i*st,y):x.moveTo(0,y); });
+  x.strokeStyle=color; x.lineWidth=4; x.lineJoin='round'; x.stroke();
+  x.lineTo(w,h); x.lineTo(0,h); x.closePath(); x.fillStyle=color+'33'; x.fill();
+}
+function push(a,v){ a.push(v); if(a.length>60) a.shift(); }
+function bar(id,p){ $(id).style.width=Math.max(0,Math.min(100,p))+'%'; }
+function slotTable(slots, full){
+  if(!slots.length) return '<p style="color:#b8c2ee">No spoof tunnel yet. Open Create to add one.</p>';
+  return `<table><tr><th>Slot</th><th>Side</th><th>Type:port</th><th>Other server</th><th>Source IPs</th><th>Ports</th><th>State</th>${full?'<th></th>':''}</tr>`+
+  slots.map(s => `<tr><td>${s.slot}</td><td>${esc(s.side)}</td><td>${esc(s.transport)}:${esc(s.port)}</td><td>${esc(s.peer)}</td><td>${esc(s.spoof_ips)}</td>
+   <td>${s.role==='server'?'listen UDP '+esc(s.listen_port):'forward '+esc(s.forward)}</td>
+   <td class="${esc(s.state)}"><span class="dot"></span>${esc(s.state)}</td>
+   ${full?`<td><button class="sm ok" onclick="act(${s.slot},'start')">Connect</button><button class="sm" onclick="act(${s.slot},'restart')">Restart</button><button class="sm" onclick="act(${s.slot},'stop')">Stop</button><button class="sm" onclick="logs(${s.slot})">Logs</button><button class="sm danger" onclick="del(${s.slot})">Delete</button></td>`:''}</tr>`).join('')+'</table>';
+}
+async function refresh(){
+  try {
+    const [st, sl] = await Promise.all([api('/api/stats'), api('/api/slots')]);
+    push(hist.cpu, st.cpu); push(hist.rx, st.rx_rate); push(hist.tx, st.tx_rate);
+    $('#host').textContent = st.hostname + ' · ' + st.ip;
+    $('#cpu').textContent = st.cpu.toFixed(0)+'%'; bar('#cpub', st.cpu); $('#load').textContent = 'load '+st.load.join(' / ');
+    $('#mem').textContent = st.mem_pct.toFixed(0)+'%'; bar('#memb', st.mem_pct); $('#memt').textContent = fmtB(st.mem_used)+' / '+fmtB(st.mem_total);
+    $('#disk').textContent = st.disk_pct.toFixed(0)+'%'; bar('#diskb', st.disk_pct); $('#diskt').textContent = fmtB(st.disk_used)+' / '+fmtB(st.disk_total);
+    $('#up').textContent = fmtUp(st.uptime);
+    const act = sl.slots.filter(s=>s.state==='active').length; $('#tuns').textContent = act+' of '+sl.slots.length+' tunnels active';
+    $('#rx').textContent = fmtB(st.rx_rate)+'/s'; $('#rxt').textContent = 'total '+fmtB(st.rx_total);
+    $('#tx').textContent = fmtB(st.tx_rate)+'/s'; $('#txt').textContent = 'total '+fmtB(st.tx_total);
+    spark('#crx', hist.rx, '#38bdf8'); spark('#ctx', hist.tx, '#ec4899'); spark('#ccpu', hist.cpu, '#818cf8');
+    $('#mon').innerHTML = slotTable(sl.slots, false); $('#tbl').innerHTML = slotTable(sl.slots, true);
+  } catch(e){ if(/login|auth|401/i.test(e.message)) load(); else msg(e.message,false); }
+}
+function tmodeView(){ const s=$('#tmode').value==='send';
+  document.querySelectorAll('.tsend').forEach(e=>e.classList.toggle('hide',!s));
+  document.querySelectorAll('.trecv').forEach(e=>e.classList.toggle('hide',s)); }
 async function tstart(){
   const m=$('#tmode').value;
   const body={transport:$('#ttr').value, port:$('#tport').value, seconds:$('#tsec').value,
     peer:$('#tpeer').value.trim(), spoof_ips:$('#tspoof').value, count:$('#tcount').value};
   try { await api('/api/test/'+m, body); msg('Test started', true); tstatus(); } catch(e){ msg(e.message,false); } }
-let tTimer = null;
 async function tstatus(){
   clearTimeout(tTimer);
   try { const r = await api('/api/test/status');
-    const state = r.running ? 'running...' : (r.code === null ? 'idle' : 'finished (exit '+r.code+')');
-    $('#tbox').textContent = (r.title ? '['+r.title+'] ' : '') + state + '\\n' + (r.log || '');
+    const state = r.running ? 'running...' : (r.state || 'idle');
+    $('#tbox').textContent = (r.title ? '['+r.title+'] ' : '') + state + '\n' + (r.log || '');
     if (r.running) tTimer = setTimeout(tstatus, 2000);
   } catch(e){ msg(e.message,false); } }
 async function load(){
+  clearInterval(timer);
   try { state = await api('/api/state');
     if(!state.logged){ loginView(); return; }
-    dashView(await api('/api/slots'));
+    shell(); go(page); timer = setInterval(()=>{ if(page==='dash'||page==='tun') refresh(); }, 3000);
   } catch(e){ loginView(); msg(e.message,false); }
 }
-async function act(n, a){ try { const r = await api(`/api/slot/${n}/${a}`, {}); msg(`Tunnel ${n}: ${r.state}`, true); await load(); } catch(e){ msg(e.message,false);} }
-async function del(n){ if(!confirm('Delete tunnel '+n+'?')) return; try { await api(`/api/slot/${n}/delete`, {}); await load(); } catch(e){ msg(e.message,false);} }
-async function logs(n){ try { const r = await api(`/api/slot/${n}/logs`); $('#logbox').textContent = r.logs || '(no logs)'; } catch(e){ msg(e.message,false);} }
+async function act(n, a){ try { const r = await api(`/api/slot/${n}/${a}`, {}); msg(`Tunnel ${n}: ${r.state}`, true); refresh(); } catch(e){ msg(e.message,false);} }
+async function del(n){ if(!confirm('Delete tunnel '+n+'?')) return; try { await api(`/api/slot/${n}/delete`, {}); refresh(); } catch(e){ msg(e.message,false);} }
+async function logs(n){ try { const r = await api(`/api/slot/${n}/logs`); go('logs'); $('#logbox').textContent = r.logs || '(no logs)'; } catch(e){ msg(e.message,false);} }
 async function create(){
   const body = {role:$('#role').value, peer:$('#peer').value.trim(), transport:$('#transport').value,
     port:$('#port').value, spoof_ips:$('#spoof_ips').value, listen_port:$('#listen_port').value,
     forward:$('#forward').value, token:$('#token').value.trim()};
   try { const r = await api('/api/spoof', body);
     $('#newtoken').innerHTML = `<div class="msg good">Tunnel ${r.slot} created. Token (copy it to the other server):<br><code>${esc(r.token)}</code></div>`;
-    await load(); } catch(e){ msg(e.message,false); } }
+    refresh(); } catch(e){ msg(e.message,false); } }
 async function logout(){ await api('/api/logout', {}); state.logged=false; load(); }
 load();
 </script></body></html>
@@ -450,6 +547,73 @@ load();
 # HTTP handler
 # --------------------------------------------------------------------------
 SESSION_RE = re.compile(r"nt_session=([0-9a-f]{64})")
+
+
+
+_net = {"t": 0.0, "rx": 0, "tx": 0}
+_cpu = {"idle": 0, "total": 0}
+
+
+def collect_stats():
+    st = {}
+    try:
+        with open("/proc/stat") as f:
+            v = [int(x) for x in f.readline().split()[1:]]
+        idle, total = v[3] + (v[4] if len(v) > 4 else 0), sum(v)
+        di, dt = idle - _cpu["idle"], total - _cpu["total"]
+        st["cpu"] = round(100.0 * (1 - di / dt), 1) if dt > 0 and _cpu["total"] else 0.0
+        _cpu["idle"], _cpu["total"] = idle, total
+    except Exception:
+        st["cpu"] = 0.0
+    try:
+        st["load"] = ["%.2f" % x for x in os.getloadavg()]
+    except Exception:
+        st["load"] = ["0", "0", "0"]
+    mem = {}
+    try:
+        with open("/proc/meminfo") as f:
+            for line in f:
+                k, _, rest = line.partition(":")
+                mem[k] = int(rest.split()[0]) * 1024
+    except Exception:
+        pass
+    mt = mem.get("MemTotal", 0)
+    mu = mt - mem.get("MemAvailable", 0)
+    st.update(mem_total=mt, mem_used=mu, mem_pct=(100.0 * mu / mt) if mt else 0.0)
+    try:
+        du = shutil.disk_usage("/")
+        st.update(disk_total=du.total, disk_used=du.used, disk_pct=100.0 * du.used / du.total)
+    except Exception:
+        st.update(disk_total=0, disk_used=0, disk_pct=0.0)
+    try:
+        with open("/proc/uptime") as f:
+            st["uptime"] = float(f.read().split()[0])
+    except Exception:
+        st["uptime"] = 0
+    rx = tx = 0
+    try:
+        with open("/proc/net/dev") as f:
+            for line in list(f)[2:]:
+                name, _, rest = line.partition(":")
+                if name.strip() == "lo":
+                    continue
+                c = rest.split()
+                rx += int(c[0])
+                tx += int(c[8])
+    except Exception:
+        pass
+    now = time.time()
+    dt = now - _net["t"]
+    if _net["t"] and dt > 0:
+        st["rx_rate"] = max(0, (rx - _net["rx"]) / dt)
+        st["tx_rate"] = max(0, (tx - _net["tx"]) / dt)
+    else:
+        st["rx_rate"] = st["tx_rate"] = 0
+    _net.update(t=now, rx=rx, tx=tx)
+    st.update(rx_total=rx, tx_total=tx)
+    st["hostname"] = socket.gethostname()
+    st["ip"] = public_ip_guess()
+    return st
 
 
 class Handler(http.server.BaseHTTPRequestHandler):
@@ -527,6 +691,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
             if not self.require_login():
                 return
             return self.send_json({"slots": list_spoof_slots()})
+        if path == "/api/stats":
+            if not self.require_login():
+                return
+            return self.send_json(collect_stats())
         if path == "/api/test/status":
             if not self.require_login():
                 return
@@ -704,7 +872,7 @@ def cmd_install(args):
     unit = (
         "[Unit]\nDescription=NiceTunnel Spoof Panel\nAfter=network-online.target\n"
         "Wants=network-online.target\n\n[Service]\n"
-        "ExecStart=%s %s serve --bind 0.0.0.0 --port %d\nRestart=on-failure\nRestartSec=3\n\n"
+        "ExecStart=%s %s serve --bind 0.0.0.0 --port %d\nRestart=always\nRestartSec=3\n\n"
         "[Install]\nWantedBy=multi-user.target\n"
     ) % (sys.executable, target, port)
     with open(UNIT_PATH, "w") as f:
@@ -733,6 +901,26 @@ def cmd_uninstall(_args):
     print("Panel service removed.")
 
 
+RAW_URL = "https://raw.githubusercontent.com/arshamsmok/nicetunnel/main/nicetunnel_panel.py"
+
+
+def cmd_update(_args):
+    """Download the newest panel file from GitHub and restart the service."""
+    import urllib.request
+    if os.geteuid() != 0:
+        sys.exit("error: run as root")
+    data = urllib.request.urlopen(RAW_URL, timeout=30).read()
+    if b"def main" not in data:
+        sys.exit("error: downloaded file looks wrong")
+    target = os.path.join(APP_DIR, "nicetunnel_panel.py")
+    with open(target + ".new", "wb") as f:
+        f.write(data)
+    os.chmod(target + ".new", 0o755)
+    os.replace(target + ".new", target)
+    subprocess.run(["systemctl", "restart", "nicetunnel-panel"])
+    print("Panel updated and restarted.")
+
+
 def cmd_serve(args):
     if os.geteuid() != 0:
         sys.exit("error: run as root (the panel manages systemd services)")
@@ -754,6 +942,7 @@ def main():
     sub.add_parser("set-password", help="set or change the panel password").set_defaults(func=cmd_set_password)
     sub.add_parser("install", help="install and start the panel service").set_defaults(func=cmd_install)
     sub.add_parser("uninstall", help="remove the panel service").set_defaults(func=cmd_uninstall)
+    sub.add_parser("update", help="download the latest panel and restart").set_defaults(func=cmd_update)
     s = sub.add_parser("serve", help="run the web panel")
     s.add_argument("--bind", default="127.0.0.1", help="address to listen on (default 127.0.0.1)")
     s.add_argument("--port", type=int, default=8787)
