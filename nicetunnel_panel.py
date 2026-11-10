@@ -47,6 +47,45 @@ LOGIN_FAILS_MAX = 5
 TRANSPORTS = ("udp", "tcp", "icmp")
 
 sessions = {}   # session id -> expiry time
+sess_owner = {}  # session id -> "admin" or "tok:<token id>"
+TOKENS_FILE = os.path.join(CONF_DIR, "tokens.json")
+TOKEN_PREFIX = "ntk_"
+tokens_lock = threading.Lock()
+
+
+def load_tokens():
+    try:
+        with open(TOKENS_FILE) as fh:
+            return json.load(fh)
+    except Exception:
+        return []
+
+
+def save_tokens(items):
+    os.makedirs(CONF_DIR, mode=0o700, exist_ok=True)
+    tmp = TOKENS_FILE + ".tmp"
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w") as fh:
+        json.dump(items, fh)
+    os.replace(tmp, TOKENS_FILE)
+
+
+def token_login(tok):
+    """Return 'tok:<id>' if the token is valid and not revoked, else None."""
+    h = hashlib.sha256(tok.encode()).hexdigest()
+    with tokens_lock:
+        items = load_tokens()
+        for it in items:
+            if not it.get("revoked") and not it.get("paused") and hmac.compare_digest(it.get("hash", ""), h):
+                it["last_used"] = int(time.time())
+                save_tokens(items)
+                return "tok:" + it["id"]
+    return None
+
+
+def token_active(tid):
+    with tokens_lock:
+        return any(it["id"] == tid and not it.get("revoked") and not it.get("paused") for it in load_tokens())
 fails = {}      # client ip -> [count, first_failure_time]
 lock = threading.Lock()
 
@@ -379,6 +418,40 @@ pre{background:rgba(0,0,0,.45);border-radius:10px;padding:12px;overflow:auto;max
 code{background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px;word-break:break-all}
 #login{max-width:400px;margin:12vh auto;padding:28px}#login h1{margin-top:0}#login .row>div{min-width:100%}
 .hide{display:none!important}
+/* v3: glass polish */
+body{background:#050815}
+.glass{background:linear-gradient(145deg,rgba(255,255,255,.15),rgba(255,255,255,.04));border:1px solid rgba(255,255,255,.2);border-radius:20px;box-shadow:0 12px 40px rgba(0,0,0,.42),inset 0 1px 0 rgba(255,255,255,.28)}
+#side{background:linear-gradient(170deg,rgba(255,255,255,.13),rgba(255,255,255,.03))}
+.brand{font-size:21px;background:linear-gradient(90deg,#fff,#a5b4fc,#f0abfc);-webkit-background-clip:text;background-clip:text;color:transparent}
+.brand small{-webkit-text-fill-color:#9aa6d6}
+.nav{border-radius:14px;transition:all .25s cubic-bezier(.2,.8,.2,1)}
+.nav:hover{background:rgba(255,255,255,.12);transform:translateX(-3px)}
+#shell[dir=rtl] .nav:hover{transform:translateX(3px)}
+.nav.on{box-shadow:0 8px 24px rgba(99,102,241,.38),inset 0 1px 0 rgba(255,255,255,.3)}
+#top{background:linear-gradient(145deg,rgba(255,255,255,.14),rgba(255,255,255,.04))}
+#top h1{font-size:21px;letter-spacing:.2px}
+.card{transition:transform .25s,box-shadow .25s}
+.card:hover{transform:translateY(-3px);box-shadow:0 18px 46px rgba(0,0,0,.5)}
+.card .v{background:linear-gradient(90deg,#fff,#c7d2fe);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sec h2{font-size:17px;letter-spacing:.2px}
+input,select{background:rgba(255,255,255,.08);border-radius:12px;backdrop-filter:blur(8px)}
+button{background:linear-gradient(180deg,rgba(255,255,255,.22),rgba(255,255,255,.06));border:1px solid rgba(255,255,255,.28);box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 4px 14px rgba(0,0,0,.25);transition:transform .15s,box-shadow .2s,background .2s;border-radius:12px}
+button:hover{transform:translateY(-1px);box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 8px 22px rgba(0,0,0,.3)}
+button:active{transform:scale(.97)}
+button.ok{background:linear-gradient(135deg,rgba(99,102,241,.92),rgba(6,182,212,.85));border-color:rgba(255,255,255,.2);box-shadow:0 6px 18px rgba(99,102,241,.45),inset 0 1px 0 rgba(255,255,255,.4)}
+button.bad,button.danger{background:linear-gradient(135deg,rgba(244,63,94,.6),rgba(190,18,60,.5));border-color:rgba(244,63,94,.6)}
+button.warn{background:linear-gradient(135deg,rgba(245,158,11,.65),rgba(234,88,12,.5));border-color:rgba(251,191,36,.5)}
+button.sm{border-radius:9px;padding:5px 10px}
+table{border-spacing:0}
+tr:hover td{background:rgba(255,255,255,.045)}
+td,th{padding:11px 9px}
+pre{border:1px solid rgba(255,255,255,.08)}
+.lang{padding:6px 14px;font-size:13px;margin-inline-start:10px}
+#login{max-width:420px;padding:32px}
+#login h1{background:linear-gradient(90deg,#fff,#a5b4fc,#f0abfc);-webkit-background-clip:text;background-clip:text;color:transparent;display:inline-block}
+#login .lang{margin:0 0 14px;display:block}
+#login input{padding:11px 13px;font-size:15px}
+#login button.ok{width:100%;padding:11px;font-size:15px}
 @media(max-width:820px){#shell{flex-direction:column}#side{width:auto;height:auto;position:static;flex-direction:row;flex-wrap:wrap}.brand,.sp{display:none}}
 </style>
 <body>
@@ -388,6 +461,18 @@ code{background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px;word-break:brea
 window.onerror=(m,u,l)=>{document.getElementById("app").textContent="JS error: "+m+" line "+l;};
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let lang = localStorage.getItem('nt_lang') || 'en';
+const FA = {'Dashboard':'داشبورد','Tunnels':'تونل‌ها','Create':'ساخت','Monitoring':'پایش','Spoof tester':'تست اسپوف','Access tokens':'توکن‌های دسترسی','Logs':'لاگ‌ها','Logout':'خروج','Login':'ورود','Save password':'ذخیره رمز','Password or access token':'رمز یا توکن دسترسی','Create admin password (min 8 chars)':'ساخت رمز مدیر (حداقل ۸ کاراکتر)','Username':'نام کاربری','Password':'رمز عبور','CPU':'پردازنده','Memory':'حافظه','Disk':'دیسک','Uptime':'مدت روشنی','CPU history':'تاریخچه پردازنده','Network download':'دریافت شبکه','Network upload':'ارسال شبکه','Tunnel status':'وضعیت تونل‌ها','Tunnel monitor':'پایش تونل‌ها','(auto refresh 3s)':'(نوسازی خودکار هر ۳ ثانیه)','Spoof tunnels on this server':'تونل‌های اسپوف این سرور','Create spoof tunnel':'ساخت تونل اسپوف','Create and connect':'ساخت و اتصال','Create token':'ساخت توکن','Person name':'نام شخص','Connect':'اتصال','Restart':'ری‌استارت','Stop':'توقف','Start':'شروع','Delete':'حذف','Revoke':'بستن','Enable':'فعال‌سازی','Pause':'توقف موقت','Resume':'ادامه','Slot':'اسلات','Side':'سمت','Type:port':'نوع:پورت','Other server':'سرور مقابل','Other server real IP':'آی‌پی واقعی سرور مقابل','Source IPs':'آی‌پی‌های جعلی','Ports':'پورت‌ها','State':'وضعیت','Start test':'شروع تست','Refresh result':'بروزرسانی نتیجه','Mode':'حالت','Packet type':'نوع بسته','Port':'پورت','Logs':'لاگ‌ها','This server is':'این سرور است','Tunnel port (both sides)':'پورت تونل (هر دو سر)','Listen UDP port (apps send here)':'پورت UDP ورودی (برنامه‌ها اینجا می‌فرستند)','Forward to HOST:PORT':'ارسال به HOST:PORT','Fake source IPs (from Spoof tester)':'آی‌پی‌های جعلی (از تست اسپوف)','Token (empty = generate)':'توکن (خالی = ساخت خودکار)','Listen seconds (5-300)':'مدت گوش دادن (۵ تا ۳۰۰ ثانیه)','Fake source IPs to test':'آی‌پی‌های جعلی برای تست','Packets per address (1-10)':'تعداد بسته برای هر آدرس (۱ تا ۱۰)','Receive (run first)':'دریافت (اول اجرا شود)','Send (run second)':'ارسال (دوم اجرا شود)','Iran (entry: apps send UDP here)':'ایران (ورودی: برنامه‌ها UDP را اینجا می‌فرستند)','Foreign (exit: forwards to a UDP service)':'خارج (خروجی: به سرویس UDP وصل می‌کند)','active':'فعال','inactive':'غیرفعال','failed':'خطا','revoked':'بسته‌شده','paused':'متوقف','No tokens yet.':'هنوز توکنی نیست.','No spoof tunnel yet. Open Create to add one.':'هنوز تونلی نیست. از بخش ساخت یکی بسازید.','Open Tunnels and click Logs on a tunnel.':'از بخش تونل‌ها روی لاگ یک تونل بزنید.','No test run yet.':'هنوز تستی اجرا نشده.','Give each person their own token. They log in with it in the Password field. Revoke a token to cut off that person immediately.':'برای هر نفر یک توکن جدا بسازید. با آن در فیلد رمز وارد می‌شود. با بستن توکن، دسترسی آن شخص فوراً قطع می‌شود.','Run Receive on the receiving server first, then Send on the sending server, with the same packet type and port. Copy the fake source IPs that arrived into "Create".':'اول Receive را روی سرور دریافت‌کننده و بعد Send را روی سرور ارسال‌کننده با همان نوع بسته و پورت اجرا کنید. آی‌پی‌های جعلی که رسیدند را در بخش ساخت کپی کنید.'};
+document.documentElement.lang = lang; document.documentElement.dir = lang==='fa' ? 'rtl' : 'ltr';
+function tr(root){
+  if(lang!=='fa' || !root) return;
+  const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT); let n;
+  while((n = w.nextNode())){ const t = n.nodeValue.trim(); if(t && FA[t]) n.nodeValue = n.nodeValue.replace(t, FA[t]); }
+  root.querySelectorAll('input[placeholder]').forEach(i => { const v=i.getAttribute('placeholder'); if(FA[v]) i.setAttribute('placeholder', FA[v]); });
+}
+function toggleLang(){ localStorage.setItem('nt_lang', lang==='fa' ? 'en' : 'fa'); location.reload(); }
+function langBtn(){ return `<button class="lang" onclick="toggleLang()">${lang==='fa' ? 'English' : 'فارسی'}</button>`; }
+setInterval(() => tr(document.body), 700);
 let state = {logged: false, needSetup: false}, page = 'dash', hist = {cpu:[],rx:[],tx:[]}, timer = null, tTimer = null;
 function msg(t, ok){ const m=$('#msg'); if(m){ m.className='msg '+(ok?'good':'bad'); m.textContent=t; } else alert(t); }
 async function api(path, body){
@@ -401,21 +486,21 @@ const fmtB = n => { const u=['B','KB','MB','GB','TB']; let i=0; n=+n||0; while(n
 const fmtUp = s => { s=Math.floor(s); const d=Math.floor(s/86400),h=Math.floor(s%86400/3600),m=Math.floor(s%3600/60); return (d?d+'d ':'')+h+'h '+m+'m'; };
 
 function loginView(){
-  $('#app').innerHTML = `<div id="login" class="glass"><h1>NiceTunnel Panel</h1><div id="msg"></div>
+  $('#app').innerHTML = `<div id="login" class="glass"><h1>NiceTunnel Panel</h1>${langBtn()}<div id="msg"></div>
   <div class="row"><div><label>Username</label><input id="un" value="admin" autocomplete="username"></div>
-  <div><label>${state.needSetup?'Create admin password (min 8 chars)':'Password'}</label><input id="pw" type="password"></div>
+  <div><label>${state.needSetup?'Create admin password (min 8 chars)':'Password or access token'}</label><input id="pw" type="password"></div>
   <div><button class="ok" id="go">${state.needSetup?'Save password':'Login'}</button></div></div></div>`;
   $('#go').onclick = async () => { try {
       await api(state.needSetup ? '/api/setup' : '/api/login', {username:$('#un').value,password:$('#pw').value});
       await load(); } catch(e){ msg(e.message,false); } };
   $('#pw').onkeydown = e => { if(e.key==='Enter') $('#go').click(); };
 }
-const PAGES = [['dash','&#9673;','Dashboard'],['tun','&#8644;','Tunnels'],['new','&#10010;','Create'],['mon','&#9737;','Monitoring'],['test','&#9889;','Spoof tester'],['logs','&#9776;','Logs']];
+const PAGES = [['dash','&#9673;','Dashboard'],['tun','&#8644;','Tunnels'],['new','&#10010;','Create'],['mon','&#9737;','Monitoring'],['test','&#9889;','Spoof tester'],['tok','&#128273;','Access tokens'],['logs','&#9776;','Logs']];
 function shell(){
-  $('#app').innerHTML = `<div id="shell"><div id="side" class="glass"><div class="brand">NiceTunnel<small>Spoof Panel v2</small></div>
-    ${PAGES.map(p=>`<div class="nav" data-p="${p[0]}"><i>${p[1]}</i>${p[2]}</div>`).join('')}
+  $('#app').innerHTML = `<div id="shell"><div id="side" class="glass"><div class="brand">NiceTunnel<small>Spoof Panel v2 · by arshamsmok</small></div>
+    ${PAGES.filter(p=>p[0]!=='tok'||state.role==='admin').map(p=>`<div class="nav" data-p="${p[0]}"><i>${p[1]}</i>${p[2]}</div>`).join('')}
     <div class="sp"></div><div class="nav" id="lo"><i>&#10162;</i>Logout</div></div>
-  <div id="main"><div id="top" class="glass"><h1 id="ttl"></h1><span id="host" style="color:#9aa6d6;font-size:13px"></span></div><div id="msg"></div>
+  <div id="main"><div id="top" class="glass"><h1 id="ttl"></h1><span id="host" style="color:#9aa6d6;font-size:13px"></span>${langBtn()}</div><div id="msg"></div>
   <div class="page" id="p-dash">
     <div class="cards">
       <div class="card glass"><div class="k">CPU</div><div class="v" id="cpu">-</div><div class="bar"><b id="cpub"></b></div><div class="s" id="load"></div></div>
@@ -431,6 +516,10 @@ function shell(){
     <div class="sec glass"><h2>Tunnel status</h2><div id="mon"></div></div>
   </div>
   <div class="page" id="p-mon"><div class="cards" id="mcards"></div><div class="sec glass"><h2>Tunnel monitor <small style="color:#9aa6d6;font-weight:400">(auto refresh 3s)</small></h2><div id="mtun"></div></div></div>
+  <div class="page" id="p-tok"><div class="sec glass"><h2>Access tokens</h2>
+    <p style="color:#b8c2ee;font-size:13px">Give each person their own token. They log in with it in the Password field. Revoke a token to cut off that person immediately.</p>
+    <div class="row"><div><label>Person name</label><input id="tname" maxlength="40"></div><div><button class="ok" id="tmk">Create token</button></div></div>
+    <div id="tnew"></div><div id="tlist" style="margin-top:14px"></div></div></div>
   <div class="page" id="p-tun"><div class="sec glass"><h2>Spoof tunnels on this server</h2><div id="tbl"></div></div></div>
   <div class="page" id="p-new"><div class="sec glass"><h2>Create spoof tunnel</h2><div class="row">
     <div><label>This server is</label><select id="role">
@@ -460,6 +549,7 @@ function shell(){
   </div></div>`;
   document.querySelectorAll('.nav[data-p]').forEach(e=>e.onclick=()=>go(e.dataset.p));
   $('#lo').onclick = logout;
+  $('#tmk').onclick = tmk;
   $('#role').onchange = () => { const s=$('#role').value==='server'; $('#lp').classList.toggle('hide',!s); $('#fw').classList.toggle('hide',s); };
   $('#create').onclick = create;
   $('#tmode').onchange = tmodeView; $('#tstart').onclick = tstart; $('#tref').onclick = tstatus;
@@ -471,6 +561,7 @@ function go(p){
   $('#ttl').textContent = PAGES.filter(x=>x[0]===p)[0][2];
   if(p==='test') tstatus();
   if(p==='mon') monitor();
+  if(p==='tok') tokens();
   refresh();
 }
 function spark(id, arr, color){
@@ -507,6 +598,24 @@ async function refresh(){
     $('#mon').innerHTML = slotTable(sl.slots, false); $('#tbl').innerHTML = slotTable(sl.slots, true);
   } catch(e){ if(/login|auth|401/i.test(e.message)) load(); else msg(e.message,false); }
 }
+async function tokens(){
+  try {
+    const r = await api('/api/tokens'), t = r.tokens;
+    $('#tlist').innerHTML = t.length ? t.map(x=>`<div style="display:flex;gap:10px;align-items:center;padding:10px;border-radius:12px;background:rgba(0,0,0,.25);margin-bottom:8px">
+      <b style="flex:1">${esc(x.name)}</b><span style="color:#9aa6d6;font-size:12px">created ${new Date(x.created*1000).toLocaleString()} · last used ${x.last_used?new Date(x.last_used*1000).toLocaleString():'never'}</span>
+      ${x.revoked?'<span class="failed">revoked</span>':(x.paused?`<button class="ok" onclick="tpau('${esc(x.id)}','resume')">Enable</button>`:`<button onclick="tpau('${esc(x.id)}','pause')">Pause</button>`)+` <button class="warn" onclick="trev('${esc(x.id)}')">Revoke</button>`}
+      <button class="bad" onclick="tdel('${esc(x.id)}')">Delete</button></div>`).join('') : '<p>No tokens yet.</p>';
+  } catch(e){ msg(e.message,false); }
+}
+async function tmk(){
+  const name = $('#tname').value.trim();
+  try { const r = await api('/api/tokens/create', {name});
+    $('#tnew').innerHTML = `<div class="glass" style="padding:12px;border-radius:12px;margin-top:12px"><b>Token for ${esc(r.name)} (shown once):</b><pre>${esc(r.token)}</pre></div>`;
+    $('#tname').value=''; tokens(); } catch(e){ msg(e.message,false); }
+}
+async function trev(id){ if(!confirm('Revoke this token? The person will be logged out.')) return; try { await api('/api/tokens/revoke', {id}); tokens(); } catch(e){ msg(e.message,false);} }
+async function tpau(id,act){ try { await api('/api/tokens/'+act, {id}); tokens(); } catch(e){ msg(e.message,false);} }
+async function tdel(id){ if(!confirm('Delete this token?')) return; try { await api('/api/tokens/delete', {id}); tokens(); } catch(e){ msg(e.message,false);} }
 async function monitor(){
   try {
     const r = await api('/api/monitor'), t = r.tunnels;
@@ -692,10 +801,20 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return False
         with lock:
             exp = sessions.get(sid)
-            if exp and exp > time.time():
+            own = sess_owner.get(sid, "")
+            if exp and exp > time.time() and (not own.startswith("tok:") or token_active(own[4:])):
                 return True
             sessions.pop(sid, None)
+            sess_owner.pop(sid, None)
         return False
+
+    def require_admin(self):
+        if not self.require_login():
+            return False
+        if sess_owner.get(self.session_id()) != "admin":
+            self.send_json({"error": "admin only"}, 403)
+            return False
+        return True
 
     def require_login(self):
         if not self.session_ok():
@@ -723,7 +842,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return
         if path == "/api/state":
             conf = load_panel_conf()
-            return self.send_json({"logged": self.session_ok(), "needSetup": "password" not in conf})
+            logged = self.session_ok()
+            role = "admin" if sess_owner.get(self.session_id()) == "admin" else "user"
+            return self.send_json({"logged": logged, "role": role, "needSetup": "password" not in conf})
         if path == "/api/slots":
             if not self.require_login():
                 return
@@ -732,6 +853,13 @@ class Handler(http.server.BaseHTTPRequestHandler):
             if not self.require_login():
                 return
             return self.send_json(collect_stats())
+        if path == "/api/tokens":
+            if not self.require_admin():
+                return
+            with tokens_lock:
+                items = [{k: it.get(k) for k in ("id", "name", "created", "last_used", "revoked", "paused")}
+                         for it in load_tokens()]
+            return self.send_json({"tokens": items})
         if path == "/api/monitor":
             if not self.require_login():
                 return
@@ -783,16 +911,23 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 if cnt >= LOGIN_FAILS_MAX:
                     return self.send_json({"error": "too many attempts, wait 15 minutes"}, 429)
             conf = load_panel_conf()
-            if not conf.get("password") or not hmac.compare_digest(
-                    str(body.get("username", "")), conf.get("username", "admin")) or not check_password(str(body.get("password", "")), conf["password"]):
+            pw = str(body.get("password", ""))
+            owner = None
+            if pw.startswith(TOKEN_PREFIX):
+                owner = token_login(pw)
+            elif conf.get("password") and hmac.compare_digest(
+                    str(body.get("username", "")), conf.get("username", "admin")) and check_password(pw, conf["password"]):
+                owner = "admin"
+            if not owner:
                 with lock:
                     fails[ip] = [cnt + 1, first]
                 time.sleep(1)
-                return self.send_json({"error": "wrong password"}, 401)
+                return self.send_json({"error": "wrong password or token"}, 401)
             sid = secrets.token_hex(32)
             with lock:
                 fails.pop(ip, None)
                 sessions[sid] = time.time() + SESSION_TTL
+                sess_owner[sid] = owner
             return self.send_json({"ok": True}, headers=[(
                 "Set-Cookie", "nt_session=%s; Path=/; HttpOnly; SameSite=Strict; Max-Age=%d"
                 % (sid, SESSION_TTL))])
@@ -802,11 +937,43 @@ class Handler(http.server.BaseHTTPRequestHandler):
             if sid:
                 with lock:
                     sessions.pop(sid, None)
+                    sess_owner.pop(sid, None)
             return self.send_json({"ok": True}, headers=[(
                 "Set-Cookie", "nt_session=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0")])
 
         if not self.require_login():
             return
+
+        if path in ("/api/tokens/create", "/api/tokens/revoke", "/api/tokens/delete", "/api/tokens/pause", "/api/tokens/resume"):
+            if not self.require_admin():
+                return
+            with tokens_lock:
+                items = load_tokens()
+                if path.endswith("/create"):
+                    name = str(body.get("name", "")).strip()
+                    if not 1 <= len(name) <= 40:
+                        return self.send_json({"error": "name must be 1-40 characters"}, 400)
+                    tok = TOKEN_PREFIX + secrets.token_urlsafe(24)
+                    items.append({"id": secrets.token_hex(4), "name": name,
+                                  "hash": hashlib.sha256(tok.encode()).hexdigest(),
+                                  "created": int(time.time()), "last_used": None, "revoked": False})
+                    save_tokens(items)
+                    return self.send_json({"ok": True, "token": tok, "name": name})
+                tid = str(body.get("id", ""))
+                if not any(it["id"] == tid for it in items):
+                    return self.send_json({"error": "no such token"}, 404)
+                if path.endswith(("/pause", "/resume")):
+                    for it in items:
+                        if it["id"] == tid:
+                            it["paused"] = path.endswith("/pause")
+                elif path.endswith("/revoke"):
+                    for it in items:
+                        if it["id"] == tid:
+                            it["revoked"] = True
+                else:
+                    items = [it for it in items if it["id"] != tid]
+                save_tokens(items)
+            return self.send_json({"ok": True})
 
         if path in ("/api/test/recv", "/api/test/send"):
             kind = path.rsplit("/", 1)[1]
