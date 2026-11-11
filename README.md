@@ -1,7 +1,7 @@
 # NiceTunnel (نایس تانل)
 
 ساخته‌شده توسط **Arsham Smoke** (آرشام اسموک) · لایسنس MIT
-برای اطلاع از ابدیت ها و ارتباط با ما  https://t.me/DarkCore_Vpn  چنل تلگرام مارا دنبال کنید
+
 دو نوع تانل بین دو سرور (مثلاً ایران و خارج) با منوی تعاملی. روی هر دو سرور با یک دستور نصب می‌شود.
 
 | نوع | برای چه | چه چیزی عبور می‌کند |
@@ -19,17 +19,29 @@
 - منوی رنگی با بنر گرادیانی، مراحل ساخت تونل با شماره قدم و تیک سبز، انتخاب با کلیدهای جهت‌نما، و چند تم رنگی.
 - تونل‌ها ترافیک را **رمز نمی‌کنند**. روی آن‌ها پروتکل‌هایی را عبور بدهید که خودشان رمزنگاری دارند (TLS، VLESS، Trojan، SSH، WireGuard و مانند آن).
 
+## ۱. گذاشتن سورس روی GitHub
+
+۱. در github.com وارد حسابتان شوید (اگر حساب ندارید، Sign up).
+
+۲. دکمه **+** بالای صفحه ← **New repository**:
+   - Repository name: `nicetunnel`
+   - حتماً **Public** را انتخاب کنید (برای ریپوی Private لینک raw بدون توکن کار نمی‌کند)
+   - **Create repository**
+
+۳. در صفحه ریپوی خالی روی لینک **uploading an existing file** بزنید، شش فایل `install.sh`، `nicetunnel.sh`، `nicetunnel.py`، `nicetunnel_panel.py`، `README.md` و `LICENSE` را بکشید و رها کنید، بعد **Commit changes**.
+
+۴. روی `install.sh` کلیک کنید ← آیکون مداد (Edit) ← در بالای فایل خط زیر را پیدا کنید و `YOUR_GITHUB_USERNAME` را با یوزرنیم GitHub خودتان عوض کنید:
 
    ```bash
-   GITHUB_USER="arshamsmok"
+   GITHUB_USER="YOUR_GITHUB_USERNAME"
    ```
 
-
+   بعد **Commit changes**.
 
 ۵. لینک دانلود (raw) شما این است:
 
    ```
-   https://raw.githubusercontent.com/arshamsmok/nicetunnel/main/install.sh
+   https://raw.githubusercontent.com/یوزرنیم_شما/nicetunnel/main/install.sh
    ```
 
    آن را در مرورگر باز کنید. باید متن اسکریپت را ببینید، نه صفحه خطا.
@@ -39,7 +51,7 @@
 با `ssh root@IP` وارد سرور شوید (مستقیم با root، چون `sudo` با این دستور کار نمی‌کند؛ اگر یوزر root نیستید اول `sudo -i` بزنید)، بعد:
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/arshamsmok/nicetunnel/main/install.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/یوزرنیم_شما/nicetunnel/main/install.sh)
 ```
 
 نصب انجام می‌شود و منو باز می‌شود. بعداً هر وقت خواستید منو را باز کنید:
@@ -119,6 +131,14 @@ nicetunnel
 - تانل اسپوف باید با root اجرا شود (منو و سرویس systemd همین کار را می‌کنند).
 - پنل فایروال دیتاسنتر، اگر دارد، باید ورودی نوع بسته و پورت تانل را باز بگذارد.
 
+## پنل وب
+
+از منوی اصلی `Web panel` ← `Turn on / change settings`: یک پورت (پیش‌فرض 8443) و یک رمز عبور (حداقل ۸ کاراکتر) بده. صفحه‌ی `https://IP_سرور:پورت` باز می‌شود؛ چون گواهی TLS خودامضاست، مرورگر هشدار می‌دهد — روی Advanced بعد Proceed بزن.
+
+پنل روی هر سرور جدا و مستقل است (رمز هر سرور را جدا تنظیم کن). برای هر تونل نشان می‌دهد: روشن/خاموش بودن، تعداد اتصال یا نشست فعال، حجم ترافیک رفت/برگشت، و دکمه‌های روشن/خاموش/ری‌استارت/لاگ. ساختن تونل جدید فقط از داخل منوی ترمینال انجام می‌شود، نه از پنل.
+
+رمز پنل را فقط به کسی بده که باید بتواند تونل‌ها را خاموش/روشن کند؛ هرکس رمز را داشته باشد از روی اینترنت به پنل دسترسی دارد.
+
 ## ظاهر منو و تم‌ها
 
 از منوی اصلی گزینه `Theme` را بزنید و یکی از چهار تم را انتخاب کنید: `ocean` (فیروزه‌ای تا بنفش)، `sunset` (زرد تا صورتی)، `matrix` (سبز) یا `mono` (سفید و خاکستری). انتخاب شما ذخیره می‌شود.
@@ -135,21 +155,21 @@ NO_COLOR=1 nicetunnel             # بدون رنگ
 
 ## اگر سرور به GitHub دسترسی نداشت
 
-سه فایل را با scp به سرور بفرستید و کنار هم اجرا کنید:
+چهار فایل را با scp به سرور بفرستید و کنار هم اجرا کنید:
 
 ```bash
-scp install.sh nicetunnel.sh nicetunnel.py root@IP:/root/
+scp install.sh nicetunnel.sh nicetunnel.py nicetunnel_panel.py root@IP:/root/
 ssh root@IP
 bash install.sh
 ```
 
-اگر فایل‌های `nicetunnel.py` و `nicetunnel.sh` کنار `install.sh` باشند، چیزی دانلود نمی‌شود.
+اگر فایل‌های `nicetunnel.py`، `nicetunnel.sh` و `nicetunnel_panel.py` کنار `install.sh` باشند، چیزی دانلود نمی‌شود.
 
 ## بروزرسانی
 
 فایل‌های جدید را در GitHub جایگزین کنید (**Add file** ← **Upload files**، با همان اسم قبلی)، بعد روی هر سرور `nicetunnel` ← `Update`. تونل‌ها خودکار ری‌استارت می‌شوند. ممکن است GitHub تا چند دقیقه فایل قدیمی را نشان بدهد.
 
-برای نسخه‌ی ۱٫۲ باید هر سه فایل `nicetunnel.py`، `nicetunnel.sh` و `README.md` جایگزین شوند. فایل `install.sh` را دوباره آپلود نکنید، چون یوزرنیم شما داخل آن است.
+برای نسخه‌ی ۱٫۳ باید `nicetunnel.py`، `nicetunnel.sh`، `nicetunnel_panel.py`، `README.md` و همچنین **`install.sh`** جایگزین شوند (این بار install.sh هم تغییر کرده، چون نصب پنل را هم انجام می‌دهد). بعد از آپلود install.sh، دوباره رویش کلیک کن، مداد (Edit) بزن و `GITHUB_USER` را به یوزرنیم خودت برگردان، بعد Commit.
 
 ## حذف
 
