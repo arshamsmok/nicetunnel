@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # NiceTunnel installer (by Arsham Smoke, MIT License) - run it on BOTH servers (as root):
 #
-#   bash <(curl -Ls https://raw.githubusercontent.com/arshamsmok/nicetunnel/main/install.sh)
+#   bash <(curl -Ls https://raw.githubusercontent.com/YOUR_GITHUB_USERNAME/nicetunnel/main/install.sh)
 #
 # It installs the tunnel engine and the "nicetunnel" menu command, then opens the menu.
 # If the files nicetunnel.py and nicetunnel.sh sit next to this script, they are used instead of
 # downloading (handy when a server cannot reach GitHub):  bash install.sh
 set -euo pipefail
 
-GITHUB_USER="arshamsmok"   # <-- EDIT: your GitHub username
+GITHUB_USER="YOUR_GITHUB_USERNAME"   # <-- EDIT: your GitHub username
 GITHUB_REPO="nicetunnel"             # <-- EDIT only if your repository has another name
 REPO_RAW="${NICETUNNEL_RAW:-https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/main}"
 
@@ -34,7 +34,7 @@ fi
 # --- get the files ----------------------------------------------------------
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd || true)"
 LOCAL=0
-if [ -n "$HERE" ] && [ -f "$HERE/nicetunnel.py" ] && [ -f "$HERE/nicetunnel.sh" ]; then
+if [ -n "$HERE" ] && [ -f "$HERE/nicetunnel.py" ] && [ -f "$HERE/nicetunnel.sh" ] && [ -f "$HERE/nicetunnel_panel.py" ]; then
   LOCAL=1
 fi
 
@@ -43,8 +43,7 @@ trap 'rm -rf "$WORK"' EXIT
 
 if [ "$LOCAL" = 1 ]; then
   echo "Installing from local files in $HERE"
-  cp "$HERE/nicetunnel.py" "$HERE/nicetunnel.sh" "$WORK/"
-  [ -f "$HERE/nicetunnel_panel.py" ] && cp "$HERE/nicetunnel_panel.py" "$WORK/"
+  cp "$HERE/nicetunnel.py" "$HERE/nicetunnel.sh" "$HERE/nicetunnel_panel.py" "$WORK/"
 else
   case "$REPO_RAW" in
     *YOUR_GITHUB_USERNAME*) die "open install.sh and set GITHUB_USER to your GitHub username first." ;;
@@ -61,6 +60,8 @@ fi
 
 python3 -c 'import ast,sys; ast.parse(open(sys.argv[1]).read())' "$WORK/nicetunnel.py" \
   || die "nicetunnel.py is not valid Python (incomplete download?)."
+python3 -c 'import ast,sys; ast.parse(open(sys.argv[1]).read())' "$WORK/nicetunnel_panel.py" \
+  || die "nicetunnel_panel.py is not valid Python (incomplete download?)."
 bash -n "$WORK/nicetunnel.sh" || die "nicetunnel.sh is not a valid script (incomplete download?)."
 
 # --- install ----------------------------------------------------------------
@@ -68,8 +69,8 @@ install -d -m 755 "$APP_DIR" "$UNIT_DIR" "$(dirname "$BIN_PATH")"
 install -d -m 700 "$CONF_DIR"
 
 install -m 755 "$WORK/nicetunnel.py" "$APP_DIR/nicetunnel.py.new" && mv -f "$APP_DIR/nicetunnel.py.new" "$APP_DIR/nicetunnel.py"
+install -m 755 "$WORK/nicetunnel_panel.py" "$APP_DIR/nicetunnel_panel.py.new" && mv -f "$APP_DIR/nicetunnel_panel.py.new" "$APP_DIR/nicetunnel_panel.py"
 install -m 755 "$WORK/nicetunnel.sh" "$BIN_PATH.new" && mv -f "$BIN_PATH.new" "$BIN_PATH"
-[ -f "$WORK/nicetunnel_panel.py" ] && install -m 755 "$WORK/nicetunnel_panel.py" "$APP_DIR/nicetunnel_panel.py"
 
 PYBIN="$(command -v python3)"
 cat >"$UNIT_DIR/nicetunnel@.service" <<EOF

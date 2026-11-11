@@ -42,6 +42,7 @@ import hashlib
 import hmac
 import ipaddress
 import itertools
+import json
 import logging
 import os
 import random
@@ -56,7 +57,7 @@ import subprocess
 import sys
 import time
 
-VERSION = "1.2.0"
+VERSION = "1.3.0"
 log = logging.getLogger("nicetunnel")
 
 HANDSHAKE_TIMEOUT = 10   # seconds to finish an auth handshake
@@ -98,7 +99,7 @@ def tune(writer):
         pass
 
 
-async def pump(reader, writer):
+async def pump(reader, writer, onbytes=None):
     """Copy reader -> writer. Returns True on a clean EOF, False on error."""
     clean = True
     try:
@@ -106,6 +107,8 @@ async def pump(reader, writer):
             data = await reader.read(BUF)
             if not data:
                 break
+            if onbytes:
+                onbytes(len(data))
             writer.write(data)
             await writer.drain()
     except Exception:
@@ -119,10 +122,10 @@ async def pump(reader, writer):
     return clean
 
 
-async def relay(r1, w1, r2, w2):
+async def relay(r1, w1, r2, w2, onbytes_12=None, onbytes_21=None):
     """Bidirectional copy between (r1,w1) and (r2,w2); closes both at the end."""
-    t1 = asyncio.ensure_future(pump(r1, w2))
-    t2 = asyncio.ensure_future(pump(r2, w1))
+    t1 = asyncio.ensure_future(pump(r1, w2, onbytes_12))
+    t2 = asyncio.ensure_future(pump(r2, w1, onbytes_21))
     try:
         done, pending = await asyncio.wait([t1, t2], return_when=asyncio.FIRST_COMPLETED)
         # A clean EOF on one side is a half-close: let the other direction finish.
@@ -135,6 +138,42 @@ async def relay(r1, w1, r2, w2):
         await asyncio.gather(t1, t2, return_exceptions=True)
         close(w1)
         close(w2)
+
+
+STATS_DIR_DEFAULT = "/etc/nicetunnel/stats"
+
+
+def add_stats_args(sp):
+    sp.add_argument("--slot", help="tunnel slot number; turns on the JSON stats file for the web panel")
+    sp.add_argument("--stats-dir", default=STATS_DIR_DEFAULT, help=argparse.SUPPRESS)
+
+
+def stats_path(args):
+    slot = getattr(args, "slot", None)
+    if not slot:
+        return None
+    return os.path.join(getattr(args, "stats_dir", None) or STATS_DIR_DEFAULT, "slot%s.json" % slot)
+
+
+async def write_stats(path, snapshot_fn, interval=2):
+    tmp = path + ".tmp"
+    while True:
+        try:
+            data = snapshot_fn()
+            data["ts"] = time.time()
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            with open(tmp, "w") as fh:
+                json.dump(data, fh)
+            os.replace(tmp, path)
+        except Exception as exc:
+            log.debug("could not write stats: %r", exc)
+        await asyncio.sleep(interval)
+
+
+def start_stats(args, snapshot_fn):
+    """Starts the background stats-writer task, if --slot was given. Returns the task or None."""
+    path = stats_path(args)
+    return asyncio.ensure_future(write_stats(path, snapshot_fn)) if path else None
 
 
 def parse_ports(text):
@@ -165,6 +204,15 @@ class Server:
         self.ctrl_lock = asyncio.Lock()
         self.pending = {}              # conn id -> Future[(reader, writer)]
         self.ids = itertools.count(1)
+        self.active = 0
+        self.bytes_tx = self.bytes_rx = 0
+        self.started_at = time.time()
+
+    def add_tx(self, n):
+        self.bytes_tx += n
+
+    def add_rx(self, n):
+        self.bytes_rx += n
 
     async def send_ctrl(self, writer, data):
         async with self.ctrl_lock:
@@ -251,11 +299,22 @@ class Server:
             log.debug("user connection %s dropped: %r", cid, exc)
             close(writer)
             return
-        await relay(reader, writer, bridge_reader, bridge_writer)
+        self.active += 1
+        try:
+            await relay(reader, writer, bridge_reader, bridge_writer, self.add_tx, self.add_rx)
+        finally:
+            self.active -= 1
 
 
 async def run_server(args):
     srv = Server(args.token)
+    start_stats(args, lambda: {
+        "role": "server", "type": "tcp",
+        "state": "active" if srv.control is not None else "down",
+        "active_connections": srv.active, "bytes_tx": srv.bytes_tx, "bytes_rx": srv.bytes_rx,
+        "bridge": args.bridge, "ports": ["%d:%d" % pt for pt in args.ports],
+        "started_at": srv.started_at,
+    })
     servers = [await asyncio.start_server(srv.on_bridge, args.bind, args.bridge, backlog=512)]
     log.info("bridge listening on %s:%d", args.bind, args.bridge)
     for pub, tgt in args.ports:
@@ -295,7 +354,21 @@ async def open_bridge(args, role, *extra):
     return reader, writer
 
 
-async def client_session(args):
+class ClientStats:
+    def __init__(self):
+        self.connected = False
+        self.active = 0
+        self.bytes_tx = self.bytes_rx = 0
+        self.started_at = time.time()
+
+    def add_tx(self, n):
+        self.bytes_tx += n
+
+    def add_rx(self, n):
+        self.bytes_rx += n
+
+
+async def client_session(args, stats):
     """One control-channel lifetime. Returns True if authentication succeeded."""
     reader, writer = await open_bridge(args, "CTRL")
     lock = asyncio.Lock()
@@ -323,7 +396,11 @@ async def client_session(args):
             log.warning("could not open data link: %s", exc)
             close(t_writer)
             return
-        await relay(t_reader, t_writer, b_reader, b_writer)
+        stats.active += 1
+        try:
+            await relay(t_reader, t_writer, b_reader, b_writer, stats.add_tx, stats.add_rx)
+        finally:
+            stats.active -= 1
 
     authed = False
     try:
@@ -331,6 +408,7 @@ async def client_session(args):
         if ok.strip() != b"OK":
             raise ConnectionError("server rejected authentication (check the token)")
         authed = True
+        stats.connected = True
         log.info("connected to %s:%d", args.server, args.bridge)
         while True:
             line = await asyncio.wait_for(reader.readline(), DEAD_AFTER)
@@ -349,15 +427,23 @@ async def client_session(args):
                 if 1 <= port <= 65535:
                     spawn(handle_new(msg[1].decode(errors="replace"), port))
     finally:
+        stats.connected = False
         close(writer)
     return authed
 
 
 async def run_client(args):
+    stats = ClientStats()
+    start_stats(args, lambda: {
+        "role": "client", "type": "tcp",
+        "state": "active" if stats.connected else "down",
+        "active_connections": stats.active, "bytes_tx": stats.bytes_tx, "bytes_rx": stats.bytes_rx,
+        "server": args.server, "bridge": args.bridge, "started_at": stats.started_at,
+    })
     delay = 1
     while True:
         try:
-            authed = await client_session(args)
+            authed = await client_session(args, stats)
             if authed:
                 delay = 1
             log.warning("control connection lost, retrying in %ds", delay)
@@ -769,6 +855,8 @@ class SpoofNode:
         self.loop = None
         self.hk = None
         self.sent = self.received = 0
+        self.bytes_sent = self.bytes_received = 0
+        self.started_at = time.time()
         self.last_rx = None
         self.size_log = Throttle(10)
 
@@ -811,6 +899,7 @@ class SpoofNode:
     def send_msg(self, mtype, sid, payload=b""):
         self.sender.send(self.wire.seal(mtype, sid, payload))
         self.sent += 1
+        self.bytes_sent += len(payload)
 
     def too_big(self, data):
         if len(data) <= self.args.max_payload:
@@ -844,6 +933,7 @@ class SpoofNode:
             if msg is None:
                 continue
             self.received += 1
+            self.bytes_received += len(msg[2])
             self.last_rx = time.monotonic()
             self.on_message(*msg)
 
@@ -933,6 +1023,14 @@ class SpoofEntry(SpoofNode):
                 self.up = True
                 log.info("the other server answered: the spoof tunnel is working")
 
+    @property
+    def working(self):
+        return self.up
+
+    @property
+    def session_count(self):
+        return len(self.by_id)
+
     def tick(self, now):
         if now - self.last_ping >= PING_EVERY:
             self.last_ping = now
@@ -966,6 +1064,14 @@ class SpoofExit(SpoofNode):
     def start(self, loop):
         super().start(loop)
         log.info("exit: forwarding to udp %s:%d", *self.target)
+
+    @property
+    def working(self):
+        return self.seen_peer
+
+    @property
+    def session_count(self):
+        return len(self.sessions)
 
     def close(self):
         for s in self.sessions.values():
@@ -1038,6 +1144,14 @@ async def run_spoof(args):
             loop.add_signal_handler(sig, stop.set)
         except (NotImplementedError, ValueError):
             pass
+    start_stats(args, lambda: {
+        "role": "entry" if args.role == "spoof-entry" else "exit", "type": "spoof",
+        "state": "active" if node.working else "down",
+        "sessions": node.session_count, "packets_sent": node.sent, "packets_received": node.received,
+        "bytes_tx": node.bytes_sent, "bytes_rx": node.bytes_received,
+        "peer": args.peer, "transport": args.transport, "port": args.port,
+        "started_at": node.started_at,
+    })
     try:
         node.start(loop)
         await stop.wait()
@@ -1228,21 +1342,25 @@ def build_parser():
                    help="public ports, e.g. 443,8443:8080 (public[:target-port-on-client-side])")
     s.add_argument("--bind", default="0.0.0.0", help="address for the bridge port")
     s.add_argument("--public-bind", default="0.0.0.0", help="address for the public ports")
+    add_stats_args(s)
 
     c = sub.add_parser("client", help="run on the other machine")
     c.add_argument("--server", required=True, help="IP or hostname of the tunnel server")
     c.add_argument("--bridge", type=int, default=7000, help="server bridge port (default 7000)")
     c.add_argument("--target-host", default="127.0.0.1",
                    help="where forwarded connections go on this machine (default 127.0.0.1)")
+    add_stats_args(c)
 
     e = sub.add_parser("spoof-entry", help="spoof tunnel, the side apps send UDP to")
     add_spoof_args(e)
     e.add_argument("--listen-port", type=int, required=True, help="UDP port apps send to")
     e.add_argument("--listen-bind", default="0.0.0.0")
+    add_stats_args(e)
 
     x = sub.add_parser("spoof-exit", help="spoof tunnel, the side that forwards to the UDP service")
     add_spoof_args(x)
     x.add_argument("--forward", default="127.0.0.1:51820", help="HOST:PORT of the UDP service")
+    add_stats_args(x)
 
     t = sub.add_parser("spoof-test", help="find out which spoofed source addresses get through")
     tsub = t.add_subparsers(dest="mode", required=True)
