@@ -45,6 +45,8 @@ SESSION_TTL = 12 * 3600
 LOGIN_FAILS_MAX = 5
 TRANSPORTS = ("udp", "tcp", "icmp")
 
+lock = threading.Lock()
+fails = {}      # client ip -> [count, first_time]
 sessions = {}   # session id -> expiry time
 sess_owner = {}  # session id -> "admin" or "tok:<token id>"
 # --------------------------------------------------------------------------
