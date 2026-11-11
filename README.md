@@ -1,7 +1,7 @@
 # NiceTunnel (نایس تانل)
 
 ساخته‌شده توسط **Arsham Smoke** (آرشام اسموک) · لایسنس MIT
-
+ایدی جهت ارتباط https://t.me/ios_bang
 دو نوع تانل بین دو سرور (مثلاً ایران و خارج) با منوی تعاملی. روی هر دو سرور با یک دستور نصب می‌شود.
 
 | نوع | برای چه | چه چیزی عبور می‌کند |
@@ -19,39 +19,13 @@
 - منوی رنگی با بنر گرادیانی، مراحل ساخت تونل با شماره قدم و تیک سبز، انتخاب با کلیدهای جهت‌نما، و چند تم رنگی.
 - تونل‌ها ترافیک را **رمز نمی‌کنند**. روی آن‌ها پروتکل‌هایی را عبور بدهید که خودشان رمزنگاری دارند (TLS، VLESS، Trojan، SSH، WireGuard و مانند آن).
 
-## ۱. گذاشتن سورس روی GitHub
-
-۱. در github.com وارد حسابتان شوید (اگر حساب ندارید، Sign up).
-
-۲. دکمه **+** بالای صفحه ← **New repository**:
-   - Repository name: `nicetunnel`
-   - حتماً **Public** را انتخاب کنید (برای ریپوی Private لینک raw بدون توکن کار نمی‌کند)
-   - **Create repository**
-
-۳. در صفحه ریپوی خالی روی لینک **uploading an existing file** بزنید، شش فایل `install.sh`، `nicetunnel.sh`، `nicetunnel.py`، `nicetunnel_panel.py`، `README.md` و `LICENSE` را بکشید و رها کنید، بعد **Commit changes**.
-
-۴. روی `install.sh` کلیک کنید ← آیکون مداد (Edit) ← در بالای فایل خط زیر را پیدا کنید و `YOUR_GITHUB_USERNAME` را با یوزرنیم GitHub خودتان عوض کنید:
-
-   ```bash
-   GITHUB_USER="YOUR_GITHUB_USERNAME"
-   ```
-
-   بعد **Commit changes**.
-
-۵. لینک دانلود (raw) شما این است:
-
-   ```
-   https://raw.githubusercontent.com/یوزرنیم_شما/nicetunnel/main/install.sh
-   ```
-
-   آن را در مرورگر باز کنید. باید متن اسکریپت را ببینید، نه صفحه خطا.
 
 ## ۲. نصب روی هر دو سرور
 
 با `ssh root@IP` وارد سرور شوید (مستقیم با root، چون `sudo` با این دستور کار نمی‌کند؛ اگر یوزر root نیستید اول `sudo -i` بزنید)، بعد:
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/یوزرنیم_شما/nicetunnel/main/install.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/arshamsmok/nicetunnel/main/install.sh)
 ```
 
 نصب انجام می‌شود و منو باز می‌شود. بعداً هر وقت خواستید منو را باز کنید:
