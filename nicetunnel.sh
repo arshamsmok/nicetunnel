@@ -336,78 +336,44 @@ EOF
   )
 }
 
-panel_port() { [ -f "$CONF_DIR/panel.env" ] && grep -o 'PANEL_PORT=.*' "$CONF_DIR/panel.env" | cut -d= -f2; }
+panel_conf_json() { echo "$CONF_DIR/panel.json"; }
+
+panel_port() {
+  [ -f "$(panel_conf_json)" ] || return 0
+  python3 -c '
+import json, sys
+try:
+    print(json.load(open(sys.argv[1])).get("port", ""))
+except Exception:
+    pass
+' "$(panel_conf_json)" 2>/dev/null
+}
+
 panel_status() { systemctl is-enabled nicetunnel-panel >/dev/null 2>&1 && echo enabled || echo disabled; }
 
-panel_hash() { # arg: password -> prints "salt_hex hash_hex" (PBKDF2-SHA256, matches nicetunnel_panel.py)
-  python3 - "$1" <<'PYEOF'
-import sys, os, hashlib
-pw = sys.argv[1]
-salt = os.urandom(16)
-h = hashlib.pbkdf2_hmac("sha256", pw.encode(), salt, 200000)
-print(salt.hex(), h.hex())
-PYEOF
-}
-
-write_panel_unit() { # arg: port
-  cat >"${NICETUNNEL_UNIT_DIR:-/etc/systemd/system}/nicetunnel-panel.service" <<EOF
-[Unit]
-Description=NiceTunnel web panel
-After=network.target
-
-[Service]
-ExecStart=$(command -v python3) $APP_DIR/nicetunnel_panel.py --conf-dir $CONF_DIR --port $1
-Restart=always
-RestartSec=2
-
-[Install]
-WantedBy=multi-user.target
-EOF
-}
+# The panel manages its own password, port and systemd service (install/set-password/
+# uninstall/update subcommands) - nicetunnel.sh just forwards to it and lets it talk
+# to this terminal directly (it asks for the password itself).
+panel_run() { python3 "$APP_DIR/nicetunnel_panel.py" "$@"; }
 
 panel_setup() {
-  local pw1 pw2 port salt hash ip
   header
-  say "  The web panel is a password-protected page that shows tunnel status and can"
-  say "  start, stop and restart them. It is reachable from the internet (HTTPS, self-signed"
-  say "  certificate), so pick a real password."
+  say "  The web panel is a password-protected page that shows and controls your tunnels."
+  say "  It listens on plain HTTP (no TLS) on a random port, reachable from the internet -"
+  say "  pick a real password, and prefer reaching it over SSH port-forwarding or a VPN"
+  say "  when you can, since the password itself travels unencrypted."
   echo
-  ask "Panel port" "${PANEL_PORT:-$(panel_port)}" || return 0
-  [ -n "$REPLY" ] || REPLY=8443
-  is_port "$REPLY" || { err "  That is not a valid port number."; pause; return 1; }
-  port="$REPLY"
-  while true; do
-    ask "Panel password (at least 8 characters)" "" || return 0
-    pw1="$REPLY"
-    if [ "${#pw1}" -lt 8 ]; then err "  The password must be at least 8 characters."; continue; fi
-    ask "Repeat the password" "" || return 0
-    pw2="$REPLY"
-    [ "$pw1" = "$pw2" ] && break
-    err "  The two passwords did not match."
-  done
-  read -r salt hash < <(panel_hash "$pw1")
-  mkdir -p "$CONF_DIR" && chmod 700 "$CONF_DIR"
-  (
-    umask 077
-    cat >"$CONF_DIR/panel.env" <<EOF
-PANEL_SALT=$salt
-PANEL_HASH=$hash
-PANEL_PORT=$port
-EOF
-  )
-  write_panel_unit "$port"
-  systemctl daemon-reload >/dev/null 2>&1
-  systemctl enable --now nicetunnel-panel >/dev/null 2>&1
-  sleep 1
+  panel_run install
+}
+
+panel_change_password() {
   header
-  ip="$(hostname -I 2>/dev/null | awk '{print $1}')"
-  ok "  $CHK Panel is on: https://${ip:-SERVER_IP}:$port"
-  warn "  The certificate is self-signed, so the browser warns. Click Advanced, then Proceed."
+  panel_run set-password
 }
 
 panel_disable() {
-  systemctl disable --now nicetunnel-panel >/dev/null 2>&1
-  ok "  Panel turned off."
+  panel_run uninstall
+  ok "  Panel turned off and removed."
 }
 
 panel_menu() {
@@ -418,12 +384,14 @@ panel_menu() {
     if [ "$st" = enabled ]; then say "  Status: on, port $(panel_port)"; else say "  Status: off"; fi
     echo
     select_menu "Web panel" \
-      "1|Turn on / change settings|set the port and password" \
-      "2|Turn off|" \
+      "1|Turn on / install|random port, set your password" \
+      "2|Change password|" \
+      "3|Turn off / remove|" \
       "0|Back|" || return 0
     case "$SEL" in
       1) panel_setup; pause ;;
-      2) panel_disable; pause ;;
+      2) panel_change_password; pause ;;
+      3) panel_disable; pause ;;
       0) return 0 ;;
     esac
   done

@@ -530,7 +530,7 @@ window.onerror=(m,u,l)=>{document.getElementById("app").textContent="JS error: "
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let lang = localStorage.getItem('nt_lang') || 'en';
-const FA = {'Dashboard':'داشبورد','Tunnels':'تونل‌ها','Create':'ساخت','Monitoring':'پایش','Spoof tester':'تست اسپوف','Access tokens':'توکن‌های دسترسی','Logs':'لاگ‌ها','Logout':'خروج','Login':'ورود','Save password':'ذخیره رمز','Password or access token':'رمز یا توکن دسترسی','Create admin password (min 8 chars)':'ساخت رمز مدیر (حداقل ۸ کاراکتر)','Username':'نام کاربری','Password':'رمز عبور','CPU':'پردازنده','Memory':'حافظه','Disk':'دیسک','Uptime':'مدت روشنی','CPU history':'تاریخچه پردازنده','Network download':'دریافت شبکه','Network upload':'ارسال شبکه','Tunnel status':'وضعیت تونل‌ها','Tunnel monitor':'پایش تونل‌ها','(auto refresh 3s)':'(نوسازی خودکار هر ۳ ثانیه)','Spoof tunnels on this server':'تونل‌های اسپوف این سرور','Create spoof tunnel':'ساخت تونل اسپوف','Create and connect':'ساخت و اتصال','Create token':'ساخت توکن','Person name':'نام شخص','Connect':'اتصال','Restart':'ری‌استارت','Stop':'توقف','Start':'شروع','Delete':'حذف','Revoke':'بستن','Enable':'فعال‌سازی','Pause':'توقف موقت','Resume':'ادامه','Slot':'اسلات','Side':'سمت','Type:port':'نوع:پورت','Other server':'سرور مقابل','Other server real IP':'آی‌پی واقعی سرور مقابل','Source IPs':'آی‌پی‌های جعلی','Ports':'پورت‌ها','State':'وضعیت','Start test':'شروع تست','Refresh result':'بروزرسانی نتیجه','Mode':'حالت','Packet type':'نوع بسته','Port':'پورت','Logs':'لاگ‌ها','This server is':'این سرور است','Tunnel port (both sides)':'پورت تونل (هر دو سر)','Listen UDP port (apps send here)':'پورت UDP ورودی (برنامه‌ها اینجا می‌فرستند)','Forward to HOST:PORT':'ارسال به HOST:PORT','Fake source IPs (from Spoof tester)':'آی‌پی‌های جعلی (از تست اسپوف)','Token (empty = generate)':'توکن (خالی = ساخت خودکار)','Listen seconds (5-300)':'مدت گوش دادن (۵ تا ۳۰۰ ثانیه)','Fake source IPs to test':'آی‌پی‌های جعلی برای تست','Packets per address (1-10)':'تعداد بسته برای هر آدرس (۱ تا ۱۰)','Receive (run first)':'دریافت (اول اجرا شود)','Send (run second)':'ارسال (دوم اجرا شود)','Iran (entry: apps send UDP here)':'ایران (ورودی: برنامه‌ها UDP را اینجا می‌فرستند)','Foreign (exit: forwards to a UDP service)':'خارج (خروجی: به سرویس UDP وصل می‌کند)','active':'فعال','inactive':'غیرفعال','failed':'خطا','revoked':'بسته‌شده','paused':'متوقف','No tokens yet.':'هنوز توکنی نیست.','No spoof tunnel yet. Open Create to add one.':'هنوز تونلی نیست. از بخش ساخت یکی بسازید.','Open Tunnels and click Logs on a tunnel.':'از بخش تونل‌ها روی لاگ یک تونل بزنید.','No test run yet.':'هنوز تستی اجرا نشده.','Give each person their own token. They log in with it in the Password field. Revoke a token to cut off that person immediately.':'برای هر نفر یک توکن جدا بسازید. با آن در فیلد رمز وارد می‌شود. با بستن توکن، دسترسی آن شخص فوراً قطع می‌شود.','Run Receive on the receiving server first, then Send on the sending server, with the same packet type and port. Copy the fake source IPs that arrived into "Create".':'اول Receive را روی سرور دریافت‌کننده و بعد Send را روی سرور ارسال‌کننده با همان نوع بسته و پورت اجرا کنید. آی‌پی‌های جعلی که رسیدند را در بخش ساخت کپی کنید.'};
+const FA = {'Reverse tunnel':'تونل معکوس','Spoof tunnel':'تونل اسپوف','Settings':'تنظیمات','Account':'حساب کاربری','Language':'زبان','Apply':'اعمال','Save changes':'ذخیره تغییرات','Saved':'ذخیره شد','Current password':'رمز فعلی','New password (empty = keep)':'رمز جدید (خالی = بدون تغییر)','Changing the password logs out every other browser session.':'با تغییر رمز، سایر مرورگرها از پنل خارج می‌شوند.','Reverse TCP tunnels on this server':'تونل‌های معکوس TCP این سرور','Create reverse tunnel':'ساخت تونل معکوس','Iran (server: listens, forwards ports)':'ایران (سرور: گوش می‌دهد و پورت‌ها را منتقل می‌کند)','Foreign (client: connects to Iran)':'خارج (کلاینت: به ایران وصل می‌شود)','Bridge port (both sides)':'پورت پل (هر دو سر)','Ports to forward':'پورت‌های انتقالی','Iran server real IP':'آی‌پی واقعی سرور ایران','Kind':'نوع','No tunnel yet. Open Create to add one.':'هنوز تونلی نیست. از بخش ساخت یکی بسازید.','Tunnel created. Token (copy it to the other server):':'تونل ساخته شد. توکن را به سرور مقابل منتقل کنید:','Total restarts':'مجموع ری‌استارت','Active':'فعال','Down':'قطع','Memory used':'حافظه مصرفی','Logout':'خروج','Dashboard':'داشبورد','Tunnels':'تونل‌ها','Create':'ساخت','Monitoring':'پایش','Spoof tester':'تست اسپوف','Access tokens':'توکن‌های دسترسی','Logs':'لاگ‌ها','Logout':'خروج','Login':'ورود','Save password':'ذخیره رمز','Password or access token':'رمز یا توکن دسترسی','Create admin password (min 8 chars)':'ساخت رمز مدیر (حداقل ۸ کاراکتر)','Username':'نام کاربری','Password':'رمز عبور','CPU':'پردازنده','Memory':'حافظه','Disk':'دیسک','Uptime':'مدت روشنی','CPU history':'تاریخچه پردازنده','Network download':'دریافت شبکه','Network upload':'ارسال شبکه','Tunnel status':'وضعیت تونل‌ها','Tunnel monitor':'پایش تونل‌ها','(auto refresh 3s)':'(نوسازی خودکار هر ۳ ثانیه)','Spoof tunnels on this server':'تونل‌های اسپوف این سرور','Create spoof tunnel':'ساخت تونل اسپوف','Create and connect':'ساخت و اتصال','Create token':'ساخت توکن','Person name':'نام شخص','Connect':'اتصال','Restart':'ری‌استارت','Stop':'توقف','Start':'شروع','Delete':'حذف','Revoke':'بستن','Enable':'فعال‌سازی','Pause':'توقف موقت','Resume':'ادامه','Slot':'اسلات','Side':'سمت','Type:port':'نوع:پورت','Other server':'سرور مقابل','Other server real IP':'آی‌پی واقعی سرور مقابل','Source IPs':'آی‌پی‌های جعلی','Ports':'پورت‌ها','State':'وضعیت','Start test':'شروع تست','Refresh result':'بروزرسانی نتیجه','Mode':'حالت','Packet type':'نوع بسته','Port':'پورت','Logs':'لاگ‌ها','This server is':'این سرور است','Tunnel port (both sides)':'پورت تونل (هر دو سر)','Listen UDP port (apps send here)':'پورت UDP ورودی (برنامه‌ها اینجا می‌فرستند)','Forward to HOST:PORT':'ارسال به HOST:PORT','Fake source IPs (from Spoof tester)':'آی‌پی‌های جعلی (از تست اسپوف)','Token (empty = generate)':'توکن (خالی = ساخت خودکار)','Listen seconds (5-300)':'مدت گوش دادن (۵ تا ۳۰۰ ثانیه)','Fake source IPs to test':'آی‌پی‌های جعلی برای تست','Packets per address (1-10)':'تعداد بسته برای هر آدرس (۱ تا ۱۰)','Receive (run first)':'دریافت (اول اجرا شود)','Send (run second)':'ارسال (دوم اجرا شود)','Iran (entry: apps send UDP here)':'ایران (ورودی: برنامه‌ها UDP را اینجا می‌فرستند)','Foreign (exit: forwards to a UDP service)':'خارج (خروجی: به سرویس UDP وصل می‌کند)','active':'فعال','inactive':'غیرفعال','failed':'خطا','revoked':'بسته‌شده','paused':'متوقف','No tokens yet.':'هنوز توکنی نیست.','No spoof tunnel yet. Open Create to add one.':'هنوز تونلی نیست. از بخش ساخت یکی بسازید.','Open Tunnels and click Logs on a tunnel.':'از بخش تونل‌ها روی لاگ یک تونل بزنید.','No test run yet.':'هنوز تستی اجرا نشده.','Give each person their own token. They log in with it in the Password field. Revoke a token to cut off that person immediately.':'برای هر نفر یک توکن جدا بسازید. با آن در فیلد رمز وارد می‌شود. با بستن توکن، دسترسی آن شخص فوراً قطع می‌شود.','Run Receive on the receiving server first, then Send on the sending server, with the same packet type and port. Copy the fake source IPs that arrived into "Create".':'اول Receive را روی سرور دریافت‌کننده و بعد Send را روی سرور ارسال‌کننده با همان نوع بسته و پورت اجرا کنید. آی‌پی‌های جعلی که رسیدند را در بخش ساخت کپی کنید.'};
 document.documentElement.lang = lang; document.documentElement.dir = lang==='fa' ? 'rtl' : 'ltr';
 function tr(root){
   if(lang!=='fa' || !root) return;
@@ -541,7 +541,7 @@ function tr(root){
 function toggleLang(){ localStorage.setItem('nt_lang', lang==='fa' ? 'en' : 'fa'); location.reload(); }
 function langBtn(){ return `<button class="lang" onclick="toggleLang()">${lang==='fa' ? 'English' : 'فارسی'}</button>`; }
 setInterval(() => tr(document.body), 700);
-let state = {logged: false, needSetup: false}, page = 'dash', hist = {cpu:[],rx:[],tx:[]}, timer = null, tTimer = null;
+let state = {logged: false, needSetup: false}, page = 'dash', hist = {cpu:[],rx:[],tx:[]}, timer = null, tTimer = null, cur = 'list', logSlot = 0;
 function msg(t, ok){ const m=$('#msg'); if(m){ m.className='msg '+(ok?'good':'bad'); m.textContent=t; } else alert(t); }
 async function api(path, body){
   const r = await fetch(path, {method: body===undefined?'GET':'POST', headers:{'Content-Type':'application/json'},
@@ -672,8 +672,6 @@ function go(p){
   document.querySelectorAll('.page').forEach(e=>e.classList.toggle('on', e.id==='p-'+p));
   document.querySelectorAll('.nav[data-p]').forEach(e=>e.classList.toggle('on', e.dataset.p===p));
   $('#ttl').textContent = PAGES.filter(x=>x[0]===p)[0][2];
-  if(p==='test') tstatus();
-  if(p==='mon') monitor();
   refresh();
 }
 function spark(id, arr, color){
@@ -687,13 +685,17 @@ function spark(id, arr, color){
 function push(a,v){ a.push(v); if(a.length>60) a.shift(); }
 function bar(id,p){ $(id).style.width=Math.max(0,Math.min(100,p))+'%'; }
 function slotTable(slots, full){
-  if(!slots.length) return '<p style="color:#b8c2ee">No spoof tunnel yet. Open Create to add one.</p>';
-  return `<table><tr><th>Slot</th><th>Side</th><th>Type:port</th><th>Other server</th><th>Source IPs</th><th>Ports</th><th>State</th>${full?'<th></th>':''}</tr>`+
-  slots.map(s => `<tr><td>${s.slot}</td><td>${esc(s.side)}</td><td>${esc(s.transport)}:${esc(s.port)}</td><td>${esc(s.peer)}</td><td>${esc(s.spoof_ips)}</td>
+  if(!slots.length) return '<p style="color:#b8c2ee">No tunnel yet. Open Create to add one.</p>';
+  return `<table><tr><th>Slot</th><th>Kind</th><th>Side</th><th>Type:port</th><th>Other server</th><th>Source IPs</th><th>Ports</th><th>State</th>${full?'<th></th>':''}</tr>`+
+  slots.map(s => s.kind==='reverse' ? `<tr><td>${s.slot}</td><td>reverse</td><td>${esc(s.side)}</td><td>tcp:${esc(s.bridge)}</td><td>${esc(s.server_ip||'-')}</td><td>-</td>
+   <td>${s.role==='server'?'listen '+esc(s.ports):'forward '+esc(s.target_host)}</td>
+   <td class="${esc(s.state)}"><span class="dot"></span>${esc(s.state)}</td>
+   ${full?rowBtns(s.slot):''}</tr>` : `<tr><td>${s.slot}</td><td>spoof</td><td>${esc(s.side)}</td><td>${esc(s.transport)}:${esc(s.port)}</td><td>${esc(s.peer)}</td><td>${esc(s.spoof_ips)}</td>
    <td>${s.role==='server'?'listen UDP '+esc(s.listen_port):'forward '+esc(s.forward)}</td>
    <td class="${esc(s.state)}"><span class="dot"></span>${esc(s.state)}</td>
-   ${full?`<td><button class="sm ok" onclick="act(${s.slot},'start')">Connect</button><button class="sm" onclick="act(${s.slot},'restart')">Restart</button><button class="sm" onclick="act(${s.slot},'stop')">Stop</button><button class="sm" onclick="logs(${s.slot})">Logs</button><button class="sm danger" onclick="del(${s.slot})">Delete</button></td>`:''}</tr>`).join('')+'</table>';
+   ${full?rowBtns(s.slot):''}</tr>`).join('')+'</table>';
 }
+function rowBtns(n){ return `<td><button class="sm ok" onclick="act(${n},'start')">Connect</button><button class="sm" onclick="act(${n},'restart')">Restart</button><button class="sm" onclick="act(${n},'stop')">Stop</button><button class="sm" onclick="logs(${n})">Logs</button><button class="sm danger" onclick="del(${n})">Delete</button></td>`; }
 async function refresh(){
   try {
     const [st, sl] = await Promise.all([api('/api/stats'), api('/api/slots')]);
@@ -707,7 +709,9 @@ async function refresh(){
     $('#rx').textContent = fmtB(st.rx_rate)+'/s'; $('#rxt').textContent = 'total '+fmtB(st.rx_total);
     $('#tx').textContent = fmtB(st.tx_rate)+'/s'; $('#txt').textContent = 'total '+fmtB(st.tx_total);
     spark('#crx', hist.rx, '#38bdf8'); spark('#ctx', hist.tx, '#ec4899'); spark('#ccpu', hist.cpu, '#818cf8');
-    $('#mon').innerHTML = slotTable(sl.slots, false); $('#tbl').innerHTML = slotTable(sl.slots, true);
+    $('#mon').innerHTML = slotTable(sl.slots, false);
+    $('#revtbl').innerHTML = slotTable(sl.slots.filter(s=>s.kind==='reverse'), true);
+    $('#tbl').innerHTML = slotTable(sl.slots.filter(s=>s.kind==='spoof'), true);
   } catch(e){ if(/login|auth|401/i.test(e.message)) load(); else msg(e.message,false); }
 }
 async function monitor(){
@@ -745,12 +749,12 @@ async function load(){
   clearInterval(timer);
   try { state = await api('/api/state');
     if(!state.logged){ loginView(); return; }
-    shell(); go(page); timer = setInterval(()=>{ if(page==='dash'||page==='tun') refresh(); if(page==='mon') monitor(); }, 3000);
+    shell(); go(page); timer = setInterval(()=>{ refresh(); if(page==='spoof' && cur==='mon') monitor(); }, 3000);
   } catch(e){ loginView(); msg(e.message,false); }
 }
 async function act(n, a){ try { const r = await api(`/api/slot/${n}/${a}`, {}); msg(`Tunnel ${n}: ${r.state}`, true); refresh(); } catch(e){ msg(e.message,false);} }
 async function del(n){ if(!confirm('Delete tunnel '+n+'?')) return; try { await api(`/api/slot/${n}/delete`, {}); refresh(); } catch(e){ msg(e.message,false);} }
-async function logs(n){ try { const r = await api(`/api/slot/${n}/logs`); go('logs'); $('#logbox').textContent = r.logs || '(no logs)'; } catch(e){ msg(e.message,false);} }
+async function logs(n){ try { const r = await api(`/api/slot/${n}/logs`); logSlot = n; go('spoof'); sub('logs'); $('#logbox').textContent = r.logs || '(no logs)'; } catch(e){ msg(e.message,false);} }
 async function create(){
   const body = {role:$('#role').value, peer:$('#peer').value.trim(), transport:$('#transport').value,
     port:$('#port').value, spoof_ips:$('#spoof_ips').value, listen_port:$('#listen_port').value,
@@ -758,6 +762,15 @@ async function create(){
   try { const r = await api('/api/spoof', body);
     $('#newtoken').innerHTML = `<div class="msg good">Tunnel ${r.slot} created. Token (copy it to the other server):<br><code>${esc(r.token)}</code></div>`;
     refresh(); } catch(e){ msg(e.message,false); } }
+async function createRev(){
+  const body = {role:$('#rrole').value, bridge:$('#rbridge').value, ports:$('#rport').value,
+    server_ip:$('#rserver').value.trim(), target_host:$('#rtarget').value.trim(), token:$('#rtoken').value.trim()};
+  try { const r = await api('/api/reverse', body);
+    $('#rnew').innerHTML = `<div class="msg good">Tunnel ${r.slot} created. Token (copy it to the other server):<br><code>${esc(r.token)}</code></div>`;
+    refresh(); } catch(e){ msg(e.message,false); } }
+async function saveAccount(){
+  try { await api('/api/account', {current:$('#scur').value, username:$('#sun').value.trim(), password:$('#snew').value});
+    msg('Saved', true); $('#scur').value=''; $('#snew').value=''; } catch(e){ msg(e.message,false); } }
 async function logout(){ await api('/api/logout', {}); state.logged=false; load(); }
 load();
 </script></body></html>
@@ -938,7 +951,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
             conf = load_panel_conf()
             logged = self.session_ok()
             role = "admin" if sess_owner.get(self.session_id()) == "admin" else "user"
-            return self.send_json({"logged": logged, "role": role, "needSetup": "password" not in conf})
+            return self.send_json({"logged": logged, "role": role, "needSetup": "password" not in conf,
+                                   "username": conf.get("username", "admin") if logged else ""})
         if path == "/api/slots":
             if not self.require_login():
                 return
