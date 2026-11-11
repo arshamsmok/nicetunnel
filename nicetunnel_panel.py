@@ -523,6 +523,25 @@ pre{border:1px solid rgba(255,255,255,.08)}
 .tab:hover{background:rgba(255,255,255,.14)}
 .tab.on{background:linear-gradient(135deg,rgba(99,102,241,.75),rgba(6,182,212,.6));border-color:rgba(255,255,255,.3);color:#fff;box-shadow:0 6px 18px rgba(99,102,241,.35)}
 .sub{display:none}.sub.on{display:block}
+/* v5: flat dark look */
+#bg,#grid{display:none}
+body{background:#0a0d14!important}
+#shell{gap:0;padding:0;flex-wrap:wrap;align-content:flex-start}
+.glass{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;box-shadow:none!important;background:#10141f!important;border:1px solid #232a3a!important;border-radius:0!important}
+#side{width:230px;top:0;height:100vh;border-width:0 0 0 1px!important;border-top:0!important;padding:16px 14px}
+#shell[dir=ltr] #side{border-width:0 1px 0 0!important}
+#top{border-width:0 0 1px 0!important;padding:12px 24px}
+#foot{border-width:1px 0 0 0!important;justify-content:center;gap:20px;color:#8b93a7}
+#main{flex:1;min-width:0;display:flex;flex-direction:column;min-height:100vh}
+#main>.glass:not(#top):not(#foot),.card{border-radius:14px!important;background:#10141f!important;border:1px solid #232a3a!important}
+.logo{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:12px;background:#4f78f5;color:#fff;font-weight:700;font-size:16px;filter:none}
+.hdr .nm{background:none;-webkit-text-fill-color:#fff;color:#fff;font-size:17px}
+.hdr .vv{border:0;padding:0;color:#8b93a7}
+.nav{border-radius:10px;color:#9aa3b8}
+.nav:hover{transform:none!important;background:#171c29}
+.nav.on{background:#18233f!important;border-color:transparent!important;box-shadow:none!important;color:#fff}
+#login{border-radius:14px!important}
+.tab.on{background:#18233f;box-shadow:none;border-color:#2c3a5e}
 </style>
 <body>
 <div id="bg"></div><div id="grid"></div>
@@ -569,7 +588,7 @@ function loginView(){
   $('#pwtog').onclick = () => { const p=$('#pw'); p.type = p.type==='password' ? 'text' : 'password'; p.focus(); };
 }
 const PAGES = [['dash','&#9673;','Dashboard'],['rev','&#8646;','Reverse tunnel'],['spoof','&#9889;','Spoof tunnel'],['set','&#9881;','Settings']];
-const LOGO = '<svg class="logo" viewBox="0 0 48 48" fill="none"><defs><linearGradient id="lg" x1="0" y1="0" x2="48" y2="48"><stop stop-color="#818cf8"/><stop offset=".5" stop-color="#38bdf8"/><stop offset="1" stop-color="#f0abfc"/></linearGradient></defs><path d="M6 24h36" stroke="url(#lg)" stroke-width="3" stroke-linecap="round" opacity=".5"/><circle cx="13" cy="24" r="7" stroke="url(#lg)" stroke-width="3.5"/><circle cx="35" cy="24" r="7" stroke="url(#lg)" stroke-width="3.5"/><path d="M16 10h16M16 38h16" stroke="url(#lg)" stroke-width="2.5" stroke-linecap="round" opacity=".75"/></svg>';
+const LOGO = '<span class="logo">NT</span>';
 function shell(){
   const nm = state.username || 'admin';
   $('#app').innerHTML = `<div id="shell"><div id="side" class="glass">
