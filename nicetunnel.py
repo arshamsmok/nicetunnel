@@ -57,7 +57,7 @@ import subprocess
 import sys
 import time
 
-VERSION = "1.3.0"
+VERSION = "1.3.1"
 log = logging.getLogger("nicetunnel")
 
 HANDSHAKE_TIMEOUT = 10   # seconds to finish an auth handshake
@@ -66,7 +66,8 @@ DEAD_AFTER = 35          # control channel silent for this long = dead
 CONNECT_WAIT = 10        # how long a user waits for the client's data link
 TARGET_TIMEOUT = 5       # client -> local target connect timeout
 HALF_CLOSE_WAIT = 120    # after one side finishes, wait this long for the other
-BUF = 65536
+BUF = 262144             # relay read size; bigger = fewer syscalls per byte moved
+SOCK_BUF = 4 * 1024 * 1024  # OS send/receive buffer size on the hot-path sockets
 
 
 # --------------------------------------------------------------------------
@@ -84,8 +85,20 @@ def close(writer):
         pass
 
 
+def bump_buffers(sock, size=SOCK_BUF):
+    """Best-effort: raises the OS send/receive buffers on a hot-path socket so
+    a burst of traffic is queued instead of silently dropped. The kernel clamps
+    an oversized request to its own max, so this is safe to call unconditionally."""
+    for opt in (socket.SO_RCVBUF, socket.SO_SNDBUF):
+        try:
+            sock.setsockopt(socket.SOL_SOCKET, opt, size)
+        except OSError:
+            pass
+
+
 def tune(writer):
-    """TCP_NODELAY + keepalive so dead peers are noticed."""
+    """TCP_NODELAY + keepalive so dead peers are noticed, + bigger socket buffers
+    so a fast link isn't throttled by small default OS queues."""
     sock = writer.get_extra_info("socket")
     if sock is None:
         return
@@ -97,6 +110,7 @@ def tune(writer):
                 sock.setsockopt(socket.IPPROTO_TCP, getattr(socket, name), val)
     except OSError:
         pass
+    bump_buffers(sock)
 
 
 async def pump(reader, writer, onbytes=None):
@@ -681,6 +695,7 @@ class RawSender:
         self.errors = Throttle(10)
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_RAW)
         self.sock.setblocking(False)
+        bump_buffers(self.sock)
 
     def send(self, payload):
         src = self.spoofs[self.i]
@@ -965,6 +980,7 @@ class SpoofEntry(SpoofNode):
         super().__init__(args)
         self.local = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.local.setblocking(False)
+        bump_buffers(self.local)
         self.local.bind((args.listen_bind, args.listen_port))
         self.by_addr, self.by_id = {}, {}
         self.started = time.monotonic()
@@ -1098,6 +1114,7 @@ class SpoofExit(SpoofNode):
                     return
                 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                 sock.setblocking(False)
+                bump_buffers(sock)
                 sock.connect(self.target)
                 s = self.sessions[sid] = Sess(sid, sock=sock)
                 self.loop.add_reader(sock.fileno(), self.on_target, s)
@@ -1109,7 +1126,7 @@ class SpoofExit(SpoofNode):
                 pass                                     # target not listening yet
 
     def on_target(self, s):
-        for _ in range(64):
+        for _ in range(256):
             try:
                 data = s.sock.recv(65535)
             except (BlockingIOError, InterruptedError):
