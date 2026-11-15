@@ -795,6 +795,23 @@ html body .nl button.nl-go:active{transform:scale(.98)!important}
 .lowmo .nl-pk,.lowmo .nl-dash,.lowmo .nl-pulse,.lowmo .nl-stars.b{display:none;animation:none}
 @media(prefers-reduced-motion:reduce){.nl-pk{display:none}.nl-dash,.nl-pulse,.nl-stars.b,.nl-card{animation:none}}
 @media(max-width:420px){.nl-title{font-size:36px}.nl-card{padding:28px 20px 20px}.nl-main{padding-top:76px}}
+/* v10b: slim, refined */
+html body .nl{font-family:Vazirmatn,"IRANSans","Segoe UI",Tahoma,system-ui,sans-serif;font-weight:400}
+html body .nl button,html body .nl input{font-family:inherit}
+html body .nl .nl-card{max-width:370px;padding:30px 24px 20px;border-radius:20px;border:1px solid rgba(233,196,106,.13);background:rgba(8,18,35,.82)}
+html body .nl .nl-title{font-size:38px;font-weight:700;letter-spacing:0}
+html body .nl .nl-sub{font-size:12.5px;font-weight:400;color:#9fb0c8;margin-bottom:20px}
+html body .nl .nl-seg{padding:3px;gap:3px;border-radius:11px;border:1px solid rgba(60,100,160,.35);background:rgba(255,255,255,.02);margin-bottom:18px}
+html body .nl .nl-seg button{height:34px;font-size:12.5px;font-weight:400;border-radius:8px!important}
+html body .nl .nl-seg button.on{background:#10233f!important;border-color:rgba(70,110,170,.45)!important;color:#f4d58a}
+html body .nl .nl-seg svg{width:13px;height:13px;stroke-width:1.5}
+html body .nl .nl-f label{font-size:12px;font-weight:400;color:#a9b8cc}
+html body .nl .nl-in input{height:44px;font-size:14px;font-weight:400;border:1px solid rgba(60,100,160,.4)!important;border-radius:11px!important;background:#06101e!important}
+html body .nl .nl-ic svg,html body .nl .nl-eye svg{width:16px;height:16px;stroke-width:1.5}
+html body .nl button.nl-go{height:44px;font-size:14.5px;font-weight:600;border-radius:11px!important;color:#14110a!important;-webkit-text-fill-color:#14110a;background:#e9c46a!important;box-shadow:0 6px 18px rgba(233,196,106,.2)!important}
+html body .nl .nl-foot{font-size:11.5px;margin-top:16px}
+html body .nl a.nl-chip{height:30px;font-size:12px;border-color:rgba(233,196,106,.2)}
+html body .nl .nl-chip svg{width:14px;height:14px;stroke-width:1.6}
 </style>
 <body>
 <div id="bg"></div><div id="grid"></div>
