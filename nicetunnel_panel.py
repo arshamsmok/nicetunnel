@@ -740,6 +740,61 @@ button.bad,button.danger{background:rgba(244,63,94,.12);color:#fda4af;border-col
 .live.off{color:#f87171;background:rgba(248,113,113,.12);border-color:rgba(248,113,113,.4)}
 .live.off i{background:#f87171;box-shadow:0 0 8px #f87171;animation:none}
 @keyframes lv{50%{opacity:.35}}
+/* v10: NiceTunnel night-tunnel login */
+html body .nl{position:fixed;inset:0;overflow:auto;z-index:20;color:#eef2f7;-webkit-overflow-scrolling:touch;
+ background:radial-gradient(70% 45% at 50% 100%,rgba(233,196,106,.10),transparent 70%),linear-gradient(180deg,#040a16 0%,#071426 48%,#0b2038 80%,#0a1a2e 100%)}
+.nl *{box-sizing:border-box}
+.nl-stars{position:absolute;inset:0;pointer-events:none;
+ background-image:radial-gradient(1.4px 1.4px at 8% 14%,#fff 50%,transparent 51%),radial-gradient(1px 1px at 17% 38%,#fff9 50%,transparent 51%),radial-gradient(1.6px 1.6px at 29% 9%,#fff 50%,transparent 51%),radial-gradient(1px 1px at 41% 27%,#fff8 50%,transparent 51%),radial-gradient(1.4px 1.4px at 56% 12%,#fff 50%,transparent 51%),radial-gradient(1px 1px at 66% 33%,#fff8 50%,transparent 51%),radial-gradient(1.6px 1.6px at 79% 8%,#fde68a 50%,transparent 51%),radial-gradient(1px 1px at 88% 29%,#fff9 50%,transparent 51%),radial-gradient(1.4px 1.4px at 94% 16%,#fff 50%,transparent 51%),radial-gradient(1px 1px at 5% 52%,#fff7 50%,transparent 51%),radial-gradient(1px 1px at 96% 55%,#fff7 50%,transparent 51%),radial-gradient(1.2px 1.2px at 48% 46%,#fff6 50%,transparent 51%)}
+.nl-stars.b{background-image:radial-gradient(1.2px 1.2px at 13% 24%,#fff 50%,transparent 51%),radial-gradient(1.4px 1.4px at 35% 19%,#fde68a 50%,transparent 51%),radial-gradient(1px 1px at 52% 36%,#fff 50%,transparent 51%),radial-gradient(1.4px 1.4px at 72% 21%,#fff 50%,transparent 51%),radial-gradient(1px 1px at 84% 44%,#fff 50%,transparent 51%),radial-gradient(1.2px 1.2px at 22% 58%,#fff 50%,transparent 51%);animation:nltw 3.6s ease-in-out infinite}
+@keyframes nltw{0%,100%{opacity:.25}50%{opacity:1}}
+.nl-top{position:absolute;top:0;left:0;right:0;z-index:3;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:16px 18px}
+.nl-brand{display:flex;align-items:center;gap:9px;font-weight:700;font-size:16px;letter-spacing:.3px;color:#fff;direction:ltr}
+.nl-brand svg{filter:drop-shadow(0 0 10px rgba(233,196,106,.35))}
+.nl-chips{display:flex;gap:8px;align-items:center}
+html body .nl a.nl-chip{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-width:34px;height:34px;padding:0 13px;border-radius:999px;background:rgba(255,255,255,.04);border:1px solid rgba(233,196,106,.28);color:#d6deec;text-decoration:none;font-size:12.5px;transition:.2s}
+html body .nl a.nl-chip:hover{background:rgba(233,196,106,.12);border-color:rgba(233,196,106,.6);color:#f4d58a}
+.nl svg{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.nl-chip svg{width:16px;height:16px}
+.nl-main{position:relative;z-index:2;min-height:100%;display:flex;align-items:center;justify-content:center;padding:84px 16px 240px}
+.nl-card{width:100%;max-width:400px;padding:34px 26px 24px;border-radius:24px;background:rgba(9,20,38,.80);border:1px solid rgba(233,196,106,.22);
+ box-shadow:0 24px 70px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.07);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);animation:nlin .6s cubic-bezier(.2,.8,.2,1) both}
+@keyframes nlin{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+.nl-title{margin:0;text-align:center;font-size:42px;line-height:1.35;font-weight:800;letter-spacing:.3px;background:linear-gradient(90deg,#fff3c9,#f4d58a 45%,#e0a93a);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;filter:drop-shadow(0 4px 22px rgba(233,196,106,.25))}
+.nl-sub{text-align:center;color:#a9b8cc;font-size:13.5px;margin:2px 0 22px}
+.nl-seg{display:flex;gap:4px;padding:4px;margin-bottom:20px;border-radius:14px;background:rgba(255,255,255,.035);border:1px solid #1d3a62}
+html body .nl .nl-seg button{flex:1;display:flex;align-items:center;justify-content:center;gap:7px;height:40px;padding:0 10px;border-radius:10px!important;border:1px solid transparent!important;background:transparent!important;color:#a9b8cc;font-size:13px;box-shadow:none!important;transform:none!important}
+html body .nl .nl-seg button.on{background:#14294a!important;border-color:#2a4a7a!important;color:#f4d58a}
+.nl-seg svg{width:15px;height:15px}
+.nl-f{margin-bottom:15px}
+.nl-f label{display:block;margin:0 2px 7px;font-size:13px;font-weight:600;color:#c3cee0}
+.nl-in{position:relative}
+.nl-ic{position:absolute;top:0;bottom:0;inset-inline-start:15px;display:flex;align-items:center;color:#6f86a8;pointer-events:none}
+.nl-ic svg{width:18px;height:18px}
+html body .nl .nl-in input{width:100%;height:52px;padding:0 46px;font-size:15px;color:#fff!important;background:#07111f!important;border:1px solid #1d3a62!important;border-radius:14px!important;outline:none;backdrop-filter:none;transition:border-color .2s,box-shadow .2s}
+html body .nl .nl-in input:focus{border-color:#e9c46a!important;box-shadow:0 0 0 3px rgba(233,196,106,.16)}
+html body .nl .nl-in input:-webkit-autofill{-webkit-box-shadow:0 0 0 60px #07111f inset!important;-webkit-text-fill-color:#fff}
+html body .nl button.nl-eye{position:absolute;top:0;bottom:0;inset-inline-end:6px;width:40px;margin:auto 0;height:40px;padding:0;display:flex;align-items:center;justify-content:center;background:transparent!important;border:0!important;box-shadow:none!important;color:#6f86a8;transform:none!important}
+html body .nl button.nl-eye:hover{color:#f4d58a}
+.nl-eye svg{width:18px;height:18px}
+.nl-hint{font-size:12px;color:#a9b8cc;margin:-4px 2px 14px;line-height:1.9}
+html body .nl button.nl-go{width:100%;height:52px;margin-top:8px;border:0!important;border-radius:14px!important;font-size:16px;font-weight:800;color:#1a1405;background:linear-gradient(180deg,#f3d98d,#dfb653)!important;box-shadow:0 10px 28px rgba(233,196,106,.28),inset 0 1px 0 rgba(255,255,255,.5)!important;transition:filter .2s,transform .15s}
+html body .nl button.nl-go:hover{filter:brightness(1.06);transform:translateY(-1px)!important}
+html body .nl button.nl-go:active{transform:scale(.98)!important}
+.nl #msg:empty{display:none}
+.nl #msg{margin-bottom:14px;font-size:13px}
+.nl-foot{margin-top:20px;text-align:center;font-size:12px;color:#6f86a8}
+.nl-foot a{color:#e9c46a;text-decoration:none;border-bottom:1px solid rgba(233,196,106,.35)}
+.nl-scene{position:fixed;left:0;right:0;bottom:0;height:min(38vh,330px);min-height:210px;z-index:1;pointer-events:none}
+.nl-scene svg{width:100%;height:100%;display:block;stroke:none;stroke-width:0}
+.nl-scene svg .k{stroke-width:3;fill:none;stroke-linecap:round}
+.nl-dash{stroke-dasharray:14 18;animation:nlflow 1s linear infinite}
+@keyframes nlflow{to{stroke-dashoffset:-32}}
+.nl-pulse{transform-box:fill-box;transform-origin:center;animation:nlp 2.4s ease-out infinite}
+@keyframes nlp{0%{transform:scale(.6);opacity:.9}100%{transform:scale(2.6);opacity:0}}
+.lowmo .nl-pk,.lowmo .nl-dash,.lowmo .nl-pulse,.lowmo .nl-stars.b{display:none;animation:none}
+@media(prefers-reduced-motion:reduce){.nl-pk{display:none}.nl-dash,.nl-pulse,.nl-stars.b,.nl-card{animation:none}}
+@media(max-width:420px){.nl-title{font-size:36px}.nl-card{padding:28px 20px 20px}.nl-main{padding-top:76px}}
 </style>
 <body>
 <div id="bg"></div><div id="grid"></div>
@@ -785,19 +840,47 @@ const fmtB = n => { const u=['B','KB','MB','GB','TB']; let i=0; n=+n||0; while(n
 const fmtUp = s => { s=Math.floor(s); const d=Math.floor(s/86400),h=Math.floor(s%86400/3600),m=Math.floor(s%3600/60); return (d?d+'d ':'')+h+'h '+m+'m'; };
 
 function lmode(m){ window._lm=m; document.querySelectorAll('#lsw button').forEach(b=>{b.classList.toggle('on',b.dataset.m===m);b.onclick=()=>lmode(b.dataset.m);});
-  const pw=$('#pw'); if(!pw) return; const row=$('#un').parentNode.parentNode; $('#un').parentNode.classList.toggle('hide',m==='link'); pw.parentNode.parentNode.classList.toggle('hide',m==='link'); $('#lkbox').classList.toggle('hide',m!=='link');
+  if(!$('#pw')) return; $('#fun').classList.toggle('hide',m==='link'); $('#fpw').classList.toggle('hide',m==='link'); $('#lkbox').classList.toggle('hide',m!=='link');
   if(m==='link'){ const o=new URLSearchParams(location.search).get('otl'); if(o) $('#lk').value=o; } }
 function loginView(){
-  $('#app').innerHTML = `<div class="lwrap"><div id="login" class="glass"><div style="text-align:center"><svg viewBox="0 0 64 64" width="72" height="72"><defs><linearGradient id="ntg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fde68a"/><stop offset="1" stop-color="#d97706"/></linearGradient></defs><rect x="2" y="2" width="60" height="60" rx="16" fill="#0b1226" stroke="url(#ntg)" stroke-width="2.5"/><path d="M12 52V32a20 20 0 0 1 40 0v20" fill="none" stroke="url(#ntg)" stroke-width="4" stroke-linecap="round"/><path d="M20 52V33a12 12 0 0 1 24 0v19" fill="none" stroke="url(#ntg)" stroke-width="3" stroke-linecap="round" opacity=".7"/><path d="M27 52V34a5 5 0 0 1 10 0v18z" fill="url(#ntg)" opacity=".9"/><path d="M6 52h52" stroke="url(#ntg)" stroke-width="3" stroke-linecap="round"/></svg></div><h1 class="ltitle">نایس‌تانل</h1><div class="lsub">NiceTunnel · ${state.needSetup?'ساخت رمز مدیر':'ورود به پنل مدیریت'}</div>${state.needSetup?'':`<div class="segm" id="lsw" style="margin:10px auto;display:flex;justify-content:center"><button data-m="pw">${L('Password','رمز عبور')}</button><button data-m="link">${L('One-time link','لینک یکبار مصرف')}</button></div>`}${langBtn()}<div id="msg"></div>
-  <div class="row"><div><label>Username</label><input id="un" value="admin" autocomplete="username"></div>
-  <div><label>${state.needSetup?'Create admin password (10+ chars, Aa, 1, !)':'Password'}</label>
-  <div style="position:relative"><input id="pw" type="password" style="padding-right:44px">
-  <button type="button" id="pwtog" style="position:absolute;right:3px;top:3px;padding:7px 10px;background:transparent;border:none;box-shadow:none;font-size:15px">&#128065;</button></div></div>
-  <div id="pwhint" style="font-size:12px;color:#9aa6d6;display:${state.needSetup?'block':'none'}"></div>
-  <div id="lkbox" class="hide"><label>${L('One-time link or code','لینک یا کد یکبار مصرف')}</label><input id="lk" dir="ltr" autocomplete="off"></div>
-  <div><button class="ok" id="go">${state.needSetup?'Save password':L('Login','ورود')}</button></div>
-  <div style="text-align:center;margin-top:12px"><a href="https://t.me/DarkCore_Vpn" target="_blank" rel="noopener" style="color:#fde68a;font-size:13px;text-decoration:none">✈ @DarkCore_Vpn</a></div></div></div></div><div class="tgbar"><a href="https://t.me/DarkCore_Vpn" target="_blank" rel="noopener">✈ Telegram</a><a href="#" id="ltheme">${document.documentElement.dataset.theme==='light'?'🌙':'☀️'}</a><a href="#" id="llang">${lang==='fa'?'EN':'فا'}</a></div>`;
-  $('#ltheme').onclick=e=>{e.preventDefault();toggleTheme();$('#ltheme').textContent=document.documentElement.dataset.theme==='light'?'🌙':'☀️';};
+  const lg=s=>'<svg viewBox="0 0 64 64" width="'+s+'" height="'+s+'"><defs><linearGradient id="ntl'+s+'" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fde68a"/><stop offset="1" stop-color="#d97706"/></linearGradient></defs><rect x="2" y="2" width="60" height="60" rx="16" fill="#0b1226" stroke="url(#ntl'+s+')" stroke-width="2.5"/><path d="M12 52V32a20 20 0 0 1 40 0v20" fill="none" stroke="url(#ntl'+s+')" stroke-width="4" stroke-linecap="round"/><path d="M20 52V33a12 12 0 0 1 24 0v19" fill="none" stroke="url(#ntl'+s+')" stroke-width="3" stroke-linecap="round" opacity=".7"/><path d="M27 52V34a5 5 0 0 1 10 0v18z" fill="url(#ntl'+s+')" opacity=".9"/><path d="M6 52h52" stroke="url(#ntl'+s+')" stroke-width="3" stroke-linecap="round"/></svg>';
+  const ICK='<svg viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2L20 3M16 7l3 3M14 9l2 2"/></svg>';
+  const ICU='<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>';
+  const ICL='<svg viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>';
+  const ICE='<svg viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+  const ICT='<svg viewBox="0 0 24 24"><path d="M21 4L3 11l6 2 2 6 3-4 5 3z"/></svg>';
+  const TUN='M1250 194 C700 206 300 198 -50 208';
+  const node=x=>'<g transform="translate('+x+',100)"><line class="k" x1="0" y1="0" x2="0" y2="102" stroke="#8a7340" opacity=".8"/><path class="k" d="M-22 0V-16a22 22 0 0 1 44 0V0" stroke="url(#ntGold)"/><path class="k" d="M-14 0V-15a14 14 0 0 1 28 0V0" stroke="url(#ntGold)" opacity=".7"/><path d="M-6 0V-14a6 6 0 0 1 12 0V0z" fill="url(#ntGold)" opacity=".9"/><circle class="nl-pulse" cx="0" cy="102" r="7" fill="#34d0c3" style="animation-delay:'+(x%3)*0.6+'s"/><circle cx="0" cy="102" r="5" fill="#34d0c3"/></g>';
+  const scene='<svg viewBox="0 0 1200 320" preserveAspectRatio="xMidYMax slice" aria-hidden="true"><defs><linearGradient id="ntGround" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0b1c33"/><stop offset="1" stop-color="#050d18"/></linearGradient><linearGradient id="ntGold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f4d58a"/><stop offset="1" stop-color="#d9a441"/></linearGradient><linearGradient id="ntTun" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#34d0c3"/><stop offset="1" stop-color="#1b9aa8"/></linearGradient><filter id="ntGlow" x="-20%" y="-200%" width="140%" height="500%"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>'
+    +'<path d="M0 98 C150 66 260 74 380 88 C520 104 640 60 800 74 C960 88 1080 64 1200 84 L1200 101 L0 101Z" fill="#0b1a30"/>'
+    +'<rect y="100" width="1200" height="220" fill="url(#ntGround)"/>'
+    +'<line x1="0" y1="100" x2="1200" y2="100" stroke="#e9c46a" stroke-width="2.2" opacity=".9" filter="url(#ntGlow)"/>'
+    +'<g stroke="#ffffff" stroke-opacity=".05"><line x1="0" y1="140" x2="1200" y2="140"/><line x1="0" y1="255" x2="1200" y2="255"/><line x1="0" y1="298" x2="1200" y2="298"/></g>'
+    +node(150)+node(450)+node(600)+node(750)+node(1050)
+    +'<path d="M-50 208 C300 198 700 206 1250 194" fill="none" stroke="#34d0c3" stroke-opacity=".10" stroke-width="30" stroke-linecap="round"/>'
+    +'<path d="M-50 208 C300 198 700 206 1250 194" fill="none" stroke="#34d0c3" stroke-opacity=".30" stroke-width="14" stroke-linecap="round"/>'
+    +'<path d="M-50 208 C300 198 700 206 1250 194" fill="none" stroke="url(#ntTun)" stroke-width="6" stroke-linecap="round" filter="url(#ntGlow)"/>'
+    +'<path class="nl-dash" d="M-50 208 C300 198 700 206 1250 194" fill="none" stroke="#e8fffd" stroke-opacity=".75" stroke-width="2" stroke-linecap="round"/>'
+    +[0,2,4].map(d=>'<g class="nl-pk" filter="url(#ntGlow)"><polygon points="16,0 -8,-9 -8,9" fill="#bffaf4"/><animateMotion dur="6s" begin="'+d+'s" repeatCount="indefinite" rotate="auto" path="'+TUN+'"/></g>').join('')
+    +'</svg>';
+  const ok = state.needSetup;
+  $('#app').innerHTML = `<div class="nl"><div class="nl-stars"></div><div class="nl-stars b"></div>
+  <div class="nl-top"><div class="nl-brand">${lg(34)}<span>NiceTunnel</span></div>
+   <div class="nl-chips"><a class="nl-chip" href="https://t.me/DarkCore_Vpn" target="_blank" rel="noopener" title="Telegram">${ICT}</a><a class="nl-chip" href="#" id="ltheme" title="Theme">${themeIcon()}</a><a class="nl-chip" href="#" id="llang">${lang==='fa'?'English':'فارسی'}</a></div></div>
+  <div class="nl-main"><div class="nl-card">
+   <h1 class="nl-title">${L('NiceTunnel','نایس‌تانل')}</h1>
+   <div class="nl-sub">${ok?L('Create your admin password','ساخت رمز مدیر'):L('Secure paths. Stable connections.','مسیر امن، اتصال پایدار.')}</div>
+   ${ok?'':`<div class="nl-seg" id="lsw"><button type="button" data-m="pw">${ICK}${L('Password','رمز عبور')}</button><button type="button" data-m="link">${ICL}${L('One-time link','لینک یک‌بارمصرف')}</button></div>`}
+   <div id="msg"></div>
+   <div class="nl-f" id="fun"><label for="un">${L('Username','نام کاربری')}</label><div class="nl-in"><span class="nl-ic">${ICU}</span><input id="un" value="admin" autocomplete="username" autocapitalize="off" spellcheck="false"></div></div>
+   <div class="nl-f" id="fpw"><label for="pw">${ok?L('Create admin password','ساخت رمز مدیر'):L('Admin password','رمز مدیر')}</label><div class="nl-in"><span class="nl-ic">${ICK}</span><input id="pw" type="password" autocomplete="${ok?'new-password':'current-password'}"><button type="button" id="pwtog" class="nl-eye" aria-label="Show password">${ICE}</button></div></div>
+   <div id="pwhint" class="nl-hint" style="display:${ok?'block':'none'}"></div>
+   <div class="nl-f hide" id="lkbox"><label for="lk">${L('One-time link or code','لینک یا کد یک‌بارمصرف')}</label><div class="nl-in"><span class="nl-ic">${ICL}</span><input id="lk" dir="ltr" autocomplete="off"></div></div>
+   <button class="nl-go" id="go" type="button">${ok?L('Save password','ذخیره رمز'):L('Login','ورود')}</button>
+   <div class="nl-foot">© NiceTunnel · <a href="https://t.me/DarkCore_Vpn" target="_blank" rel="noopener">@DarkCore_Vpn</a></div>
+  </div></div>
+  <div class="nl-scene">${scene}</div></div>`;
+  $('#ltheme').onclick=e=>{e.preventDefault();toggleTheme();$('#ltheme').innerHTML=themeIcon();};
   $('#llang').onclick=e=>{e.preventDefault();toggleLang();};
   if(!state.needSetup){ lmode(new URLSearchParams(location.search).get('otl')?'link':'pw'); }
   if(state.needSetup) $('#pw').oninput = () => { const v=$('#pw').value, ok=(c,t)=>(c?'✓ ':'✗ ')+t;
