@@ -458,6 +458,10 @@ body{font-family:system-ui,Segoe UI,sans-serif;color:#e8ecff;background:#070b1a;
 #top{padding:14px 20px;display:flex;justify-content:space-between;align-items:center}
 #top h1{margin:0;font-size:19px}
 .page{display:none;flex-direction:column;gap:16px}.page.on{display:flex}
+ .seg-bar{display:inline-flex;gap:4px;padding:4px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);align-self:flex-start}
+ .seg{padding:8px 18px;border-radius:9px;border:0;background:none;color:#c9d2ff;cursor:pointer;font-size:13px;font-family:inherit}
+ .seg.on{background:linear-gradient(135deg,#4f46e5,#0891b2);color:#fff}
+ .tsec{display:none;flex-direction:column;gap:16px}.tsec.on{display:flex}
 .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px}
 .card{padding:16px}
 .card .k{font-size:12px;color:#9aa6d6;text-transform:uppercase;letter-spacing:.8px}
@@ -645,6 +649,43 @@ html[data-theme=light] [style*="b8c2ee"],html[data-theme=light] [style*="9aa6d6"
 .tgbar{position:fixed;top:14px;left:14px;display:flex;gap:8px;z-index:5}
 .tgbar a{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:999px;background:rgba(56,189,248,.12);border:1px solid rgba(56,189,248,.35);color:#7dd3fc;text-decoration:none;font-size:12px}
 .tgbar a:hover{background:rgba(56,189,248,.22)}
+/* v4: DarkCore navy+gold dashboard */
+:root{--bg0:#050d18;--bg1:#081a2e;--st1:#0e2036;--st2:#14294a;--ln:#1d3a62;--gold:#e9c46a;--gold2:#f4d58a;--teal:#34d0c3;--tx:#eef2f7;--tx2:#a9b8cc}
+body{background:linear-gradient(180deg,var(--bg0),var(--bg1) 420px,#07162a)!important;color:var(--tx)}
+#bg,#grid{display:none!important}
+#shell{gap:0!important;padding:0!important}
+#side{width:84px!important;padding:12px 8px!important;align-items:stretch;gap:4px!important;background:#07121f!important;border:0!important;border-inline-end:1px solid var(--ln)!important;border-radius:0!important;box-shadow:none!important}
+#side .brand{justify-content:center;padding:4px 0 14px!important}#side .brand>div{display:none}
+#side .nav{flex-direction:column;justify-content:center;gap:5px;padding:10px 4px!important;font-size:11px!important;text-align:center;border-radius:12px!important;color:var(--tx2)!important;border:1px solid transparent!important;position:relative}
+#side .nav:hover{background:var(--st1)!important;color:var(--tx)!important;padding-inline-start:4px!important;transform:none!important}
+#side .nav.on{background:var(--st1)!important;color:var(--gold2)!important;border:1px solid var(--ln)!important;box-shadow:none!important}
+#side .nav.on::after{content:'';position:absolute;inset-inline-end:-9px;top:20%;bottom:20%;width:3px;border-radius:3px;background:var(--gold)}
+#side .nav i{width:22px;height:22px}#side .nav i svg{width:21px;height:21px}
+#main{padding:0 22px 18px!important;gap:14px!important}
+#top{margin:0 -22px!important;padding:12px 22px!important;border-radius:0!important;background:rgba(7,18,31,.85)!important;border:0!important;border-bottom:1px solid var(--ln)!important;box-shadow:none!important;backdrop-filter:blur(8px);position:sticky;top:0;z-index:20}
+#top .hdr svg,#top .hdr .nm,#top .hdr .vv{display:none}
+#top h1{font-size:18px!important;font-weight:700;color:var(--tx);background:none!important;-webkit-text-fill-color:var(--tx)!important}
+#main>.glass:not(#top):not(#foot),.card,.sec{background:linear-gradient(180deg,var(--st1),#0b1a2d)!important;border:1px solid var(--ln)!important;border-radius:16px!important;box-shadow:0 1px 0 rgba(255,255,255,.04) inset!important}
+.card:hover{border-color:#2a4f82!important;transform:none!important}
+.card .k,.k{color:var(--tx2)!important;font-size:12px;letter-spacing:.04em}
+.card .v,.v{color:var(--tx)!important;font-weight:700;font-variant-numeric:tabular-nums}
+.card .s{color:#97a9c0!important}
+.sec h2{font-size:15px!important;padding-bottom:10px;margin-bottom:12px;border-bottom:1px solid var(--ln);color:var(--tx)!important;background:none!important;-webkit-text-fill-color:var(--tx)!important}
+.bar{background:#0a1624!important;height:6px!important;border-radius:6px!important}
+.bar b{background:linear-gradient(90deg,var(--teal),var(--gold))!important;border-radius:6px!important}
+button,.btn{background:var(--st2)!important;border:1px solid var(--ln)!important;color:var(--tx)!important;border-radius:9px!important;box-shadow:none!important}
+button:hover{border-color:var(--gold)!important}
+button.ok,button.primary{background:linear-gradient(180deg,var(--gold2),var(--gold))!important;color:#1b1303!important;border:0!important;font-weight:700}
+input,select,textarea{background:#0a1624!important;border:1px solid var(--ln)!important;color:var(--tx)!important;border-radius:9px!important}
+input:focus,select:focus,textarea:focus{outline:0;border-color:var(--gold)!important;box-shadow:0 0 0 3px rgba(233,196,106,.15)!important}
+label{color:var(--tx2)!important}
+.tabs{border-bottom:1px solid var(--ln);gap:4px}
+.tab{border-radius:9px 9px 0 0!important;color:var(--tx2)!important;background:none!important;border:0!important}
+.tab.on{color:var(--gold2)!important;box-shadow:inset 0 -2px 0 var(--gold)!important}
+table{border-collapse:collapse}th{color:var(--tx2)!important;font-weight:600;font-size:12px;background:#0a1624!important}
+td,th{border-bottom:1px solid #16304f!important}tr:hover td{background:rgba(52,208,195,.04)}
+#foot{background:none!important;border:0!important;box-shadow:none!important;justify-content:center;gap:10px;color:#6f86a3!important;font-size:12px}
+@media(max-width:820px){#side{width:auto!important;flex-direction:row!important;overflow-x:auto;padding:6px!important;border-inline-end:0!important;border-bottom:1px solid var(--ln)!important}#side .nav{flex:1;min-width:64px}#side .nav.on::after{display:none}#main{padding:0 12px 14px!important}#top{margin:0 -12px!important;padding:10px 12px!important}}
 </style>
 <body>
 <div id="bg"></div><div id="grid"></div>
@@ -701,7 +742,8 @@ function loginView(){
   $('#pwtog').onclick = () => { const p=$('#pw'); p.type = p.type==='password' ? 'text' : 'password'; p.focus(); };
 }
 const IC={dash:'<svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="2"/><rect x="14" y="3" width="7" height="5" rx="2"/><rect x="14" y="12" width="7" height="9" rx="2"/><rect x="3" y="16" width="7" height="5" rx="2"/></svg>',rev:'<svg viewBox="0 0 24 24"><path d="M4 7h13l-3-3M20 17H7l3 3"/></svg>',spoof:'<svg viewBox="0 0 24 24"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>',set:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>',out:'<svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>',sun:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',moon:'<svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>'};
-const PAGES = [['dash',IC.dash,'Dashboard'],['rev',IC.rev,'Reverse tunnel'],['spoof',IC.spoof,'Spoof tunnel'],['set',IC.set,'Settings']];
+const PAGES = [['dash',IC.dash,'Dashboard'],['tun',IC.rev,'Tunnels'],['set',IC.set,'Settings']];
+  let tsel = 'rev';
 const LOGO = '<svg viewBox="0 0 64 64" width="34" height="34"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fde68a"/><stop offset="1" stop-color="#d97706"/></linearGradient></defs><path d="M32 4 56 14v18c0 15-10 24-24 28C18 56 8 47 8 32V14z" fill="#0b1226" stroke="url(#g)" stroke-width="3"/><path d="M32 16c2 7 9 10 9 18a9 9 0 0 1-18 0c0-4 2-6 4-8 0 3 1 5 3 6-1-6 0-11 2-16z" fill="url(#g)"/></svg>';
 function shell(){
   const nm = state.username || 'admin';
@@ -726,7 +768,9 @@ function shell(){
     </div>
     <div class="sec glass"><h2>Tunnel status</h2><div id="mon"></div></div>
   </div>
-  <div class="page" id="p-rev">
+  <div class="page" id="p-tun">
+  <div class="seg-bar"><button class="seg" data-s="rev">Reverse</button><button class="seg" data-s="spoof">Spoof</button></div>
+  <div class="tsec" id="t-rev">
     <div class="sec glass"><h2>Reverse TCP tunnels on this server</h2><div id="revtbl"></div></div>
     <div class="sec glass"><h2>Create reverse tunnel</h2><div class="row">
       <div><label>This server is</label><select id="rrole">
@@ -739,7 +783,8 @@ function shell(){
       <div><label>Token (empty = generate)</label><input id="rtoken" placeholder="min 16 chars"></div>
     </div><p><button class="ok" id="rcreate">Create and connect</button></p><div id="rnew"></div></div>
   </div>
-  <div class="page" id="p-spoof">
+  </div>
+  <div class="tsec" id="t-spoof">
     <div class="tabs">
       <div class="tab on" data-t="list">Tunnels</div><div class="tab" data-t="new">Create</div>
       <div class="tab" data-t="mon">Monitoring</div><div class="tab" data-t="test">Spoof tester</div>
@@ -773,6 +818,8 @@ function shell(){
       <pre id="tbox">No test run yet.</pre></div></div>
     <div class="sub" id="s-logs"><div class="sec glass"><h2>Logs</h2><pre id="logbox">Open Tunnels and click Logs on a tunnel.</pre></div></div>
   </div>
+  </div>
+  </div>
   <div class="page" id="p-set">
     <div class="sec glass"><h2>Account</h2><div class="row">
       <div><label>Username</label><input id="sun" value="${esc(nm)}"></div>
@@ -783,9 +830,10 @@ function shell(){
     <div class="sec glass"><h2>Language</h2><div class="row" style="align-items:center"><div style="max-width:260px"><select id="slang"><option value="en">English</option><option value="fa">فارسی</option></select></div>
       <div><button id="slanggo">Apply</button></div></div></div>
   </div>
-  <div id="foot" class="glass"><span>NiceTunnel v1.3.0 · Spoof &amp; Reverse panel</span><span>By <b style="color:#c7d2fe">arshamsmok</b></span></div>
+  <div id="foot" class="glass"><span>DarkCore Panel</span><span>·</span><a href="https://t.me/DarkCore_Vpn" target="_blank" rel="noopener" style="color:var(--gold)">@DarkCore_Vpn</a></div>
   </div></div>`;
   document.querySelectorAll('.nav[data-p]').forEach(e=>e.onclick=()=>go(e.dataset.p));
+  document.querySelectorAll('.seg').forEach(e=>e.onclick=()=>go(e.dataset.s));
   document.querySelectorAll('.tab').forEach(e=>e.onclick=()=>sub(e.dataset.t));
   $('#lo').onclick = logout;
   $('#role').onchange = () => { const s=$('#role').value==='server'; $('#lp').classList.toggle('hide',!s); $('#fw').classList.toggle('hide',s); };
@@ -804,7 +852,10 @@ function sub(t){
   if(t==='logs' && logSlot) logs(logSlot);
 }
 function go(p){
+  if(p==='rev'||p==='spoof'){ tsel = p; p = 'tun'; }
   page = p;
+  document.querySelectorAll('.tsec').forEach(e=>e.classList.toggle('on', e.id==='t-'+tsel));
+  document.querySelectorAll('.seg').forEach(e=>e.classList.toggle('on', e.dataset.s===tsel));
   document.querySelectorAll('.page').forEach(e=>e.classList.toggle('on', e.id==='p-'+p));
   document.querySelectorAll('.nav[data-p]').forEach(e=>e.classList.toggle('on', e.dataset.p===p));
   $('#ttl').textContent = PAGES.filter(x=>x[0]===p)[0][2];
@@ -904,7 +955,7 @@ async function load(){
   clearInterval(timer);
   try { state = await api('/api/state');
     if(!state.logged){ loginView(); return; }
-    shell(); go(page); timer = setInterval(()=>{ refresh(); if(page==='spoof' && cur==='mon') monitor(); }, 3000);
+    shell(); go(page); timer = setInterval(()=>{ refresh(); if(page==='tun' && tsel==='spoof' && cur==='mon') monitor(); }, 3000);
   } catch(e){ loginView(); msg(e.message,false); }
 }
 async function act(n, a){ try { const r = await api(`/api/slot/${n}/${a}`, {}); msg(`Tunnel ${n}: ${r.state}`, true); refresh(); } catch(e){ msg(e.message,false);} }
