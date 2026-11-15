@@ -686,6 +686,28 @@ table{border-collapse:collapse}th{color:var(--tx2)!important;font-weight:600;fon
 td,th{border-bottom:1px solid #16304f!important}tr:hover td{background:rgba(52,208,195,.04)}
 #foot{background:none!important;border:0!important;box-shadow:none!important;justify-content:center;gap:10px;color:#6f86a3!important;font-size:12px}
 @media(max-width:820px){#side{width:auto!important;flex-direction:row!important;overflow-x:auto;padding:6px!important;border-inline-end:0!important;border-bottom:1px solid var(--ln)!important}#side .nav{flex:1;min-width:64px}#side .nav.on::after{display:none}#main{padding:0 12px 14px!important}#top{margin:0 -12px!important;padding:10px 12px!important}}
+
+ /* v5: login centered */
+ body{min-height:100vh}
+ .lwrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px 16px;box-sizing:border-box;
+  background:radial-gradient(1.5px 1.5px at 12% 18%,#fff8 50%,transparent 51%),radial-gradient(1.5px 1.5px at 78% 12%,#fff7 50%,transparent 51%),radial-gradient(1px 1px at 40% 30%,#fff6 50%,transparent 51%),radial-gradient(1.5px 1.5px at 88% 40%,#fde68a99 50%,transparent 51%),radial-gradient(1px 1px at 22% 70%,#fff6 50%,transparent 51%),radial-gradient(ellipse at 50% 100%,rgba(250,204,21,.12),transparent 60%)}
+ #login.glass{margin:0 auto;width:100%;max-width:380px}
+ #login svg{filter:drop-shadow(0 0 14px rgba(250,204,21,.35))}
+ #login .ltitle{font-size:34px;font-weight:800;margin:10px 0 2px;text-align:center;display:block;background:linear-gradient(90deg,#fff7d6,#facc15 55%,#f59e0b);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent}
+ #login .lsub{text-align:center;color:#9aa6d6;font-size:13px;margin-bottom:18px}
+
+ /* v5: settings */
+ .sset{padding:6px 20px}.sset h2{padding:14px 0 6px;margin:0}
+ .srow{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 0;border-top:1px solid rgba(255,255,255,.07);flex-wrap:wrap}
+ .srow .st{flex:1 1 220px;min-width:0}.srow .st b{display:block;font-size:14px;margin-bottom:3px}
+ .srow .st p{margin:0;color:#9aa6d6;font-size:12px;line-height:1.7}
+ .srow input{flex:0 1 260px;min-width:160px}
+ .segm{display:inline-flex;padding:3px;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1)}
+ .segm button{border:0;background:none;color:#c9d2ff;padding:7px 14px;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;box-shadow:none}
+ .segm button.on{background:#facc15;color:#1a1405;font-weight:700}
+ .scode{direction:ltr;background:rgba(0,0,0,.3);padding:7px 10px;border-radius:8px;font-size:12px;color:#fde68a;word-break:break-all;max-width:100%}
+ .sbtn{padding:8px 14px;border-radius:10px;border:1px solid rgba(250,204,21,.4);color:#fde68a;text-decoration:none;font-size:13px}
+ .lowmo *{animation:none!important;transition:none!important}
 </style>
 <body>
 <div id="bg"></div><div id="grid"></div>
@@ -725,14 +747,14 @@ const fmtB = n => { const u=['B','KB','MB','GB','TB']; let i=0; n=+n||0; while(n
 const fmtUp = s => { s=Math.floor(s); const d=Math.floor(s/86400),h=Math.floor(s%86400/3600),m=Math.floor(s%3600/60); return (d?d+'d ':'')+h+'h '+m+'m'; };
 
 function loginView(){
-  $('#app').innerHTML = `<div id="login" class="glass"><div style="text-align:center"><svg viewBox="0 0 64 64" width="72" height="72"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fde68a"/><stop offset="1" stop-color="#d97706"/></linearGradient></defs><path d="M32 4 56 14v18c0 15-10 24-24 28C18 56 8 47 8 32V14z" fill="#0b1226" stroke="url(#g)" stroke-width="3"/><path d="M32 16c2 7 9 10 9 18a9 9 0 0 1-18 0c0-4 2-6 4-8 0 3 1 5 3 6-1-6 0-11 2-16z" fill="url(#g)"/></svg></div><h1 style="text-align:center;display:block">DarkCore Panel</h1>${langBtn()}<div id="msg"></div>
+  $('#app').innerHTML = `<div class="lwrap"><div id="login" class="glass"><div style="text-align:center"><svg viewBox="0 0 64 64" width="72" height="72"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fde68a"/><stop offset="1" stop-color="#d97706"/></linearGradient></defs><path d="M32 4 56 14v18c0 15-10 24-24 28C18 56 8 47 8 32V14z" fill="#0b1226" stroke="url(#g)" stroke-width="3"/><path d="M32 16c2 7 9 10 9 18a9 9 0 0 1-18 0c0-4 2-6 4-8 0 3 1 5 3 6-1-6 0-11 2-16z" fill="url(#g)"/></svg></div><h1 class="ltitle">دارک‌کور</h1><div class="lsub">DarkCore Panel · ${state.needSetup?'ساخت رمز مدیر':'ورود به پنل مدیریت'}</div>${langBtn()}<div id="msg"></div>
   <div class="row"><div><label>Username</label><input id="un" value="admin" autocomplete="username"></div>
   <div><label>${state.needSetup?'Create admin password (10+ chars, Aa, 1, !)':'Password'}</label>
   <div style="position:relative"><input id="pw" type="password" style="padding-right:44px">
   <button type="button" id="pwtog" style="position:absolute;right:3px;top:3px;padding:7px 10px;background:transparent;border:none;box-shadow:none;font-size:15px">&#128065;</button></div></div>
   <div id="pwhint" style="font-size:12px;color:#9aa6d6;display:${state.needSetup?'block':'none'}"></div>
   <div><button class="ok" id="go">${state.needSetup?'Save password':'Login'}</button></div>
-  <div style="text-align:center;margin-top:12px"><a href="https://t.me/DarkCore_Vpn" target="_blank" rel="noopener" style="color:#fde68a;font-size:13px;text-decoration:none">✈ @DarkCore_Vpn</a></div></div></div><div class="tgbar"><a href="https://t.me/DarkCore_Vpn" target="_blank" rel="noopener">✈ Telegram</a></div>`;
+  <div style="text-align:center;margin-top:12px"><a href="https://t.me/DarkCore_Vpn" target="_blank" rel="noopener" style="color:#fde68a;font-size:13px;text-decoration:none">✈ @DarkCore_Vpn</a></div></div></div></div><div class="tgbar"><a href="https://t.me/DarkCore_Vpn" target="_blank" rel="noopener">✈ Telegram</a></div>`;
   if(state.needSetup) $('#pw').oninput = () => { const v=$('#pw').value, ok=(c,t)=>(c?'✓ ':'✗ ')+t;
     $('#pwhint').innerHTML=[ok(v.length>=10,'10+ chars'),ok(/[a-z]/.test(v)&&/[A-Z]/.test(v),'Aa'),ok(/\d/.test(v),'0-9'),ok(/[^A-Za-z0-9]/.test(v),'!@#')].join(' &nbsp; '); };
   $('#go').onclick = async () => { try {
@@ -783,7 +805,6 @@ function shell(){
       <div><label>Token (empty = generate)</label><input id="rtoken" placeholder="min 16 chars"></div>
     </div><p><button class="ok" id="rcreate">Create and connect</button></p><div id="rnew"></div></div>
   </div>
-  </div>
   <div class="tsec" id="t-spoof">
     <div class="tabs">
       <div class="tab on" data-t="list">Tunnels</div><div class="tab" data-t="new">Create</div>
@@ -819,16 +840,25 @@ function shell(){
     <div class="sub" id="s-logs"><div class="sec glass"><h2>Logs</h2><pre id="logbox">Open Tunnels and click Logs on a tunnel.</pre></div></div>
   </div>
   </div>
-  </div>
   <div class="page" id="p-set">
-    <div class="sec glass"><h2>Account</h2><div class="row">
-      <div><label>Username</label><input id="sun" value="${esc(nm)}"></div>
-      <div><label>Current password</label><input id="scur" type="password"></div>
-      <div><label>New password (empty = keep)</label><input id="snew" type="password" placeholder="10+ chars, Aa, 1, !"></div>
-    </div><p><button class="ok" id="ssave">Save changes</button></p>
-    <p style="color:#9aa6d6;font-size:12px">Changing the password logs out every other browser session.</p></div>
-    <div class="sec glass"><h2>Language</h2><div class="row" style="align-items:center"><div style="max-width:260px"><select id="slang"><option value="en">English</option><option value="fa">فارسی</option></select></div>
-      <div><button id="slanggo">Apply</button></div></div></div>
+    <div class="sec glass sset"><h2>Account</h2>
+      <div class="srow"><div class="st"><b>Username</b><p>Name used to sign in to the panel.</p></div><input id="sun" value="${esc(nm)}"></div>
+      <div class="srow"><div class="st"><b>Current password</b><p>Required to confirm any change.</p></div><input id="scur" type="password"></div>
+      <div class="srow"><div class="st"><b>New password</b><p>Leave empty to keep the current one. Changing it logs out every other browser session.</p></div><input id="snew" type="password" placeholder="10+ chars, Aa, 1, !"></div>
+      <div class="srow"><div></div><button class="ok" id="ssave">Save changes</button></div>
+    </div>
+    <div class="sec glass sset"><h2>Appearance</h2>
+      <div class="srow"><div class="st"><b>Language</b><p>Interface language.</p></div><div class="segm" id="sglang"><button data-v="fa">فارسی</button><button data-v="en">English</button></div></div>
+      <div class="srow"><div class="st"><b>Theme</b><p>Dark is the default look.</p></div><div class="segm" id="sgtheme"><button data-v="dark">Dark</button><button data-v="light">Light</button></div></div>
+      <div class="srow"><div class="st"><b>Motion</b><p>Reduced mode turns off animations on slow phones.</p></div><div class="segm" id="sgmotion"><button data-v="full">Full</button><button data-v="low">Reduced</button></div></div>
+    </div>
+    <div class="sec glass sset"><h2>Panel info</h2>
+      <div class="srow"><div class="st"><b>Panel address</b><p>Secret path of this panel. Keep it private.</p></div><code id="sinfo" class="scode"></code></div>
+      <div class="srow"><div class="st"><b>Version</b><p>DarkCore Panel</p></div><code class="scode">v1.3.0</code></div>
+    </div>
+    <div class="sec glass sset"><h2>Support</h2>
+      <div class="srow"><div class="st"><b>Telegram channel</b><p>News, updates and support.</p></div><a class="sbtn" href="https://t.me/DarkCore_Vpn" target="_blank" rel="noopener">@DarkCore_Vpn</a></div>
+    </div>
   </div>
   <div id="foot" class="glass"><span>DarkCore Panel</span><span>·</span><a href="https://t.me/DarkCore_Vpn" target="_blank" rel="noopener" style="color:var(--gold)">@DarkCore_Vpn</a></div>
   </div></div>`;
@@ -840,7 +870,12 @@ function shell(){
   $('#rrole').onchange = () => { const s=$('#rrole').value==='server';
     $('#rports').classList.toggle('hide',!s); $('#rsip').classList.toggle('hide',s); $('#rth').classList.toggle('hide',s); };
   $('#create').onclick = create; $('#rcreate').onclick = createRev; $('#ssave').onclick = saveAccount;
-  $('#slang').value = lang; $('#slanggo').onclick = () => { if($('#slang').value!==lang){ localStorage.setItem('nt_lang',$('#slang').value); location.reload(); } };
+  $('#sinfo').textContent = location.origin + (BASE||'/');
+  const segSet=(id,cur,fn)=>{ const g=$(id); g.querySelectorAll('button').forEach(b=>{ b.classList.toggle('on',b.dataset.v===cur); b.onclick=()=>{ fn(b.dataset.v); g.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b)); }; }); };
+  segSet('#sglang',lang,v=>{ if(v!==lang){ localStorage.setItem('nt_lang',v); location.reload(); } });
+  segSet('#sgtheme',document.documentElement.dataset.theme||'dark',v=>{ localStorage.setItem('nt_theme',v); applyTheme(); const t=$('#thbtn'); if(t) t.innerHTML=themeIcon(); });
+  segSet('#sgmotion',localStorage.getItem('nt_motion')||'full',v=>{ localStorage.setItem('nt_motion',v); document.documentElement.classList.toggle('lowmo',v==='low'); });
+  document.documentElement.classList.toggle('lowmo',localStorage.getItem('nt_motion')==='low');
   $('#tmode').onchange = tmodeView; $('#tstart').onclick = tstart; $('#tref').onclick = tstatus;
   if(lang==='fa') tr($('#app'));
 }
