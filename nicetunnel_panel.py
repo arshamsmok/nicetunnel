@@ -812,6 +812,80 @@ html body .nl button.nl-go{height:44px;font-size:14.5px;font-weight:600;border-r
 html body .nl .nl-foot{font-size:11.5px;margin-top:16px}
 html body .nl a.nl-chip{height:30px;font-size:12px;border-color:rgba(233,196,106,.2)}
 html body .nl .nl-chip svg{width:14px;height:14px;stroke-width:1.6}
+/* v11: NiceTunnel dashboard */
+html:not([data-theme=light]) body{background:linear-gradient(180deg,#040a16,#08172b 60%,#071426)!important;color:#e6ecf6}
+html:not([data-theme=light]) .glass{background:rgba(10,22,40,.78)!important;border:1px solid rgba(233,196,106,.12)!important;border-radius:16px!important;box-shadow:0 10px 30px rgba(0,0,0,.35)!important;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+html:not([data-theme=light]) #side{background:rgba(6,14,28,.92)!important}
+html:not([data-theme=light]) .nav{color:#aab8cf;border-radius:11px!important;font-size:13.5px}
+html:not([data-theme=light]) .nav.on{background:rgba(233,196,106,.10)!important;border-color:rgba(233,196,106,.28)!important;color:#f4d58a;box-shadow:none!important}
+html:not([data-theme=light]) .nav:hover{background:rgba(255,255,255,.05)!important;transform:none!important}
+html:not([data-theme=light]) .hdr .nm{background:linear-gradient(90deg,#fff3c9,#e9c46a)!important;-webkit-background-clip:text!important;background-clip:text!important}
+html:not([data-theme=light]) .card .v{background:none!important;-webkit-text-fill-color:#fff;color:#fff}
+#p-dash{gap:12px}
+.dgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.dc,.dpanel{background:linear-gradient(160deg,rgba(14,30,54,.94),rgba(8,18,34,.94));border:1px solid rgba(233,196,106,.12);border-radius:16px;color:#e6ecf6;box-shadow:0 8px 26px rgba(0,0,0,.28)}
+.dc{padding:14px 16px;overflow:hidden}
+.dk{display:flex;align-items:center;gap:7px;font-size:12px;color:#8fa2bf;font-weight:400}
+.dk svg{width:14px;height:14px;fill:none;stroke:#e9c46a;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.dv{font-size:30px;font-weight:600;margin:6px 0 4px;color:#fff;line-height:1.15}
+.dv small{font-size:12.5px;color:#8fa2bf;font-weight:400;margin-inline-start:6px}
+.dc canvas{width:100%;height:32px;display:block}
+.ds{font-size:11.5px;color:#8fa2bf;margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ds .bd{color:#f0707a}
+.dseg{display:flex;gap:3px;height:4px;margin-top:12px}.dseg i{display:block;border-radius:3px}
+.dm{display:flex;align-items:center;gap:8px;font-size:11.5px;color:#8fa2bf;margin:8px 0}
+.dm span:first-child{width:34px}.dm span:last-child{width:34px;text-align:end;color:#e6ecf6}
+.dm em{flex:1;height:4px;border-radius:3px;background:#0e2038;overflow:hidden;display:block}
+.dm b{display:block;height:100%;background:linear-gradient(90deg,#34d0c3,#e9c46a);border-radius:3px}
+.dpanel{overflow:hidden}
+.dph{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.05)}
+.dph h3{margin:0;font-size:14.5px;font-weight:600;color:#fff}
+.dph p{margin:3px 0 0;font-size:11.5px;color:#8fa2bf}
+.dleg{display:flex;gap:12px;font-size:11px;color:#8fa2bf;white-space:nowrap}
+.dleg i{display:inline-block;width:7px;height:7px;border-radius:50%;margin-inline-end:5px}
+#map{overflow-x:auto;direction:ltr;-webkit-overflow-scrolling:touch}
+#map svg{display:block}
+#map text{font-family:inherit}
+.dn{fill:#fff;font-size:12px;font-weight:600}.dn2{fill:#8fa2bf;font-size:10.5px}.dpl{fill:#dbe5f5;font-size:10.5px}
+.mdash{stroke-dasharray:2 14;stroke-linecap:round;animation:dflow 1.1s linear infinite}
+@keyframes dflow{to{stroke-dashoffset:-16}}
+.lowmo .mdash{animation:none}
+@media(prefers-reduced-motion:reduce){.mdash{animation:none}}
+.dtwo{display:grid;grid-template-columns:1.5fr 1fr;gap:12px}
+@media(max-width:820px){.dtwo{grid-template-columns:1fr}}
+html body button.dlink{height:28px;padding:0 12px;font-size:12px;font-weight:400;color:#cfd8e8;background:transparent!important;border:1px solid rgba(233,196,106,.25)!important;border-radius:9px!important;box-shadow:none!important;transform:none!important}
+html body button.dlink:hover{color:#f4d58a;border-color:rgba(233,196,106,.6)!important}
+.tr{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.05);cursor:pointer}
+.tr:last-child{border-bottom:0}.tr:hover{background:rgba(255,255,255,.03)}
+.tb{width:3px;align-self:stretch;min-height:30px;border-radius:2px;background:#6b7a93}
+.tb.active{background:#34d0c3}.tb.failed{background:#f0707a}
+.tm{flex:1;min-width:0}
+.tm b{display:block;font-size:13.5px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tm span{display:block;font-size:11.5px;color:#8fa2bf;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px;direction:ltr;text-align:start}
+.tg{display:inline-block;font-size:10.5px;padding:1px 8px;border-radius:999px;border:1px solid rgba(233,196,106,.25);color:#e9c46a;margin-inline-start:8px;font-weight:400;vertical-align:middle}
+.tp{flex:none;font-size:11.5px;padding:3px 11px;border-radius:999px;border:1px solid #2a3b57;color:#8fa2bf}
+.tp.active{color:#34d0c3;border-color:rgba(52,208,195,.4);background:rgba(52,208,195,.08)}
+.tp.failed{color:#f0707a;border-color:rgba(240,112,122,.4);background:rgba(240,112,122,.08)}
+.wr{display:flex;align-items:center;gap:10px;padding:12px 16px;font-size:12.5px;color:#cfd8e8;border-bottom:1px solid rgba(255,255,255,.05)}
+.wr:last-child{border-bottom:0}
+.wr i{flex:none;width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:rgba(240,112,122,.12);color:#f0707a;font-style:normal;font-size:14px}
+.wr i.g{background:rgba(52,208,195,.12);color:#34d0c3}.wr i.y{background:rgba(233,196,106,.12);color:#e9c46a}
+.wr span{flex:1;min-width:0}
+.dempty{padding:26px 16px;text-align:center;color:#8fa2bf;font-size:12.5px}
+
+.tm b,.tm span{direction:ltr;text-align:left}
+#shell[dir=rtl] .tm b,#shell[dir=rtl] .tm span{text-align:right}
+#shell[dir=rtl] .tg{margin-inline-start:0;margin-inline-end:8px}
+@media(max-width:820px){
+ html:not([data-theme=light]){background:#040a16}
+ #shell{display:block!important;padding:10px 10px 86px!important}
+ #side{position:fixed!important;left:0;right:0;bottom:0;top:auto!important;width:auto!important;height:auto!important;flex-direction:row!important;flex-wrap:nowrap!important;justify-content:space-around;z-index:40;padding:6px 8px calc(6px + env(safe-area-inset-bottom,0px))!important;border-radius:0!important;border-style:solid!important;border-width:1px 0 0 0!important;border-color:rgba(233,196,106,.16)!important;overflow:visible!important}
+ #side .nav{flex:1;min-width:0!important;padding:7px 2px!important}
+ #side .nav.on::after{display:none!important}
+ #side .brand,#side .sp{display:none!important}
+ #top{margin-bottom:10px}
+}
+@media(max-width:560px){.dgrid{grid-template-columns:1fr 1fr;gap:10px}.dc{padding:12px 13px}.dv{font-size:25px}.dph{padding:12px 13px}.tr{padding:11px 13px}}
 </style>
 <body>
 <div id="bg"></div><div id="grid"></div>
@@ -923,19 +997,12 @@ function shell(){
   <div id="main"><div id="top" class="glass"><div class="hdr">${LOGO}<span class="nm">NiceTunnel</span><span class="vv">v1.4.0</span><h1 id="ttl" style="margin:0 0 0 6px"></h1></div>
     <div style="display:flex;align-items:center;gap:10px"><span id="live" class="live"><i></i><b>${L("Online","آنلاین")}</b></span><span id="host" style="color:#9aa6d6;font-size:12px"></span>${themeBtn()}${langBtn()}</div></div><div id="msg"></div>
   <div class="page" id="p-dash">
-    <div class="sec glass"><h2>Network map</h2><div id="map"></div></div>
-    <div class="cards">
-      <div class="card glass"><div class="k">CPU</div><div class="v" id="cpu">-</div><div class="bar"><b id="cpub"></b></div><div class="s" id="load"></div></div>
-      <div class="card glass"><div class="k">Memory</div><div class="v" id="mem">-</div><div class="bar"><b id="memb"></b></div><div class="s" id="memt"></div></div>
-      <div class="card glass"><div class="k">Disk</div><div class="v" id="disk">-</div><div class="bar"><b id="diskb"></b></div><div class="s" id="diskt"></div></div>
-      <div class="card glass"><div class="k">Uptime</div><div class="v" id="up">-</div><div class="s" id="tuns"></div></div>
+    <div class="dgrid" id="dstats"></div>
+    <div class="dpanel"><div class="dph"><div><h3>${L("Network map","نقشهٔ شبکه")}</h3><p>${L("Servers are wells, tunnels are channels. Click one to open it.","سرورها چاه‌اند و تونل‌ها کانال. برای باز کردن هرکدام روی آن کلیک کنید.")}</p></div><div class="dleg"><span><i style="background:#34d0c3"></i>${L("flowing","جاری")}</span><span><i style="background:#f0707a"></i>${L("broken","قطع")}</span><span><i style="background:#6b7a93"></i>${L("stopped","خاموش")}</span></div></div><div id="map"></div></div>
+    <div class="dtwo">
+      <div class="dpanel"><div class="dph"><h3>${L("Tunnels","تونل‌ها")}</h3><button class="dlink" onclick="go('tun')">${L("See all","همه")}</button></div><div id="dtun"></div></div>
+      <div class="dpanel"><div class="dph"><h3>${L("Needs attention","نیازمند توجه")}</h3></div><div id="dwarn"></div></div>
     </div>
-    <div class="cards">
-      <div class="card glass"><div class="k">Network download</div><div class="v" id="rx">-</div><canvas id="crx"></canvas><div class="s" id="rxt"></div></div>
-      <div class="card glass"><div class="k">Network upload</div><div class="v" id="tx">-</div><canvas id="ctx"></canvas><div class="s" id="txt"></div></div>
-      <div class="card glass"><div class="k">CPU history</div><div class="v">&nbsp;</div><canvas id="ccpu"></canvas></div>
-    </div>
-    <div class="sec glass"><h2>Tunnel status</h2><div id="mon"></div></div>
   </div>
   <div class="page" id="p-tun">
   <div class="seg-bar"><button class="seg" data-s="rev">Reverse</button><button class="seg" data-s="spoof">Spoof</button></div>
@@ -1108,6 +1175,73 @@ function renderMap(st, slots){
   g+=`<text x="${X0}" y="${H/2+38}" text-anchor="middle" class="ml">${esc(st.hostname||'this server')}</text><text x="${X0}" y="${H/2+54}" text-anchor="middle" class="ms">${esc(st.ip||'')}</text>`;
   el.innerHTML=g+'</svg>';
 }
+const ICA='<svg viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>';
+function fmtR(b){ const x=(+b||0)*8; if(x>=1e9) return [(x/1e9).toFixed(2),'Gbps']; if(x>=1e6) return [(x/1e6).toFixed(x>=1e8?0:1),'Mbps']; if(x>=1e3) return [(x/1e3).toFixed(0),'Kbps']; return [Math.round(x),'bps']; }
+function peerOf(s){ return (s.kind==='reverse' ? (s.server_ip||s.target_host) : s.peer) || 'remote'; }
+function stCls(s){ return s==='active'?'active':s==='failed'?'failed':'off'; }
+function stTxt(s){ return s==='active'?L('Flowing','جاری'):s==='failed'?L('Broken','قطع'):(s==='inactive'||s==='unknown')?L('Stopped','خاموش'):esc(s); }
+function slotProto(s){ return s.kind==='reverse' ? 'tcp:'+(s.bridge||'') : (s.transport||'spoof')+':'+(s.port||''); }
+function slotDetail(s){
+  if(s.kind==='reverse') return 'reverse '+slotProto(s)+' · '+(s.role==='server' ? 'listen '+(s.ports||'-') : 'forward '+(s.target_host||'-'));
+  return 'spoof '+slotProto(s)+' · '+(s.role==='server' ? 'UDP '+(s.listen_port||'-') : '→ '+(s.forward||'-'))+(s.spoof_ips?' · src '+s.spoof_ips:'');
+}
+let _dsig='';
+function dashRender(st, slots){
+  if(!$('#dstats')) return;
+  const act=slots.filter(s=>s.state==='active').length, bad=slots.filter(s=>s.state==='failed').length, off=slots.length-act-bad;
+  const pm={}; slots.forEach(s=>{ const ip=peerOf(s); (pm[ip]=pm[ip]||[]).push(s); });
+  const pk=Object.keys(pm), pon=pk.filter(ip=>pm[ip].some(s=>s.state==='active')).length, pbad=pk.filter(ip=>!pm[ip].some(s=>s.state==='active')&&pm[ip].some(s=>s.state==='failed')).length;
+  const R=fmtR((st.rx_rate||0)+(st.tx_rate||0)), seg=(n,c)=>n?`<i style="flex:${n};background:${c}"></i>`:'';
+  const mini=(k,p)=>`<div class="dm"><span>${k}</span><em><b style="width:${Math.max(0,Math.min(100,p||0))}%"></b></em><span>${(p||0).toFixed(0)}%</span></div>`;
+  $('#dstats').innerHTML=`
+   <div class="dc"><div class="dk">${ICA}${L('Throughput now','ترافیک همین حالا')}</div><div class="dv">${R[0]}<small>${R[1]}</small></div><canvas id="cth"></canvas><div class="ds"><bdi dir="ltr">↓ ${fmtB(st.rx_rate)}/s · ↑ ${fmtB(st.tx_rate)}/s</bdi></div></div>
+   <div class="dc"><div class="dk">${L('Tunnels flowing','تونل‌های جاری')}</div><div class="dv">${act}<small>${L('of','از')} ${slots.length}</small></div><div class="dseg">${seg(act,'#34d0c3')}${seg(bad,'#f0707a')}${seg(off,'#6b7a93')}${slots.length?'':'<i style="flex:1;background:#1d2e4a"></i>'}</div><div class="ds">${bad?`<span class="bd">${bad} ${L('broken','قطع')}</span>`:(slots.length?L('All healthy','همه سالم'):L('No tunnel yet','هنوز تونلی نیست'))}</div></div>
+   <div class="dc"><div class="dk">${L('Servers connected','سرورهای متصل')}</div><div class="dv">${pon}<small>${L('of','از')} ${pk.length}</small></div><div class="dseg">${seg(pon,'#34d0c3')}${seg(pbad,'#f0707a')}${seg(pk.length-pon-pbad,'#6b7a93')}${pk.length?'':'<i style="flex:1;background:#1d2e4a"></i>'}</div><div class="ds">${esc(st.hostname||'')} · ${esc(st.ip||'')}</div></div>
+   <div class="dc"><div class="dk">${L('This server','این سرور')}</div>${mini('CPU',st.cpu)}${mini('RAM',st.mem_pct)}${mini('Disk',st.disk_pct)}<div class="ds">${L('Uptime','آپتایم')} ${fmtUp(st.uptime)}</div></div>`;
+  spark('#cth', hist.rx.map((v,i)=>v+(hist.tx[i]||0)), '#34d0c3');
+  const W=[];
+  slots.filter(s=>s.state==='failed').forEach(s=>W.push(`<div class="wr"><i>!</i><span>${L('Tunnel','تونل')} #${s.slot} · ${esc(peerOf(s))} ${L('is broken','قطع است')}</span><button class="dlink" onclick="go('${s.kind==='reverse'?'rev':'spoof'}')">${L('Open','باز کردن')}</button></div>`));
+  slots.filter(s=>s.state!=='active'&&s.state!=='failed').forEach(s=>W.push(`<div class="wr"><i class="y">•</i><span>${L('Tunnel','تونل')} #${s.slot} · ${esc(peerOf(s))} ${L('is stopped','خاموش است')}</span><button class="dlink" onclick="go('${s.kind==='reverse'?'rev':'spoof'}')">${L('Open','باز کردن')}</button></div>`));
+  if((st.cpu||0)>85) W.push(`<div class="wr"><i class="y">%</i><span>${L('High CPU','پردازنده شلوغ است')} ${st.cpu.toFixed(0)}%</span></div>`);
+  if((st.mem_pct||0)>90) W.push(`<div class="wr"><i class="y">%</i><span>${L('High memory','حافظه پر است')} ${st.mem_pct.toFixed(0)}%</span></div>`);
+  if((st.disk_pct||0)>90) W.push(`<div class="wr"><i class="y">%</i><span>${L('Disk almost full','دیسک تقریباً پر است')} ${st.disk_pct.toFixed(0)}%</span></div>`);
+  if(!W.length) W.push(slots.length ? `<div class="wr"><i class="g">✓</i><span>${L('Everything is on track: all tunnels are flowing.','همه‌چیز روبه‌راه است: همه تونل‌ها جاری‌اند.')}</span></div>` : `<div class="wr"><i class="g">+</i><span>${L('Create your first tunnel to get started.','اولین تونل خود را بسازید.')}</span><button class="dlink" onclick="go('rev')">${L('Create','ساخت')}</button></div>`);
+  $('#dwarn').innerHTML=W.join('');
+  const cw=($('#map')||{}).clientWidth||0, sig=lang+'|'+cw+'|'+(st.hostname||'')+'|'+JSON.stringify(slots.map(s=>[s.slot,s.state,peerOf(s),s.port,s.bridge]));
+  if(sig===_dsig) return; _dsig=sig;
+  dashMap(st, slots, pm, pk);
+  $('#dtun').innerHTML = slots.length ? slots.map(s=>`<div class="tr" onclick="go('${s.kind==='reverse'?'rev':'spoof'}')"><i class="tb ${stCls(s.state)}"></i><div class="tm"><b>#${s.slot} · ${esc(st.hostname||L('This server','این سرور'))} ↔ ${esc(peerOf(s))}<em class="tg">${esc(s.side)}</em></b><span>${esc(slotDetail(s))}</span></div><div class="tp ${stCls(s.state)}">${stTxt(s.state)}</div></div>`).join('') : `<div class="dempty">${L('No tunnels yet. Create one from the Tunnels page.','هنوز تونلی نیست. از صفحه تونل‌ها یکی بسازید.')}<br><br><button class="dlink" onclick="go('rev')">${L('Create tunnel','ساخت تونل')}</button></div>`;
+}
+function dashMap(st, slots, pm, pk){
+  const el=$('#map'); if(!el) return;
+  const cw=Math.max(el.clientWidth||320,300), n=pk.length, W=Math.max(cw,(n+1)*150), H0=96, X0=Math.min(86,W*.15), XR=W-70;
+  const px=i=>X0+(i+1)*((XR-X0)/Math.max(n,1));
+  const rows=[]; pk.forEach((ip,i)=>pm[ip].forEach(s=>rows.push({s,i,ip})));
+  const yy=j=>H0+48+j*40, H=H0+48+Math.max(rows.length,1)*40+16;
+  const cut=(t,m)=>{t=String(t);return t.length>m?t.slice(0,m-1)+'…':t;};
+  let g=`<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}"><defs><linearGradient id="dgd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0a1c33"/><stop offset="1" stop-color="#050d18"/></linearGradient><linearGradient id="dsk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#050b17"/><stop offset="1" stop-color="#112340"/></linearGradient></defs>`;
+  g+=`<rect width="${W}" height="${H0}" fill="url(#dsk)"/><rect y="${H0}" width="${W}" height="${H-H0}" fill="url(#dgd)"/>`;
+  for(let k=0;k<46;k++){ g+=`<circle cx="${((k*137.5)%W).toFixed(0)}" cy="${((k*61.8)%(H0-10)+4).toFixed(0)}" r="${k%5?0.8:1.3}" fill="#fff" opacity="${(0.25+(k%4)*0.18).toFixed(2)}"/>`; }
+  g+=`<line x1="0" y1="${H0}" x2="${W}" y2="${H0}" stroke="#e9c46a" stroke-width="1.6" opacity=".9"/>`;
+  const dT=rows.length?yy(rows.length-1):H0+22, dP=pk.map((ip,i)=>{ const js=rows.map((r,j)=>r.i===i?j:-1).filter(j=>j>=0); return js.length?yy(Math.max(...js)):H0+22; });
+  g+=`<line x1="${X0}" y1="${H0}" x2="${X0}" y2="${dT}" stroke="#8a7340" stroke-width="2.5" stroke-linecap="round"/>`;
+  pk.forEach((ip,i)=>{ g+=`<line x1="${px(i)}" y1="${H0}" x2="${px(i)}" y2="${dP[i]}" stroke="#8a7340" stroke-width="2.5" stroke-linecap="round"/>`; });
+  rows.forEach((r,j)=>{
+    const s=r.s, y=yy(j), xp=px(r.i), dx=(xp-X0)*.4, col=s.state==='active'?'#34d0c3':s.state==='failed'?'#f0707a':'#6b7a93';
+    const d=`M${X0} ${y} C${X0+dx} ${y+12} ${xp-dx} ${y+12} ${xp} ${y}`, t='#'+s.slot+' · '+slotProto(s), pw=t.length*6.1+30, xm=(X0+xp)/2, ym=y+9;
+    g+=`<g style="cursor:pointer" onclick="go('${s.kind==='reverse'?'rev':'spoof'}')"><path d="${d}" fill="none" stroke="transparent" stroke-width="22"/>`
+     +`<path d="${d}" fill="none" stroke="${col}" stroke-opacity=".14" stroke-width="12" stroke-linecap="round"/>`
+     +`<path d="${d}" fill="none" stroke="${col}" stroke-width="${s.state==='active'?4:3}" stroke-linecap="round" ${s.state==='active'?'':'stroke-dasharray="5 6" opacity=".8"'}/>`
+     +(s.state==='active'?`<path class="mdash" d="${d}" fill="none" stroke="#e8fffd" stroke-opacity=".8" stroke-width="1.6"/>`:'')
+     +`<circle cx="${X0}" cy="${y}" r="4" fill="${col}"/><circle cx="${xp}" cy="${y}" r="4" fill="${col}"/>`
+     +`<rect x="${(xm-pw/2).toFixed(1)}" y="${ym-10}" width="${pw.toFixed(1)}" height="20" rx="10" fill="#0a1a30" stroke="${col}" stroke-opacity=".5"/><circle cx="${(xm-pw/2+12).toFixed(1)}" cy="${ym}" r="3" fill="${col}"/><text class="dpl" x="${(xm-pw/2+20).toFixed(1)}" y="${ym+3.6}">${esc(t)}</text></g>`;
+  });
+  if(!rows.length) g+=`<text class="dn2" x="${W/2}" y="${H0+50}" text-anchor="middle">${L('No tunnel yet','هنوز تونلی نیست')}</text>`;
+  const node=(x,anc,name,sub,col)=>`<path d="M${x-9} ${H0} a9 9 0 0 1 18 0z" fill="#e9c46a"/><circle cx="${anc==='start'?x-6:x-(String(name).length*3.2+9)}" cy="${H0-34}" r="3" fill="${col}"/><text class="dn" x="${anc==='start'?x+2:x+4}" y="${H0-30}" text-anchor="${anc}">${esc(cut(name,24))}</text><text class="dn2" x="${anc==='start'?x-6:x}" y="${H0-16}" text-anchor="${anc}">${esc(cut(sub,34))}</text>`;
+  g+=node(X0,'start',st.hostname||L('this server','همین سرور'),(st.ip||''),'#34d0c3');
+  pk.forEach((ip,i)=>{ const l=pm[ip], col=l.some(s=>s.state==='active')?'#34d0c3':l.some(s=>s.state==='failed')?'#f0707a':'#6b7a93'; g+=node(px(i),'middle',ip,(l[0].role==='server'?L('Foreign','خارج'):L('Iran','ایران'))+' · '+l.length+' '+L('tunnel','تونل'),col); });
+  el.innerHTML=g+'</svg>';
+}
 function rowBtns(n){ return `<td><button class="sm ok" onclick="act(${n},'start')">Connect</button><button class="sm" onclick="act(${n},'restart')">Restart</button><button class="sm" onclick="act(${n},'stop')">Stop</button><button class="sm" onclick="logs(${n})">Logs</button><button class="sm danger" onclick="del(${n})">Delete</button></td>`; }
 async function refresh(){
   try {
@@ -1115,16 +1249,7 @@ async function refresh(){
     push(hist.cpu, st.cpu); push(hist.rx, st.rx_rate); push(hist.tx, st.tx_rate);
     const lv=$('#live'); if(lv){lv.classList.remove('off'); lv.querySelector('b').textContent=L('Online','آنلاین');}
     $('#host').textContent = st.hostname + ' · ' + st.ip;
-    $('#cpu').textContent = st.cpu.toFixed(0)+'%'; bar('#cpub', st.cpu); $('#load').textContent = 'load '+st.load.join(' / ');
-    $('#mem').textContent = st.mem_pct.toFixed(0)+'%'; bar('#memb', st.mem_pct); $('#memt').textContent = fmtB(st.mem_used)+' / '+fmtB(st.mem_total);
-    $('#disk').textContent = st.disk_pct.toFixed(0)+'%'; bar('#diskb', st.disk_pct); $('#diskt').textContent = fmtB(st.disk_used)+' / '+fmtB(st.disk_total);
-    $('#up').textContent = fmtUp(st.uptime);
-    const act = sl.slots.filter(s=>s.state==='active').length; $('#tuns').textContent = act+' of '+sl.slots.length+' tunnels active';
-    $('#rx').textContent = fmtB(st.rx_rate)+'/s'; $('#rxt').textContent = 'total '+fmtB(st.rx_total);
-    $('#tx').textContent = fmtB(st.tx_rate)+'/s'; $('#txt').textContent = 'total '+fmtB(st.tx_total);
-    spark('#crx', hist.rx, '#38bdf8'); spark('#ctx', hist.tx, '#ec4899'); spark('#ccpu', hist.cpu, '#818cf8');
-    $('#mon').innerHTML = slotTable(sl.slots, false);
-    renderMap(st, sl.slots);
+    dashRender(st, sl.slots);
     $('#revtbl').innerHTML = slotTable(sl.slots.filter(s=>s.kind==='reverse'), true);
     $('#tbl').innerHTML = slotTable(sl.slots.filter(s=>s.kind==='spoof'), true);
   } catch(e){ const lv=$('#live'); if(lv){lv.classList.add('off'); lv.querySelector('b').textContent=L('Offline','آفلاین');} if(/login|auth|401/i.test(e.message)) load(); else msg(e.message,false); }
