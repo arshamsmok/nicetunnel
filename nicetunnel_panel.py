@@ -637,6 +637,14 @@ html[data-theme=light] .ibtn{background:#fff;border-color:#d5ddef;color:#4a5578}
 html[data-theme=light] .mapsvg .ml{fill:#1c2340}
 html[data-theme=light] .mapsvg .ms,html[data-theme=light] .mapsvg .mt{fill:#5c6789}
 html[data-theme=light] [style*="b8c2ee"],html[data-theme=light] [style*="9aa6d6"]{color:#5c6789!important}
+/* v9: login page look */
+#login.glass{max-width:380px;margin:0 auto;padding:30px 26px;border-radius:18px;background:rgba(12,18,38,.78);border:1px solid rgba(250,204,21,.18);box-shadow:0 20px 60px rgba(0,0,0,.45)}
+#login h1{font-size:20px;margin:14px 0 4px;color:#fde68a;letter-spacing:.3px}
+#login .ok{background:linear-gradient(90deg,#facc15,#eab308);color:#1a1405;font-weight:700;border:none;border-radius:12px;padding:12px}
+#login input{border-radius:12px}
+.tgbar{position:fixed;top:14px;left:14px;display:flex;gap:8px;z-index:5}
+.tgbar a{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:999px;background:rgba(56,189,248,.12);border:1px solid rgba(56,189,248,.35);color:#7dd3fc;text-decoration:none;font-size:12px}
+.tgbar a:hover{background:rgba(56,189,248,.22)}
 </style>
 <body>
 <div id="bg"></div><div id="grid"></div>
@@ -664,8 +672,9 @@ applyTheme();
 setInterval(() => tr(document.body), 700);
 let state = {logged: false, needSetup: false}, page = 'dash', hist = {cpu:[],rx:[],tx:[]}, timer = null, tTimer = null, cur = 'list', logSlot = 0;
 function msg(t, ok){ const m=$('#msg'); if(m){ m.className='msg '+(ok?'good':'bad'); m.textContent=t; } else alert(t); }
+const BASE = location.pathname.replace(/\/+$/,'');
 async function api(path, body){
-  const r = await fetch(path, {method: body===undefined?'GET':'POST', headers:{'Content-Type':'application/json'},
+  const r = await fetch(BASE+path, {method: body===undefined?'GET':'POST', headers:{'Content-Type':'application/json'},
     body: body===undefined?undefined:JSON.stringify(body), credentials:'same-origin'});
   let j = {}; try { j = await r.json(); } catch(e){}
   if(!r.ok) throw new Error(j.error || ('HTTP '+r.status));
@@ -675,14 +684,14 @@ const fmtB = n => { const u=['B','KB','MB','GB','TB']; let i=0; n=+n||0; while(n
 const fmtUp = s => { s=Math.floor(s); const d=Math.floor(s/86400),h=Math.floor(s%86400/3600),m=Math.floor(s%3600/60); return (d?d+'d ':'')+h+'h '+m+'m'; };
 
 function loginView(){
-  $('#app').innerHTML = `<div id="login" class="glass"><div style="text-align:center"><span class="logo" style="width:54px;height:54px;font-size:20px;display:inline-flex;align-items:center;justify-content:center">NT</span></div><h1 style="text-align:center;display:block">NiceTunnel Panel</h1>${langBtn()}<div id="msg"></div>
+  $('#app').innerHTML = `<div id="login" class="glass"><div style="text-align:center"><svg viewBox="0 0 64 64" width="72" height="72"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fde68a"/><stop offset="1" stop-color="#d97706"/></linearGradient></defs><path d="M32 4 56 14v18c0 15-10 24-24 28C18 56 8 47 8 32V14z" fill="#0b1226" stroke="url(#g)" stroke-width="3"/><path d="M32 16c2 7 9 10 9 18a9 9 0 0 1-18 0c0-4 2-6 4-8 0 3 1 5 3 6-1-6 0-11 2-16z" fill="url(#g)"/></svg></div><h1 style="text-align:center;display:block">DarkCore Panel</h1>${langBtn()}<div id="msg"></div>
   <div class="row"><div><label>Username</label><input id="un" value="admin" autocomplete="username"></div>
   <div><label>${state.needSetup?'Create admin password (10+ chars, Aa, 1, !)':'Password'}</label>
   <div style="position:relative"><input id="pw" type="password" style="padding-right:44px">
   <button type="button" id="pwtog" style="position:absolute;right:3px;top:3px;padding:7px 10px;background:transparent;border:none;box-shadow:none;font-size:15px">&#128065;</button></div></div>
   <div id="pwhint" style="font-size:12px;color:#9aa6d6;display:${state.needSetup?'block':'none'}"></div>
   <div><button class="ok" id="go">${state.needSetup?'Save password':'Login'}</button></div>
-  <div style="text-align:center;margin-top:10px"><a href="https://t.me/DarkCore_Vpn" target="_blank" rel="noopener" style="color:#a5b4fc;font-size:13px">Telegram: @DarkCore_Vpn</a></div></div></div>`;
+  <div style="text-align:center;margin-top:12px"><a href="https://t.me/DarkCore_Vpn" target="_blank" rel="noopener" style="color:#fde68a;font-size:13px;text-decoration:none">✈ @DarkCore_Vpn</a></div></div></div><div class="tgbar"><a href="https://t.me/DarkCore_Vpn" target="_blank" rel="noopener">✈ Telegram</a></div>`;
   if(state.needSetup) $('#pw').oninput = () => { const v=$('#pw').value, ok=(c,t)=>(c?'✓ ':'✗ ')+t;
     $('#pwhint').innerHTML=[ok(v.length>=10,'10+ chars'),ok(/[a-z]/.test(v)&&/[A-Z]/.test(v),'Aa'),ok(/\d/.test(v),'0-9'),ok(/[^A-Za-z0-9]/.test(v),'!@#')].join(' &nbsp; '); };
   $('#go').onclick = async () => { try {
@@ -693,7 +702,7 @@ function loginView(){
 }
 const IC={dash:'<svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="2"/><rect x="14" y="3" width="7" height="5" rx="2"/><rect x="14" y="12" width="7" height="9" rx="2"/><rect x="3" y="16" width="7" height="5" rx="2"/></svg>',rev:'<svg viewBox="0 0 24 24"><path d="M4 7h13l-3-3M20 17H7l3 3"/></svg>',spoof:'<svg viewBox="0 0 24 24"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>',set:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>',out:'<svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>',sun:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',moon:'<svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>'};
 const PAGES = [['dash',IC.dash,'Dashboard'],['rev',IC.rev,'Reverse tunnel'],['spoof',IC.spoof,'Spoof tunnel'],['set',IC.set,'Settings']];
-const LOGO = '<span class="logo">NT</span>';
+const LOGO = '<svg viewBox="0 0 64 64" width="34" height="34"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fde68a"/><stop offset="1" stop-color="#d97706"/></linearGradient></defs><path d="M32 4 56 14v18c0 15-10 24-24 28C18 56 8 47 8 32V14z" fill="#0b1226" stroke="url(#g)" stroke-width="3"/><path d="M32 16c2 7 9 10 9 18a9 9 0 0 1-18 0c0-4 2-6 4-8 0 3 1 5 3 6-1-6 0-11 2-16z" fill="url(#g)"/></svg>';
 function shell(){
   const nm = state.username || 'admin';
   $('#app').innerHTML = `<div id="shell"><div id="side" class="glass">
@@ -1015,6 +1024,18 @@ def collect_monitor():
     return out
 
 
+def route_path(raw):
+    """Strips the secret base path; None means 404."""
+    base = load_panel_conf().get("base", "")
+    if not base:
+        return raw
+    if raw == base or raw == base + "/":
+        return "/"
+    if raw.startswith(base + "/api/"):
+        return raw[len(base):]
+    return None
+
+
 class Handler(http.server.BaseHTTPRequestHandler):
     server_version = "NiceTunnelPanel"
 
@@ -1081,7 +1102,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
     # -- GET -----------------------------------------------------------------
     def do_GET(self):
-        path = urlparse(self.path).path
+        path = route_path(urlparse(self.path).path)
+        if path is None:
+            return self.send_json({"error": "not found"}, 404)
         if path == "/":
             data = PAGE.encode()
             self.send_response(200)
@@ -1129,7 +1152,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
     # -- POST ----------------------------------------------------------------
     def do_POST(self):
-        path = urlparse(self.path).path
+        path = route_path(urlparse(self.path).path)
+        if path is None:
+            return self.send_json({"error": "not found"}, 404)
         if not self.same_origin_ok():
             return self.send_json({"error": "cross-site request refused"}, 403)
         try:
@@ -1337,12 +1362,62 @@ def cmd_install(args):
     if "password" not in conf:
         print("Set the panel password (10+ chars, upper+lower, digit, symbol):")
         cmd_set_password(args)
+    conf = load_panel_conf()
+    print("")
+    print("How will you open the panel?")
+    print("  1) Domain  (free Let's Encrypt HTTPS certificate)")
+    print("  2) IP only (self-signed HTTPS, browser shows a warning once)")
+    print("  3) Other   (my own certificate files)")
+    print("  4) Plain HTTP (no encryption, not recommended)")
+    choice = (input("Choose [1-4, default 2]: ").strip() or "2")
+    host = public_ip_guess()
+    scheme = "https"
+    os.makedirs(CONF_DIR, exist_ok=True)
+    cert, key = os.path.join(CONF_DIR, "panel.crt"), os.path.join(CONF_DIR, "panel.key")
+    if choice == "1":
+        host = input("Domain (must point to this server): ").strip()
+        email = input("Email for Let's Encrypt (optional): ").strip()
+        if not shutil.which("certbot"):
+            subprocess.run("apt-get update -qq && apt-get install -y -qq certbot", shell=True)
+        cmd = ["certbot", "certonly", "--standalone", "-d", host, "--non-interactive", "--agree-tos"]
+        cmd += ["-m", email] if email else ["--register-unsafely-without-email"]
+        if subprocess.run(cmd).returncode != 0:
+            sys.exit("error: certbot failed. Check DNS and that port 80 is free and open.")
+        cert = "/etc/letsencrypt/live/%s/fullchain.pem" % host
+        key = "/etc/letsencrypt/live/%s/privkey.pem" % host
+        hook_dir = "/etc/letsencrypt/renewal-hooks/deploy"
+        os.makedirs(hook_dir, exist_ok=True)
+        with open(hook_dir + "/nicetunnel-panel.sh", "w") as f:
+            f.write("#!/bin/sh\nsystemctl restart nicetunnel-panel\n")
+        os.chmod(hook_dir + "/nicetunnel-panel.sh", 0o755)
+    elif choice == "3":
+        host = input("Domain or IP you will use: ").strip() or host
+        cert = input("Path to certificate (fullchain.pem): ").strip()
+        key = input("Path to private key: ").strip()
+        if not (os.path.isfile(cert) and os.path.isfile(key)):
+            sys.exit("error: certificate or key file not found")
+    elif choice == "4":
+        scheme = "http"
+        cert = key = ""
+    else:
+        r = subprocess.run(["openssl", "req", "-x509", "-newkey", "rsa:2048", "-nodes", "-days", "3650",
+                            "-keyout", key, "-out", cert, "-subj", "/CN=%s" % host,
+                            "-addext", "subjectAltName=IP:%s" % host if re.fullmatch(r"[\d.]+", host) else "subjectAltName=DNS:%s" % host],
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        if r.returncode != 0:
+            sys.exit("error: openssl failed (apt install openssl)")
+        os.chmod(key, 0o600)
+    if "base" not in conf:
+        conf["base"] = "/k-" + secrets.token_hex(6)
+    conf["host"], conf["scheme"] = host, scheme
+    save_panel_conf(conf)
+    tls_args = (" --cert %s --key %s" % (cert, key)) if scheme == "https" else ""
     unit = (
         "[Unit]\nDescription=NiceTunnel Spoof Panel\nAfter=network-online.target\n"
         "Wants=network-online.target\n\n[Service]\n"
-        "ExecStart=%s %s serve --bind 0.0.0.0 --port %d\nRestart=always\nRestartSec=3\n\n"
+        "ExecStart=%s %s serve --bind 0.0.0.0 --port %d%s\nRestart=always\nRestartSec=3\n\n"
         "[Install]\nWantedBy=multi-user.target\n"
-    ) % (sys.executable, target, port)
+    ) % (sys.executable, target, port, tls_args)
     with open(UNIT_PATH, "w") as f:
         f.write(unit)
     subprocess.run(["systemctl", "daemon-reload"])
@@ -1352,7 +1427,8 @@ def cmd_install(args):
         subprocess.run(["ufw", "allow", "%d/tcp" % port], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     print("")
     print("Panel installed.")
-    print("  URL:      http://%s:%d" % (public_ip_guess(), port))
+    c = load_panel_conf()
+    print("  URL:      %s://%s:%d%s/" % (c["scheme"], c["host"], port, c["base"]))
     print("  Username: %s" % load_panel_conf().get("username", "admin"))
     print("  Password: the one you set.")
     print("Open TCP port %d in your provider firewall if the page does not load." % port)
@@ -1397,7 +1473,12 @@ def cmd_serve(args):
     if "password" not in load_panel_conf():
         sys.exit("error: set a password first: python3 %s set-password" % sys.argv[0])
     srv = http.server.ThreadingHTTPServer((args.bind, args.port), Handler)
-    print("NiceTunnel panel on http://%s:%d  " % (args.bind, args.port))
+    if args.cert and args.key:
+        import ssl
+        ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        ctx.load_cert_chain(args.cert, args.key)
+        srv.socket = ctx.wrap_socket(srv.socket, server_side=True)
+    print("NiceTunnel panel on %s:%d" % (args.bind, args.port))
     try:
         srv.serve_forever()
     except KeyboardInterrupt:
@@ -1414,6 +1495,8 @@ def main():
     s = sub.add_parser("serve", help="run the web panel")
     s.add_argument("--bind", default="127.0.0.1", help="address to listen on (default 127.0.0.1)")
     s.add_argument("--port", type=int, default=8787)
+    s.add_argument("--cert", default="")
+    s.add_argument("--key", default="")
     s.set_defaults(func=cmd_serve)
     args = p.parse_args()
     args.func(args)
