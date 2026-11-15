@@ -542,6 +542,88 @@ body{background:#0a0d14!important}
 .nav.on{background:#18233f!important;border-color:transparent!important;box-shadow:none!important;color:#fff}
 #login{border-radius:14px!important}
 .tab.on{background:#18233f;box-shadow:none;border-color:#2c3a5e}
+/* v6: compact minimal */
+body{font-size:13px}
+#side{width:200px;padding:12px 10px}
+.brand{font-size:16px;padding:4px 8px 10px}
+.brand small{font-size:10px}
+.nav{padding:8px 10px;font-size:13px;gap:8px}
+#top{padding:10px 18px}
+#top h1{font-size:16px}
+#main{gap:12px}
+.page{gap:12px}
+.sec{padding:14px}
+.sec h2{font-size:14px;margin-bottom:10px}
+.card{padding:12px}
+.card .v{font-size:22px;margin:4px 0}
+.card .k{font-size:11px}
+th{font-size:11px}
+td,th{padding:7px 8px}
+table{font-size:13px}
+input,select,button{padding:7px 9px;font-size:13px}
+button.ok{padding:8px 16px}
+label{font-size:11px;margin-bottom:3px}
+.row{gap:10px}
+.row>div{min-width:160px}
+pre{font-size:11px;padding:10px;max-height:260px}
+.tab{padding:6px 12px;font-size:12px}
+.logo{width:32px;height:32px;font-size:14px;border-radius:10px}
+.hdr .nm{font-size:15px}
+#foot{padding:10px 16px;font-size:11px}
+/* v7: neon pro */
+body{background:#070a12!important;background-image:radial-gradient(900px 500px at 85% -10%,rgba(99,102,241,.18),transparent 60%),radial-gradient(700px 400px at -10% 110%,rgba(6,182,212,.14),transparent 60%)!important}
+#side{background:linear-gradient(180deg,#0c1120,#080b15)!important;border-right:1px solid #1b2440!important}
+#main>.glass:not(#top):not(#foot),.card{background:linear-gradient(160deg,#10162a,#0b0f1c)!important;border:1px solid #1f2a4a!important;box-shadow:0 6px 24px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.04)!important;transition:border-color .2s,transform .2s}
+.card:hover{border-color:#3b5bdb!important;transform:translateY(-2px)}
+.logo{background:linear-gradient(135deg,#6366f1,#06b6d4)!important;box-shadow:0 0 16px rgba(99,102,241,.55)}
+.nav{transition:all .18s}
+.nav:hover{background:#121a33!important;color:#fff;padding-inline-start:14px}
+.nav.on{background:linear-gradient(90deg,rgba(99,102,241,.28),rgba(6,182,212,.08))!important;border-inline-start:3px solid #22d3ee!important;color:#fff}
+#top{background:rgba(10,14,26,.75)!important;backdrop-filter:blur(10px);border-bottom:1px solid #1b2440!important}
+.card .v{background:linear-gradient(90deg,#fff,#7dd3fc);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.bar{background:#151c33!important;border-radius:99px;overflow:hidden}
+.bar b{background:linear-gradient(90deg,#6366f1,#22d3ee)!important;box-shadow:0 0 10px rgba(34,211,238,.6);border-radius:99px}
+input,select{background:#0a0f1d!important;border:1px solid #243056!important;border-radius:10px!important;transition:border-color .2s,box-shadow .2s}
+input:focus,select:focus{outline:0;border-color:#22d3ee!important;box-shadow:0 0 0 3px rgba(34,211,238,.15)}
+button{border-radius:10px!important;transition:transform .15s,box-shadow .2s,filter .2s}
+button:hover{transform:translateY(-1px);filter:brightness(1.12)}
+button.ok{background:linear-gradient(135deg,#6366f1,#06b6d4)!important;border:0!important;color:#fff;box-shadow:0 4px 16px rgba(99,102,241,.4)}
+tbody tr{transition:background .15s}
+tbody tr:hover{background:rgba(99,102,241,.08)}
+th{color:#7f8fb8;text-transform:uppercase;letter-spacing:.05em}
+pre{background:#060912!important;border:1px solid #1b2440;border-radius:10px;color:#9be7c4}
+.tab.on{background:linear-gradient(135deg,#4f46e5,#0891b2)!important;border-color:transparent!important;color:#fff}
+::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-thumb{background:#26335c;border-radius:9px}
+.page{animation:ntfade .3s ease}
+@keyframes ntfade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+/* v8: icons, theme, map */
+.nav i{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;flex:none}
+.nav i svg,.ibtn svg,.card .ic svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.ibtn{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;padding:0;background:#121a33;border:1px solid #243056;color:#cbd5f5}
+.ibtn:hover{color:#22d3ee}
+.mapsvg{width:100%;height:auto;display:block}
+.mline{fill:none;stroke-width:3;opacity:.9}
+.mline.flow{stroke-dasharray:6 8;animation:mflow 1s linear infinite}
+@keyframes mflow{to{stroke-dashoffset:-14}}
+.mhub{filter:drop-shadow(0 0 10px #6366f1)}
+.mapsvg .ml{fill:#e2e8ff;font-size:14px;font-weight:600}
+.mapsvg .ms{fill:#94a3b8;font-size:12px}
+.mapsvg .mt{fill:#94a3b8;font-size:16px}
+html[data-theme=light] body{background:#eef2fb!important;background-image:none!important;color:#1c2340}
+html[data-theme=light] #bg,html[data-theme=light] #grid{display:none}
+html[data-theme=light] #side,html[data-theme=light] #top,html[data-theme=light] .glass,html[data-theme=light] .card,html[data-theme=light] #main>.glass:not(#top):not(#foot){background:#fff!important;border-color:#dfe5f3!important;box-shadow:0 2px 10px rgba(30,40,80,.06)!important;color:#1c2340}
+html[data-theme=light] .nav{color:#4a5578}
+html[data-theme=light] .nav:hover{background:#eef2ff!important}
+html[data-theme=light] .nav.on{color:#1c2340;background:linear-gradient(90deg,rgba(99,102,241,.14),rgba(6,182,212,.04))!important}
+html[data-theme=light] .card .v{-webkit-text-fill-color:#1c2340;background:none}
+html[data-theme=light] .bar{background:#e4e9f5!important}
+html[data-theme=light] input,html[data-theme=light] select{background:#f5f7fc!important;color:#1c2340;border-color:#d5ddef!important}
+html[data-theme=light] th{color:#5c6789}
+html[data-theme=light] pre{background:#f4f6fb!important;color:#1c4d3a}
+html[data-theme=light] .ibtn{background:#fff;border-color:#d5ddef;color:#4a5578}
+html[data-theme=light] .mapsvg .ml{fill:#1c2340}
+html[data-theme=light] .mapsvg .ms,html[data-theme=light] .mapsvg .mt{fill:#5c6789}
+html[data-theme=light] [style*="b8c2ee"],html[data-theme=light] [style*="9aa6d6"]{color:#5c6789!important}
 </style>
 <body>
 <div id="bg"></div><div id="grid"></div>
@@ -561,6 +643,11 @@ function tr(root){
 }
 function toggleLang(){ localStorage.setItem('nt_lang', lang==='fa' ? 'en' : 'fa'); location.reload(); }
 function langBtn(){ return `<button class="lang" onclick="toggleLang()">${lang==='fa' ? 'English' : 'فارسی'}</button>`; }
+function applyTheme(){ document.documentElement.dataset.theme = localStorage.getItem('nt_theme') || 'dark'; }
+function toggleTheme(){ localStorage.setItem('nt_theme', document.documentElement.dataset.theme==='light' ? 'dark' : 'light'); applyTheme(); const b=$('#thbtn'); if(b) b.innerHTML = themeIcon(); }
+function themeIcon(){ return document.documentElement.dataset.theme==='light' ? IC.moon : IC.sun; }
+function themeBtn(){ return `<button class="ibtn" id="thbtn" title="Theme" onclick="toggleTheme()">${themeIcon()}</button>`; }
+applyTheme();
 setInterval(() => tr(document.body), 700);
 let state = {logged: false, needSetup: false}, page = 'dash', hist = {cpu:[],rx:[],tx:[]}, timer = null, tTimer = null, cur = 'list', logSlot = 0;
 function msg(t, ok){ const m=$('#msg'); if(m){ m.className='msg '+(ok?'good':'bad'); m.textContent=t; } else alert(t); }
@@ -587,17 +674,19 @@ function loginView(){
   $('#pw').onkeydown = e => { if(e.key==='Enter') $('#go').click(); };
   $('#pwtog').onclick = () => { const p=$('#pw'); p.type = p.type==='password' ? 'text' : 'password'; p.focus(); };
 }
-const PAGES = [['dash','&#9673;','Dashboard'],['rev','&#8646;','Reverse tunnel'],['spoof','&#9889;','Spoof tunnel'],['set','&#9881;','Settings']];
+const IC={dash:'<svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="2"/><rect x="14" y="3" width="7" height="5" rx="2"/><rect x="14" y="12" width="7" height="9" rx="2"/><rect x="3" y="16" width="7" height="5" rx="2"/></svg>',rev:'<svg viewBox="0 0 24 24"><path d="M4 7h13l-3-3M20 17H7l3 3"/></svg>',spoof:'<svg viewBox="0 0 24 24"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>',set:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>',out:'<svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>',sun:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',moon:'<svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>'};
+const PAGES = [['dash',IC.dash,'Dashboard'],['rev',IC.rev,'Reverse tunnel'],['spoof',IC.spoof,'Spoof tunnel'],['set',IC.set,'Settings']];
 const LOGO = '<span class="logo">NT</span>';
 function shell(){
   const nm = state.username || 'admin';
   $('#app').innerHTML = `<div id="shell"><div id="side" class="glass">
     <div class="brand" style="display:flex;align-items:center;gap:10px;padding:2px 6px 16px">${LOGO}<div><div style="font-size:15px;-webkit-text-fill-color:#fff;background:none;color:#fff">NiceTunnel</div><small style="-webkit-text-fill-color:#9aa6d6">v1.3.0</small></div></div>
     ${PAGES.map(p=>`<div class="nav" data-p="${p[0]}"><i>${p[1]}</i><span>${p[2]}</span></div>`).join('')}
-    <div class="sp"></div><div class="nav" id="lo"><i>&#10162;</i><span>Logout</span></div></div>
+    <div class="sp"></div><div class="nav" id="lo"><i>${IC.out}</i><span>Logout</span></div></div>
   <div id="main"><div id="top" class="glass"><div class="hdr">${LOGO}<span class="nm">NiceTunnel</span><span class="vv">v1.3.0</span><h1 id="ttl" style="margin:0 0 0 6px"></h1></div>
-    <div style="display:flex;align-items:center;gap:10px"><span id="host" style="color:#9aa6d6;font-size:12px"></span>${langBtn()}</div></div><div id="msg"></div>
+    <div style="display:flex;align-items:center;gap:10px"><span id="host" style="color:#9aa6d6;font-size:12px"></span>${themeBtn()}${langBtn()}</div></div><div id="msg"></div>
   <div class="page" id="p-dash">
+    <div class="sec glass"><h2>Network map</h2><div id="map"></div></div>
     <div class="cards">
       <div class="card glass"><div class="k">CPU</div><div class="v" id="cpu">-</div><div class="bar"><b id="cpub"></b></div><div class="s" id="load"></div></div>
       <div class="card glass"><div class="k">Memory</div><div class="v" id="mem">-</div><div class="bar"><b id="memb"></b></div><div class="s" id="memt"></div></div>
@@ -716,6 +805,24 @@ function slotTable(slots, full){
    <td class="${esc(s.state)}"><span class="dot"></span>${esc(s.state)}</td>
    ${full?rowBtns(s.slot):''}</tr>`).join('')+'</table>';
 }
+function renderMap(st, slots){
+  const el=$('#map'); if(!el) return;
+  const peers={}; slots.forEach(s=>{ const ip=s.kind==='reverse'?s.server_ip:s.peer; if(!ip) return; (peers[ip]=peers[ip]||[]).push(s); });
+  const keys=Object.keys(peers), W=800, H=260, X0=150, X1=650, mid=(X0+X1)/2;
+  let g=`<svg viewBox="0 0 ${W} ${H}" class="mapsvg">`;
+  if(!keys.length) g+=`<text x="${W/2}" y="${H/2+5}" text-anchor="middle" class="mt">No tunnel yet</text>`;
+  keys.forEach((ip,i)=>{
+    const list=peers[ip], y=keys.length===1?H/2:50+i*((H-100)/Math.max(1,keys.length-1));
+    const up=list.filter(s=>s.state==='active').length, bad=list.some(s=>s.state==='failed');
+    const col= up ? '#22c55e' : bad ? '#ef4444' : '#64748b';
+    g+=`<path d="M${X0},${H/2} C${mid},${H/2} ${mid},${y} ${X1},${y}" stroke="${col}" class="mline ${up?'flow':''}"/>`;
+    g+=`<circle cx="${X1}" cy="${y}" r="9" fill="${col}"/>`;
+    g+=`<text x="${X1+18}" y="${y-4}" class="ml">${esc(ip)}</text><text x="${X1+18}" y="${y+12}" class="ms">${up}/${list.length} active</text>`;
+  });
+  g+=`<circle cx="${X0}" cy="${H/2}" r="16" fill="#6366f1" class="mhub"/>`;
+  g+=`<text x="${X0}" y="${H/2+38}" text-anchor="middle" class="ml">${esc(st.hostname||'this server')}</text><text x="${X0}" y="${H/2+54}" text-anchor="middle" class="ms">${esc(st.ip||'')}</text>`;
+  el.innerHTML=g+'</svg>';
+}
 function rowBtns(n){ return `<td><button class="sm ok" onclick="act(${n},'start')">Connect</button><button class="sm" onclick="act(${n},'restart')">Restart</button><button class="sm" onclick="act(${n},'stop')">Stop</button><button class="sm" onclick="logs(${n})">Logs</button><button class="sm danger" onclick="del(${n})">Delete</button></td>`; }
 async function refresh(){
   try {
@@ -731,6 +838,7 @@ async function refresh(){
     $('#tx').textContent = fmtB(st.tx_rate)+'/s'; $('#txt').textContent = 'total '+fmtB(st.tx_total);
     spark('#crx', hist.rx, '#38bdf8'); spark('#ctx', hist.tx, '#ec4899'); spark('#ccpu', hist.cpu, '#818cf8');
     $('#mon').innerHTML = slotTable(sl.slots, false);
+    renderMap(st, sl.slots);
     $('#revtbl').innerHTML = slotTable(sl.slots.filter(s=>s.kind==='reverse'), true);
     $('#tbl').innerHTML = slotTable(sl.slots.filter(s=>s.kind==='spoof'), true);
   } catch(e){ if(/login|auth|401/i.test(e.message)) load(); else msg(e.message,false); }
