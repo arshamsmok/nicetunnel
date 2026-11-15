@@ -899,6 +899,18 @@ html body .lgseg button.on{background:#10233f!important;color:#f4d58a}
 .lg div{white-space:pre-wrap;overflow-wrap:anywhere;border-bottom:1px solid rgba(255,255,255,.03)}
 .lg .e{color:#f0707a}.lg .w{color:#e9c46a}.lg .o{color:#34d0c3}.lg .t,.lg span.t{color:#6f86a8}
 @media(max-width:560px){.dgrid{grid-template-columns:1fr 1fr;gap:10px}.dc{padding:12px 13px}.dv{font-size:25px}.dph{padding:12px 13px}.tr{padding:11px 13px}}
+/* v12: settings page - side sub-nav + refined toggles */
+.set-wrap{display:flex;gap:18px;align-items:flex-start}
+.set-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:18px}
+.set-nav{position:sticky;top:16px;width:178px;flex:none;display:flex;flex-direction:column;gap:3px;padding:2px}
+.set-nav .nav{font-size:13px}
+@media(max-width:820px){.set-wrap{flex-direction:column}.set-nav{position:static;width:100%;flex-direction:row;flex-wrap:wrap;overflow-x:auto}}
+.segm button.on{background:#facc15!important;color:#1a1405!important;font-weight:700!important}
+.sset input[type=checkbox]{appearance:none;-webkit-appearance:none;width:38px;height:22px;min-width:38px;border-radius:999px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);position:relative;cursor:pointer;vertical-align:middle;transition:.15s;margin:0}
+.sset input[type=checkbox]::after{content:'';position:absolute;top:2px;inset-inline-start:2px;width:16px;height:16px;border-radius:50%;background:#aab4d6;transition:.15s}
+.sset input[type=checkbox]:checked{background:var(--gold);border-color:var(--gold)}
+.sset input[type=checkbox]:checked::after{inset-inline-start:18px;background:#1a1405}
+.sset label{display:inline-flex;align-items:center;gap:7px;font-size:13px;color:#c9d2ff;cursor:pointer}
 </style>
 <body>
 <div id="bg"></div><div id="grid"></div>
@@ -999,6 +1011,11 @@ function loginView(){
   $('#pwtog').onclick = () => { const p=$('#pw'); p.type = p.type==='password' ? 'text' : 'password'; p.focus(); };
 }
 const IC={dash:'<svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="2"/><rect x="14" y="3" width="7" height="5" rx="2"/><rect x="14" y="12" width="7" height="9" rx="2"/><rect x="3" y="16" width="7" height="5" rx="2"/></svg>',rev:'<svg viewBox="0 0 24 24"><path d="M4 7h13l-3-3M20 17H7l3 3"/></svg>',spoof:'<svg viewBox="0 0 24 24"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>',set:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>',out:'<svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>',sun:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',moon:'<svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>'};
+const ICSH='<svg viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/></svg>',
+  ICTG='<svg viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></svg>',
+  ICUS='<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>',
+  ICBK='<svg viewBox="0 0 24 24"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>',
+  ICAP='<svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.4-.3-.4-.5-.8-.5-1.3 0-1.1.9-2 2-2h2.3A4.7 4.7 0 0 0 22 10.7C22 5.9 17.5 2 12 2z"/><circle cx="7.5" cy="10.5" r="1.2"/><circle cx="12" cy="7" r="1.2"/><circle cx="16.5" cy="10.5" r="1.2"/></svg>';
 IC.logs='<svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>';
 const PAGES = [['dash',IC.dash,'Dashboard'],['tun',IC.rev,'Tunnels'],['logs',IC.logs,'Logs'],['set',IC.set,'Settings']];
   let tsel = 'rev';
@@ -1075,48 +1092,56 @@ function shell(){
     <div class="lg" id="lgbox"></div></div>
   </div>
   <div class="page" id="p-set">
-    <div class="sec glass sset"><h2>Account</h2>
-      <div class="srow"><div class="st"><b>Username</b><p>Name used to sign in to the panel.</p></div><input id="sun" value="${esc(nm)}"></div>
-      <div class="srow"><div class="st"><b>Current password</b><p>Required to confirm any change.</p></div><input id="scur" type="password"></div>
-      <div class="srow"><div class="st"><b>New password</b><p>Leave empty to keep the current one. Changing it logs out every other browser session.</p></div><input id="snew" type="password" placeholder="10+ chars, Aa, 1, !"></div>
-      <div class="srow"><div></div><button class="ok" id="ssave">Save changes</button></div>
+    <div class="set-wrap">
+    <div class="set-nav" id="setnav">
+      <div class="nav" data-anchor="sec-sec"><i>${ICSH}</i><span>${L('Security','امنیت')}</span></div>
+      <div class="nav" data-anchor="sec-up"><i>${IC.set}</i><span>${L('Update','به‌روزرسانی')}</span></div>
+      <div class="nav" data-anchor="sec-tg"><i>${ICTG}</i><span>${L('Telegram','تلگرام')}</span></div>
+      <div class="nav" data-anchor="sec-usage"><i>${ICUS}</i><span>${L('Usage','مصرف')}</span></div>
+      <div class="nav" data-anchor="sec-backup"><i>${ICBK}</i><span>${L('Backup','پشتیبان')}</span></div>
+      <div class="nav" data-anchor="sec-app"><i>${ICAP}</i><span>${L('Appearance','ظاهر')}</span></div>
     </div>
-    <div class="sec glass sset"><h2>Appearance</h2>
-      <div class="srow"><div class="st"><b>Language</b><p>Interface language.</p></div><div class="segm" id="sglang"><button data-v="fa">فارسی</button><button data-v="en">English</button></div></div>
-      <div class="srow"><div class="st"><b>Theme</b><p>Dark is the default look.</p></div><div class="segm" id="sgtheme"><button data-v="dark">Dark</button><button data-v="light">Light</button></div></div>
-      <div class="srow"><div class="st"><b>Motion</b><p>Reduced mode turns off animations on slow phones.</p></div><div class="segm" id="sgmotion"><button data-v="full">Full</button><button data-v="low">Reduced</button></div></div>
-    </div>
-    <div class="sec glass sset"><h2>Panel info</h2>
-      <div class="srow"><div class="st"><b>Panel address</b><p>Secret path of this panel. Keep it private.</p></div><code id="sinfo" class="scode"></code></div>
-      <div class="srow"><div class="st"><b>Version</b><p>NiceTunnel Panel</p></div><code class="scode">v1.4.0</code></div>
-      <div class="srow"><div class="st"><b>سازنده / Creator</b><p>Arsham Smok · آرشام اسموک</p></div></div>
-    </div>
-    <div class="sec glass sset"><h2>${L('Security','امنیت')}</h2>
+    <div class="set-main">
+    <div class="sec glass sset" id="sec-sec"><h2>${L('Security','امنیت')}</h2>
+      <div class="srow"><div class="st"><b>${L('Username','نام کاربری')}</b><p>${L('Name used to sign in to the panel.','نامی که برای ورود به پنل استفاده می‌شود.')}</p></div><input id="sun" value="${esc(nm)}"></div>
+      <div class="srow"><div class="st"><b>${L('Current password','رمز فعلی')}</b><p>${L('Required to confirm any change.','برای تأیید هر تغییری لازم است.')}</p></div><input id="scur" type="password"></div>
+      <div class="srow"><div class="st"><b>${L('New password','رمز جدید')}</b><p>${L('Leave empty to keep the current one. Changing it logs out every other browser session.','خالی بگذارید تا رمز فعلی بماند. تغییرش، سایر مرورگرها را از پنل خارج می‌کند.')}</p></div><input id="snew" type="password" placeholder="10+ chars, Aa, 1, !"></div>
+      <div class="srow"><div></div><button class="ok" id="ssave">${L('Save changes','ذخیره تغییرات')}</button></div>
       <div class="srow"><div class="st"><b>${L('One-time login link','لینک ورود یکبار مصرف')}</b><p>${L('Valid for 40 minutes, works once. Useful when you forget the password.','۴۰ دقیقه اعتبار دارد و فقط یک بار کار می‌کند.')}</p></div><button class="ok" id="otlbtn">${L('Generate link','ساخت لینک')}</button></div>
       <div id="otlout" class="hide" style="padding:8px 0"><code class="scode" id="otlurl" style="word-break:break-all;display:block;direction:ltr"></code><button id="otlcopy" style="margin-top:6px">${L('Copy','کپی')}</button> <small id="otlexp"></small></div>
       <div class="srow"><div class="st"><b>${L('Logged-in devices','دستگاه‌های واردشده')}</b><p>${L('Every active session with its device and IP.','هر نشست فعال با دستگاه و آی‌پی.')}</p></div><button id="devout">${L('Log out others','خروج بقیه')}</button></div>
       <div id="devs"></div>
     </div>
-    <div class="sec glass sset"><h2>${L('Date & time','تاریخ و ساعت')}</h2>
+    <div class="sec glass sset" id="sec-up"><h2>${L('Update','به‌روزرسانی')}</h2>
+      <div class="srow"><div class="st"><b>${L('Installed','نصب‌شده')}</b><p>NiceTunnel Panel</p></div><code class="scode">v1.4.0</code></div>
+      <div class="srow"><div class="st"><b>${L('Panel address','آدرس پنل')}</b><p>${L('Secret path of this panel. Keep it private.','مسیر مخفی این پنل. آن را محرمانه نگه دارید.')}</p></div><code id="sinfo" class="scode"></code></div>
+      <div class="srow"><div class="st"><b>${L('Creator','سازنده')}</b><p>Arsham Smok · آرشام اسموک</p></div></div>
+    </div>
+    <div class="sec glass sset" id="sec-tg"><h2>${L('Telegram bot','ربات تلگرام')}</h2>
+      <div class="srow"><div class="st"><b>${L('Bot token','توکن ربات')}</b><p id="tgcur">${L('Get it from @BotFather.','از @BotFather بگیرید.')}</p></div><input id="tgtok" dir="ltr" placeholder="123456:ABC..." autocomplete="off"></div>
+      <div class="srow"><div class="st"><b>Chat ID</b><p>${L('Your numeric ID (from @userinfobot) or a group ID.','آیدی عددی شما (از @userinfobot) یا گروه.')}</p></div><input id="tgchat" dir="ltr"></div>
+      <div class="srow"><div class="st"><b>${L('API address (optional)','آدرس API (اختیاری)')}</b><p>${L('Mirror/proxy for Telegram if blocked. Default: api.telegram.org','اگر تلگرام فیلتر است، آدرس پروکسی/میرور. پیش‌فرض: api.telegram.org')}</p></div><input id="tgapi" dir="ltr" placeholder="https://api.telegram.org"></div>
+      <div class="srow"><div class="st"><b>${L('Notify about','اعلان برای')}</b></div><div style="display:flex;gap:14px;flex-wrap:wrap"><label><input type="checkbox" class="tgev" value="tunnel"> ${L('Tunnel up/down/created/deleted','وصل/قطع/ساخت/حذف تونل')}</label><label><input type="checkbox" class="tgev" value="login"> ${L('Logins & failed logins','ورودها و ورود ناموفق')}</label><label><input type="checkbox" class="tgev" value="backup"> ${L('Backups','بکاپ‌ها')}</label></div></div>
+      <div class="srow"><div></div><div><button class="ok" id="tgsave">${L('Save','ذخیره')}</button> <button id="tgtest">${L('Send test','ارسال تست')}</button> <button id="tgdel">${L('Remove','حذف')}</button></div></div>
+    </div>
+    <div class="sec glass sset" id="sec-usage"><h2>${L('Usage','مصرف')}</h2>
       <div class="srow"><div class="st"><b>${L('Now','اکنون')}</b></div><code class="scode" id="clock"></code></div>
       <div class="srow"><div class="st"><b>${L('Calendar','تقویم')}</b></div><div class="segm" id="sgcal"><button data-v="persian">${L('Jalali','شمسی')}</button><button data-v="gregory">${L('Gregorian','میلادی')}</button></div></div>
       <div class="srow"><div class="st"><b>${L('Time zone','منطقه زمانی')}</b></div><select id="stz">${TZS.map(z=>`<option value="${z[0]}">${z[1]}</option>`).join('')}</select></div>
     </div>
-    <div class="sec glass sset"><h2>${L('Telegram bot','ربات تلگرام')}</h2>
-      <div class="srow"><div class="st"><b>${L('Bot token','توکن ربات')}</b><p id="tgcur">${L('Get it from @BotFather.','از @BotFather بگیرید.')}</p></div><input id="tgtok" dir="ltr" placeholder="123456:ABC..." autocomplete="off"></div>
-      <div class="srow"><div class="st"><b>Chat ID</b><p>${L('Your numeric ID (from @userinfobot) or a group ID.','آیدی عددی شما (از @userinfobot) یا گروه.')}</p></div><input id="tgchat" dir="ltr"></div>
-      <div class="srow"><div class="st"><b>${L('API address (optional)','آدرس API (اختیاری)')}</b><p>${L('Mirror/proxy for Telegram if blocked. Default: api.telegram.org','اگر تلگرام فیلتر است، آدرس پروکسی/میرور. پیش‌فرض: api.telegram.org')}</p></div><input id="tgapi" dir="ltr" placeholder="https://api.telegram.org"></div>
-      <div class="srow"><div class="st"><b>${L('Notify about','اعلان برای')}</b></div><div style="display:flex;gap:12px;flex-wrap:wrap"><label><input type="checkbox" class="tgev" value="tunnel"> ${L('Tunnel up/down/created/deleted','وصل/قطع/ساخت/حذف تونل')}</label><label><input type="checkbox" class="tgev" value="login"> ${L('Logins & failed logins','ورودها و ورود ناموفق')}</label><label><input type="checkbox" class="tgev" value="backup"> ${L('Backups','بکاپ‌ها')}</label></div></div>
-      <div class="srow"><div></div><div><button class="ok" id="tgsave">${L('Save','ذخیره')}</button> <button id="tgtest">${L('Send test','ارسال تست')}</button> <button id="tgdel">${L('Remove','حذف')}</button></div></div>
-    </div>
-    <div class="sec glass sset"><h2>${L('Backup & restore','بکاپ و بازیابی')}</h2>
+    <div class="sec glass sset" id="sec-backup"><h2>${L('Backup & restore','پشتیبان و بازیابی')}</h2>
       <div class="srow"><div class="st"><b>${L('Create backup now','بکاپ فوری')}</b><p>${L('Saves all tunnels. Include panel settings (password, Telegram) for a full copy. Sent to Telegram too, so you still have it if this server dies.','همه تونل‌ها ذخیره می‌شود. «کامل» شامل تنظیمات پنل (رمز، تلگرام) هم هست. به تلگرام هم ارسال می‌شود تا با از دست رفتن سرور، بکاپ را داشته باشید.')}</p></div><div><label><input type="checkbox" id="bkfull"> ${L('Full','کامل')}</label> <label><input type="checkbox" id="bktg" checked> Telegram</label> <button class="ok" id="bknow">${L('Backup','بکاپ')}</button></div></div>
       <div class="srow"><div class="st"><b>${L('Automatic backup','بکاپ خودکار')}</b><p>${L('Keeps the last 10 copies.','۱۰ نسخه آخر نگه داشته می‌شود.')}</p></div><div><label><input type="checkbox" id="abon"> ${L('On','فعال')}</label> ${L('every','هر')} <input id="abh" type="number" min="1" max="168" style="width:70px"> ${L('hours','ساعت')} <label><input type="checkbox" id="abfull"> ${L('Full','کامل')}</label> <button id="absave">${L('Save','ذخیره')}</button></div></div>
       <div class="srow"><div class="st"><b>${L('Restore from file','بازیابی از فایل')}</b><p>${L('On a new server: install the panel, upload the backup file here. Tunnels are rebuilt and started. Then update the OTHER server of each tunnel with this server\'s new IP.','روی سرور جدید: پنل را نصب کنید و فایل بکاپ را اینجا آپلود کنید. تونل‌ها ساخته و اجرا می‌شوند. سپس در سرور مقابل هر تونل، آی‌پی جدید این سرور را جایگزین کنید.')}</p></div><div><input type="file" id="bkfile" accept=".json"> <label><input type="checkbox" id="bkpanel"> ${L('Also panel settings','تنظیمات پنل هم')}</label> <button class="ok" id="bkrest">${L('Restore','بازیابی')}</button></div></div>
       <div id="bklist"></div>
     </div>
-    <div class="sec glass sset"><h2>Support</h2>
-      <div class="srow"><div class="st"><b>Telegram channel</b><p>News, updates and support.</p></div><a class="sbtn" href="https://t.me/DarkCore_Vpn" target="_blank" rel="noopener">@DarkCore_Vpn</a></div>
+    <div class="sec glass sset" id="sec-app"><h2>${L('Appearance','ظاهر')}</h2>
+      <div class="srow"><div class="st"><b>${L('Language','زبان')}</b><p>${L('Interface language.','زبان رابط کاربری.')}</p></div><div class="segm" id="sglang"><button data-v="fa">فارسی</button><button data-v="en">English</button></div></div>
+      <div class="srow"><div class="st"><b>${L('Theme','تم')}</b><p>${L('Dark is the default look.','تم تاریک پیش‌فرض است.')}</p></div><div class="segm" id="sgtheme"><button data-v="dark">${L('Dark','تاریک')}</button><button data-v="light">${L('Light','روشن')}</button></div></div>
+      <div class="srow"><div class="st"><b>${L('Motion','حرکت')}</b><p>${L('Reduced mode turns off animations on slow phones.','حالت کم‌مصرف، انیمیشن‌ها را روی گوشی‌های ضعیف خاموش می‌کند.')}</p></div><div class="segm" id="sgmotion"><button data-v="full">${L('Full','کامل')}</button><button data-v="low">${L('Reduced','کم‌مصرف')}</button></div></div>
+      <div class="srow"><div class="st"><b>${L('Telegram channel','کانال تلگرام')}</b><p>${L('News, updates and support.','اخبار، به‌روزرسانی و پشتیبانی.')}</p></div><a class="sbtn" href="https://t.me/DarkCore_Vpn" target="_blank" rel="noopener">@DarkCore_Vpn</a></div>
+    </div>
+    </div>
     </div>
   </div>
   <div id="foot" class="glass"><span>NiceTunnel · by Arsham Smok</span><span>·</span><a href="https://t.me/DarkCore_Vpn" target="_blank" rel="noopener" style="color:var(--gold)">@DarkCore_Vpn</a></div>
@@ -1135,9 +1160,21 @@ function shell(){
   segSet('#sgtheme',document.documentElement.dataset.theme||'dark',v=>{ localStorage.setItem('nt_theme',v); applyTheme(); const t=$('#thbtn'); if(t) t.innerHTML=themeIcon(); });
   segSet('#sgmotion',localStorage.getItem('nt_motion')||'full',v=>{ localStorage.setItem('nt_motion',v); document.documentElement.classList.toggle('lowmo',v==='low'); });
   document.documentElement.classList.toggle('lowmo',localStorage.getItem('nt_motion')==='low');
+  setupSetNav();
   setExtras();
   $('#tmode').onchange = tmodeView; $('#tstart').onclick = tstart; $('#tref').onclick = tstatus;
   if(lang==='fa') tr($('#app'));
+}
+function setupSetNav(){
+  const links = [...document.querySelectorAll('#setnav .nav[data-anchor]')];
+  const secs = links.map(a=>document.getElementById(a.dataset.anchor)).filter(Boolean);
+  links.forEach(a=>a.onclick=()=>{ const el=document.getElementById(a.dataset.anchor);
+    if(el) el.scrollIntoView({behavior:'smooth',block:'start'}); });
+  if(!secs.length || !('IntersectionObserver' in window)) return;
+  const io = new IntersectionObserver(entries=>{
+    entries.forEach(e=>{ if(e.isIntersecting) links.forEach(a=>a.classList.toggle('on', a.dataset.anchor===e.target.id)); });
+  }, {rootMargin:'-15% 0px -70% 0px', threshold:0});
+  secs.forEach(s=>io.observe(s));
 }
 function sub(t){
   cur = t;
