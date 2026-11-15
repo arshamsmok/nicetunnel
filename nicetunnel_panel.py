@@ -728,6 +728,18 @@ td,th{border-bottom:1px solid #16304f!important}tr:hover td{background:rgba(52,2
  .sset h2{padding:16px 0 10px;font-size:16px}
  .sset .sbtns{display:flex;gap:10px;flex-wrap:wrap;padding:16px 0 10px}
  .sbtn,.sset button{min-height:40px}
+
+/* v7: buttons + live badge */
+button{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.16);box-shadow:none;border-radius:10px;padding:9px 16px;font-size:13px;font-weight:500}
+button:hover{background:rgba(255,255,255,.1);transform:none;box-shadow:none;border-color:rgba(255,255,255,.3)}
+button.ok{background:linear-gradient(180deg,#f3d27a,#e2b550);color:#1b1608;border-color:transparent;font-weight:700;box-shadow:0 2px 10px rgba(226,181,80,.25)}
+button.ok:hover{background:linear-gradient(180deg,#f7dc8e,#e8bf5c)}
+button.bad,button.danger{background:rgba(244,63,94,.12);color:#fda4af;border-color:rgba(244,63,94,.45)}
+.live{display:inline-flex;align-items:center;gap:6px;padding:4px 11px;border-radius:999px;background:rgba(56,189,248,.12);border:1px solid rgba(56,189,248,.4);color:#38bdf8;font-size:12px;font-weight:600}
+.live i{width:7px;height:7px;border-radius:50%;background:#38bdf8;box-shadow:0 0 8px #38bdf8;animation:lv 1.6s infinite}
+.live.off{color:#f87171;background:rgba(248,113,113,.12);border-color:rgba(248,113,113,.4)}
+.live.off i{background:#f87171;box-shadow:0 0 8px #f87171;animation:none}
+@keyframes lv{50%{opacity:.35}}
 </style>
 <body>
 <div id="bg"></div><div id="grid"></div>
@@ -809,7 +821,7 @@ function shell(){
     ${PAGES.map(p=>`<div class="nav" data-p="${p[0]}"><i>${p[1]}</i><span>${p[2]}</span></div>`).join('')}
     <div class="sp"></div><div class="nav" id="lo"><i>${IC.out}</i><span>Logout</span></div></div>
   <div id="main"><div id="top" class="glass"><div class="hdr">${LOGO}<span class="nm">NiceTunnel</span><span class="vv">v1.4.0</span><h1 id="ttl" style="margin:0 0 0 6px"></h1></div>
-    <div style="display:flex;align-items:center;gap:10px"><span id="host" style="color:#9aa6d6;font-size:12px"></span>${themeBtn()}${langBtn()}</div></div><div id="msg"></div>
+    <div style="display:flex;align-items:center;gap:10px"><span id="live" class="live"><i></i><b>${L("Online","آنلاین")}</b></span><span id="host" style="color:#9aa6d6;font-size:12px"></span>${themeBtn()}${langBtn()}</div></div><div id="msg"></div>
   <div class="page" id="p-dash">
     <div class="sec glass"><h2>Network map</h2><div id="map"></div></div>
     <div class="cards">
@@ -1001,6 +1013,7 @@ async function refresh(){
   try {
     const [st, sl] = await Promise.all([api('/api/stats'), api('/api/slots')]);
     push(hist.cpu, st.cpu); push(hist.rx, st.rx_rate); push(hist.tx, st.tx_rate);
+    const lv=$('#live'); if(lv){lv.classList.remove('off'); lv.querySelector('b').textContent=L('Online','آنلاین');}
     $('#host').textContent = st.hostname + ' · ' + st.ip;
     $('#cpu').textContent = st.cpu.toFixed(0)+'%'; bar('#cpub', st.cpu); $('#load').textContent = 'load '+st.load.join(' / ');
     $('#mem').textContent = st.mem_pct.toFixed(0)+'%'; bar('#memb', st.mem_pct); $('#memt').textContent = fmtB(st.mem_used)+' / '+fmtB(st.mem_total);
@@ -1014,7 +1027,7 @@ async function refresh(){
     renderMap(st, sl.slots);
     $('#revtbl').innerHTML = slotTable(sl.slots.filter(s=>s.kind==='reverse'), true);
     $('#tbl').innerHTML = slotTable(sl.slots.filter(s=>s.kind==='spoof'), true);
-  } catch(e){ if(/login|auth|401/i.test(e.message)) load(); else msg(e.message,false); }
+  } catch(e){ const lv=$('#live'); if(lv){lv.classList.add('off'); lv.querySelector('b').textContent=L('Offline','آفلاین');} if(/login|auth|401/i.test(e.message)) load(); else msg(e.message,false); }
 }
 async function monitor(){
   try {
