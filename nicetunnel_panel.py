@@ -725,6 +725,12 @@ function tr(root){
   while((n = w.nextNode())){ const t = n.nodeValue.trim(); if(t && FA[t]) n.nodeValue = n.nodeValue.replace(t, FA[t]); }
   root.querySelectorAll('input[placeholder]').forEach(i => { const v=i.getAttribute('placeholder'); if(FA[v]) i.setAttribute('placeholder', FA[v]); });
 }
+const L=(en,fa)=>lang==='fa'?fa:en;
+const TZS=[['Asia/Tehran','ایران · Iran'],['Europe/Istanbul','ترکیه · Türkiye'],['Asia/Dubai','امارات · UAE'],['Asia/Baghdad','عراق · Iraq'],['Asia/Kabul','افغانستان · Afghanistan'],['Asia/Baku','آذربایجان · Azerbaijan'],['Asia/Karachi','پاکستان · Pakistan'],['Asia/Kolkata','هند · India'],['Asia/Riyadh','عربستان · Saudi Arabia'],['Europe/London','انگلیس · UK'],['Europe/Berlin','آلمان · Germany'],['Europe/Paris','فرانسه · France'],['Europe/Amsterdam','هلند · Netherlands'],['Europe/Moscow','روسیه · Russia'],['America/New_York','آمریکا شرق · US East'],['America/Los_Angeles','آمریکا غرب · US West'],['America/Toronto','کانادا · Canada'],['Asia/Tokyo','ژاپن · Japan'],['Asia/Singapore','سنگاپور · Singapore'],['Asia/Shanghai','چین · China'],['Australia/Sydney','استرالیا · Australia'],['UTC','UTC']];
+function nowStr(){ const cal=localStorage.getItem('nt_cal')||(lang==='fa'?'persian':'gregory'), tz=localStorage.getItem('nt_tz')||'Asia/Tehran';
+  try{ return new Intl.DateTimeFormat((cal==='persian'?'fa-IR-u-ca-persian':'en-GB'),{calendar:cal,timeZone:tz,year:'numeric',month:'long',day:'numeric',weekday:'long',hour:'2-digit',minute:'2-digit',second:'2-digit'}).format(new Date()); }catch(e){ return new Date().toString(); } }
+function fdate(ts){ if(!ts) return '-'; const cal=localStorage.getItem('nt_cal')||(lang==='fa'?'persian':'gregory'), tz=localStorage.getItem('nt_tz')||'Asia/Tehran';
+  try{ return new Intl.DateTimeFormat((cal==='persian'?'fa-IR-u-ca-persian':'en-GB'),{calendar:cal,timeZone:tz,dateStyle:'medium',timeStyle:'short'}).format(new Date(ts*1000)); }catch(e){ return new Date(ts*1000).toLocaleString(); } }
 function toggleLang(){ localStorage.setItem('nt_lang', lang==='fa' ? 'en' : 'fa'); location.reload(); }
 function langBtn(){ return `<button class="lang" onclick="toggleLang()">${lang==='fa' ? 'English' : 'فارسی'}</button>`; }
 function applyTheme(){ document.documentElement.dataset.theme = localStorage.getItem('nt_theme') || 'dark'; }
@@ -746,18 +752,27 @@ async function api(path, body){
 const fmtB = n => { const u=['B','KB','MB','GB','TB']; let i=0; n=+n||0; while(n>=1024&&i<4){n/=1024;i++;} return n.toFixed(i?1:0)+' '+u[i]; };
 const fmtUp = s => { s=Math.floor(s); const d=Math.floor(s/86400),h=Math.floor(s%86400/3600),m=Math.floor(s%3600/60); return (d?d+'d ':'')+h+'h '+m+'m'; };
 
+function lmode(m){ window._lm=m; document.querySelectorAll('#lsw button').forEach(b=>{b.classList.toggle('on',b.dataset.m===m);b.onclick=()=>lmode(b.dataset.m);});
+  const pw=$('#pw'); if(!pw) return; const row=$('#un').parentNode.parentNode; $('#un').parentNode.classList.toggle('hide',m==='link'); pw.parentNode.parentNode.classList.toggle('hide',m==='link'); $('#lkbox').classList.toggle('hide',m!=='link');
+  if(m==='link'){ const o=new URLSearchParams(location.search).get('otl'); if(o) $('#lk').value=o; } }
 function loginView(){
-  $('#app').innerHTML = `<div class="lwrap"><div id="login" class="glass"><div style="text-align:center"><svg viewBox="0 0 64 64" width="72" height="72"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fde68a"/><stop offset="1" stop-color="#d97706"/></linearGradient></defs><path d="M32 4 56 14v18c0 15-10 24-24 28C18 56 8 47 8 32V14z" fill="#0b1226" stroke="url(#g)" stroke-width="3"/><path d="M32 16c2 7 9 10 9 18a9 9 0 0 1-18 0c0-4 2-6 4-8 0 3 1 5 3 6-1-6 0-11 2-16z" fill="url(#g)"/></svg></div><h1 class="ltitle">دارک‌کور</h1><div class="lsub">DarkCore Panel · ${state.needSetup?'ساخت رمز مدیر':'ورود به پنل مدیریت'}</div>${langBtn()}<div id="msg"></div>
+  $('#app').innerHTML = `<div class="lwrap"><div id="login" class="glass"><div style="text-align:center"><svg viewBox="0 0 64 64" width="72" height="72"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fde68a"/><stop offset="1" stop-color="#d97706"/></linearGradient></defs><path d="M32 4 56 14v18c0 15-10 24-24 28C18 56 8 47 8 32V14z" fill="#0b1226" stroke="url(#g)" stroke-width="3"/><path d="M32 16c2 7 9 10 9 18a9 9 0 0 1-18 0c0-4 2-6 4-8 0 3 1 5 3 6-1-6 0-11 2-16z" fill="url(#g)"/></svg></div><h1 class="ltitle">دارک‌کور</h1><div class="lsub">DarkCore Panel · ${state.needSetup?'ساخت رمز مدیر':'ورود به پنل مدیریت'}</div>${state.needSetup?'':`<div class="segm" id="lsw" style="margin:10px auto;display:flex;justify-content:center"><button data-m="pw">${L('Password','رمز عبور')}</button><button data-m="link">${L('One-time link','لینک یکبار مصرف')}</button></div>`}${langBtn()}<div id="msg"></div>
   <div class="row"><div><label>Username</label><input id="un" value="admin" autocomplete="username"></div>
   <div><label>${state.needSetup?'Create admin password (10+ chars, Aa, 1, !)':'Password'}</label>
   <div style="position:relative"><input id="pw" type="password" style="padding-right:44px">
   <button type="button" id="pwtog" style="position:absolute;right:3px;top:3px;padding:7px 10px;background:transparent;border:none;box-shadow:none;font-size:15px">&#128065;</button></div></div>
   <div id="pwhint" style="font-size:12px;color:#9aa6d6;display:${state.needSetup?'block':'none'}"></div>
-  <div><button class="ok" id="go">${state.needSetup?'Save password':'Login'}</button></div>
-  <div style="text-align:center;margin-top:12px"><a href="https://t.me/DarkCore_Vpn" target="_blank" rel="noopener" style="color:#fde68a;font-size:13px;text-decoration:none">✈ @DarkCore_Vpn</a></div></div></div></div><div class="tgbar"><a href="https://t.me/DarkCore_Vpn" target="_blank" rel="noopener">✈ Telegram</a></div>`;
+  <div id="lkbox" class="hide"><label>${L('One-time link or code','لینک یا کد یکبار مصرف')}</label><input id="lk" dir="ltr" autocomplete="off"></div>
+  <div><button class="ok" id="go">${state.needSetup?'Save password':L('Login','ورود')}</button></div>
+  <div style="text-align:center;margin-top:12px"><a href="https://t.me/DarkCore_Vpn" target="_blank" rel="noopener" style="color:#fde68a;font-size:13px;text-decoration:none">✈ @DarkCore_Vpn</a></div></div></div></div><div class="tgbar"><a href="https://t.me/DarkCore_Vpn" target="_blank" rel="noopener">✈ Telegram</a><a href="#" id="ltheme">${document.documentElement.dataset.theme==='light'?'🌙':'☀️'}</a><a href="#" id="llang">${lang==='fa'?'EN':'فا'}</a></div>`;
+  $('#ltheme').onclick=e=>{e.preventDefault();toggleTheme();$('#ltheme').textContent=document.documentElement.dataset.theme==='light'?'🌙':'☀️';};
+  $('#llang').onclick=e=>{e.preventDefault();toggleLang();};
+  if(!state.needSetup){ lmode(new URLSearchParams(location.search).get('otl')?'link':'pw'); }
   if(state.needSetup) $('#pw').oninput = () => { const v=$('#pw').value, ok=(c,t)=>(c?'✓ ':'✗ ')+t;
     $('#pwhint').innerHTML=[ok(v.length>=10,'10+ chars'),ok(/[a-z]/.test(v)&&/[A-Z]/.test(v),'Aa'),ok(/\d/.test(v),'0-9'),ok(/[^A-Za-z0-9]/.test(v),'!@#')].join(' &nbsp; '); };
   $('#go').onclick = async () => { try {
+      if(!state.needSetup && window._lm==='link'){ let v=$('#lk').value.trim(); const m=v.match(/otl=([^&\s]+)/); if(m) v=m[1];
+        await api('/api/login',{link:v}); history.replaceState(null,'',BASE+'/'); await load(); return; }
       await api(state.needSetup ? '/api/setup' : '/api/login', {username:$('#un').value,password:$('#pw').value});
       await load(); } catch(e){ msg(e.message,false); } };
   $('#pw').onkeydown = e => { if(e.key==='Enter') $('#go').click(); };
@@ -770,10 +785,10 @@ const LOGO = '<svg viewBox="0 0 64 64" width="34" height="34"><defs><linearGradi
 function shell(){
   const nm = state.username || 'admin';
   $('#app').innerHTML = `<div id="shell"><div id="side" class="glass">
-    <div class="brand" style="display:flex;align-items:center;gap:10px;padding:2px 6px 16px">${LOGO}<div><div style="font-size:15px;-webkit-text-fill-color:#fff;background:none;color:#fff">NiceTunnel</div><small style="-webkit-text-fill-color:#9aa6d6">v1.3.0</small></div></div>
+    <div class="brand" style="display:flex;align-items:center;gap:10px;padding:2px 6px 16px">${LOGO}<div><div style="font-size:15px;-webkit-text-fill-color:#fff;background:none;color:#fff">NiceTunnel</div><small style="-webkit-text-fill-color:#9aa6d6">v1.4.0</small></div></div>
     ${PAGES.map(p=>`<div class="nav" data-p="${p[0]}"><i>${p[1]}</i><span>${p[2]}</span></div>`).join('')}
     <div class="sp"></div><div class="nav" id="lo"><i>${IC.out}</i><span>Logout</span></div></div>
-  <div id="main"><div id="top" class="glass"><div class="hdr">${LOGO}<span class="nm">NiceTunnel</span><span class="vv">v1.3.0</span><h1 id="ttl" style="margin:0 0 0 6px"></h1></div>
+  <div id="main"><div id="top" class="glass"><div class="hdr">${LOGO}<span class="nm">NiceTunnel</span><span class="vv">v1.4.0</span><h1 id="ttl" style="margin:0 0 0 6px"></h1></div>
     <div style="display:flex;align-items:center;gap:10px"><span id="host" style="color:#9aa6d6;font-size:12px"></span>${themeBtn()}${langBtn()}</div></div><div id="msg"></div>
   <div class="page" id="p-dash">
     <div class="sec glass"><h2>Network map</h2><div id="map"></div></div>
@@ -854,7 +869,31 @@ function shell(){
     </div>
     <div class="sec glass sset"><h2>Panel info</h2>
       <div class="srow"><div class="st"><b>Panel address</b><p>Secret path of this panel. Keep it private.</p></div><code id="sinfo" class="scode"></code></div>
-      <div class="srow"><div class="st"><b>Version</b><p>DarkCore Panel</p></div><code class="scode">v1.3.0</code></div>
+      <div class="srow"><div class="st"><b>Version</b><p>DarkCore Panel</p></div><code class="scode">v1.4.0</code></div>
+    </div>
+    <div class="sec glass sset"><h2>${L('Security','امنیت')}</h2>
+      <div class="srow"><div class="st"><b>${L('One-time login link','لینک ورود یکبار مصرف')}</b><p>${L('Valid for 40 minutes, works once. Useful when you forget the password.','۴۰ دقیقه اعتبار دارد و فقط یک بار کار می‌کند.')}</p></div><button class="ok" id="otlbtn">${L('Generate link','ساخت لینک')}</button></div>
+      <div id="otlout" class="hide" style="padding:8px 0"><code class="scode" id="otlurl" style="word-break:break-all;display:block;direction:ltr"></code><button id="otlcopy" style="margin-top:6px">${L('Copy','کپی')}</button> <small id="otlexp"></small></div>
+      <div class="srow"><div class="st"><b>${L('Logged-in devices','دستگاه‌های واردشده')}</b><p>${L('Every active session with its device and IP.','هر نشست فعال با دستگاه و آی‌پی.')}</p></div><button id="devout">${L('Log out others','خروج بقیه')}</button></div>
+      <div id="devs"></div>
+    </div>
+    <div class="sec glass sset"><h2>${L('Date & time','تاریخ و ساعت')}</h2>
+      <div class="srow"><div class="st"><b>${L('Now','اکنون')}</b></div><code class="scode" id="clock"></code></div>
+      <div class="srow"><div class="st"><b>${L('Calendar','تقویم')}</b></div><div class="segm" id="sgcal"><button data-v="persian">${L('Jalali','شمسی')}</button><button data-v="gregory">${L('Gregorian','میلادی')}</button></div></div>
+      <div class="srow"><div class="st"><b>${L('Time zone','منطقه زمانی')}</b></div><select id="stz">${TZS.map(z=>`<option value="${z[0]}">${z[1]}</option>`).join('')}</select></div>
+    </div>
+    <div class="sec glass sset"><h2>${L('Telegram bot','ربات تلگرام')}</h2>
+      <div class="srow"><div class="st"><b>${L('Bot token','توکن ربات')}</b><p id="tgcur">${L('Get it from @BotFather.','از @BotFather بگیرید.')}</p></div><input id="tgtok" dir="ltr" placeholder="123456:ABC..." autocomplete="off"></div>
+      <div class="srow"><div class="st"><b>Chat ID</b><p>${L('Your numeric ID (from @userinfobot) or a group ID.','آیدی عددی شما (از @userinfobot) یا گروه.')}</p></div><input id="tgchat" dir="ltr"></div>
+      <div class="srow"><div class="st"><b>${L('API address (optional)','آدرس API (اختیاری)')}</b><p>${L('Mirror/proxy for Telegram if blocked. Default: api.telegram.org','اگر تلگرام فیلتر است، آدرس پروکسی/میرور. پیش‌فرض: api.telegram.org')}</p></div><input id="tgapi" dir="ltr" placeholder="https://api.telegram.org"></div>
+      <div class="srow"><div class="st"><b>${L('Notify about','اعلان برای')}</b></div><div style="display:flex;gap:12px;flex-wrap:wrap"><label><input type="checkbox" class="tgev" value="tunnel"> ${L('Tunnel up/down/created/deleted','وصل/قطع/ساخت/حذف تونل')}</label><label><input type="checkbox" class="tgev" value="login"> ${L('Logins & failed logins','ورودها و ورود ناموفق')}</label><label><input type="checkbox" class="tgev" value="backup"> ${L('Backups','بکاپ‌ها')}</label></div></div>
+      <div class="srow"><div></div><div><button class="ok" id="tgsave">${L('Save','ذخیره')}</button> <button id="tgtest">${L('Send test','ارسال تست')}</button> <button id="tgdel">${L('Remove','حذف')}</button></div></div>
+    </div>
+    <div class="sec glass sset"><h2>${L('Backup & restore','بکاپ و بازیابی')}</h2>
+      <div class="srow"><div class="st"><b>${L('Create backup now','بکاپ فوری')}</b><p>${L('Saves all tunnels. Include panel settings (password, Telegram) for a full copy. Sent to Telegram too, so you still have it if this server dies.','همه تونل‌ها ذخیره می‌شود. «کامل» شامل تنظیمات پنل (رمز، تلگرام) هم هست. به تلگرام هم ارسال می‌شود تا با از دست رفتن سرور، بکاپ را داشته باشید.')}</p></div><div><label><input type="checkbox" id="bkfull"> ${L('Full','کامل')}</label> <label><input type="checkbox" id="bktg" checked> Telegram</label> <button class="ok" id="bknow">${L('Backup','بکاپ')}</button></div></div>
+      <div class="srow"><div class="st"><b>${L('Automatic backup','بکاپ خودکار')}</b><p>${L('Keeps the last 10 copies.','۱۰ نسخه آخر نگه داشته می‌شود.')}</p></div><div><label><input type="checkbox" id="abon"> ${L('On','فعال')}</label> ${L('every','هر')} <input id="abh" type="number" min="1" max="168" style="width:70px"> ${L('hours','ساعت')} <label><input type="checkbox" id="abfull"> ${L('Full','کامل')}</label> <button id="absave">${L('Save','ذخیره')}</button></div></div>
+      <div class="srow"><div class="st"><b>${L('Restore from file','بازیابی از فایل')}</b><p>${L('On a new server: install the panel, upload the backup file here. Tunnels are rebuilt and started. Then update the OTHER server of each tunnel with this server\'s new IP.','روی سرور جدید: پنل را نصب کنید و فایل بکاپ را اینجا آپلود کنید. تونل‌ها ساخته و اجرا می‌شوند. سپس در سرور مقابل هر تونل، آی‌پی جدید این سرور را جایگزین کنید.')}</p></div><div><input type="file" id="bkfile" accept=".json"> <label><input type="checkbox" id="bkpanel"> ${L('Also panel settings','تنظیمات پنل هم')}</label> <button class="ok" id="bkrest">${L('Restore','بازیابی')}</button></div></div>
+      <div id="bklist"></div>
     </div>
     <div class="sec glass sset"><h2>Support</h2>
       <div class="srow"><div class="st"><b>Telegram channel</b><p>News, updates and support.</p></div><a class="sbtn" href="https://t.me/DarkCore_Vpn" target="_blank" rel="noopener">@DarkCore_Vpn</a></div>
@@ -876,6 +915,7 @@ function shell(){
   segSet('#sgtheme',document.documentElement.dataset.theme||'dark',v=>{ localStorage.setItem('nt_theme',v); applyTheme(); const t=$('#thbtn'); if(t) t.innerHTML=themeIcon(); });
   segSet('#sgmotion',localStorage.getItem('nt_motion')||'full',v=>{ localStorage.setItem('nt_motion',v); document.documentElement.classList.toggle('lowmo',v==='low'); });
   document.documentElement.classList.toggle('lowmo',localStorage.getItem('nt_motion')==='low');
+  setExtras();
   $('#tmode').onchange = tmodeView; $('#tstart').onclick = tstart; $('#tref').onclick = tstatus;
   if(lang==='fa') tr($('#app'));
 }
@@ -1009,6 +1049,36 @@ async function createRev(){
   try { const r = await api('/api/reverse', body);
     $('#rnew').innerHTML = `<div class="msg good">Tunnel ${r.slot} created. Token (copy it to the other server):<br><code>${esc(r.token)}</code></div>`;
     refresh(); } catch(e){ msg(e.message,false); } }
+
+async function setExtras(){
+  const sv=(k,d)=>localStorage.getItem(k)||d;
+  const clk=()=>{ const c=$('#clock'); if(c) c.textContent=nowStr(); }; clk(); if(window._ck) clearInterval(window._ck); window._ck=setInterval(clk,1000);
+  $('#stz').value=sv('nt_tz','Asia/Tehran'); $('#stz').onchange=()=>{localStorage.setItem('nt_tz',$('#stz').value);clk();loadDevs();loadBk();};
+  const g=$('#sgcal'), cc=sv('nt_cal',lang==='fa'?'persian':'gregory');
+  g.querySelectorAll('button').forEach(b=>{b.classList.toggle('on',b.dataset.v===cc);b.onclick=()=>{localStorage.setItem('nt_cal',b.dataset.v);g.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));clk();loadDevs();loadBk();};});
+  $('#otlbtn').onclick=async()=>{ try{ const r=await api('/api/otl/create',{}); $('#otlurl').textContent=location.origin+(BASE||'')+'/?otl='+r.token; $('#otlout').classList.remove('hide'); $('#otlexp').textContent=L('Expires: ','انقضا: ')+fdate(r.exp); }catch(e){alert(e.message);} };
+  $('#otlcopy').onclick=()=>{ const t=$('#otlurl').textContent; (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).catch(()=>{const r=document.createRange();r.selectNode($('#otlurl'));getSelection().removeAllRanges();getSelection().addRange(r);}); };
+  const loadDevs=async()=>{ try{ const r=await api('/api/devices'); $('#devs').innerHTML=r.devices.map(d=>`<div class="srow"><div class="st"><b>${esc(d.dev)}${d.me?' ('+L('this device','این دستگاه')+')':''}</b><p dir="ltr">${esc(d.ip)} · ${d.how==='link'?L('link','لینک'):L('password','رمز')} · ${fdate(d.t)}</p></div>${d.me?'':`<button data-id="${d.id}" class="rv">${L('Log out','خروج')}</button>`}</div>`).join('');
+    document.querySelectorAll('#devs .rv').forEach(b=>b.onclick=async()=>{await api('/api/device/revoke',{id:b.dataset.id});loadDevs();}); }catch(e){} };
+  $('#devout').onclick=async()=>{ await api('/api/device/revoke-others',{}); loadDevs(); }; loadDevs();
+  // telegram
+  try{ const t=await api('/api/tg'); $('#tgchat').value=t.chat; $('#tgapi').value=t.api; if(t.has) $('#tgcur').textContent=L('Saved: ','ذخیره‌شده: ')+t.masked+L(' (leave empty to keep)',' (خالی = بدون تغییر)');
+    document.querySelectorAll('.tgev').forEach(c=>c.checked=t.events.includes(c.value)); }catch(e){}
+  $('#tgsave').onclick=async()=>{ try{ await api('/api/tg/save',{token:$('#tgtok').value,chat:$('#tgchat').value,api:$('#tgapi').value,on:true,events:[...document.querySelectorAll('.tgev')].filter(c=>c.checked).map(c=>c.value)}); $('#tgtok').value=''; alert(L('Saved','ذخیره شد')); }catch(e){alert(e.message);} };
+  $('#tgtest').onclick=async()=>{ try{ await api('/api/tg/test',{}); alert(L('Sent. Check Telegram.','ارسال شد. تلگرام را ببینید.')); }catch(e){alert(e.message);} };
+  $('#tgdel').onclick=async()=>{ if(confirm(L('Remove Telegram settings?','تنظیمات تلگرام حذف شود؟'))){ await api('/api/tg/clear',{}); $('#tgchat').value='';$('#tgapi').value='';$('#tgcur').textContent=''; } };
+  // backups
+  const loadBk=async()=>{ try{ const r=await api('/api/backups'); $('#abon').checked=!!r.auto.on; $('#abh').value=r.auto.hours||24; $('#abfull').checked=!!r.auto.full;
+    $('#bklist').innerHTML=r.list.map(b=>`<div class="srow"><div class="st"><b dir="ltr">${esc(b.name)}</b><p>${fdate(b.time)} · ${fmtB(b.size)}</p></div><div><a class="sbtn" href="${BASE}/api/backup/get?name=${encodeURIComponent(b.name)}" download>${L('Download','دانلود')}</a> <button class="br" data-n="${esc(b.name)}">${L('Restore','بازیابی')}</button> <button class="bd" data-n="${esc(b.name)}">${L('Delete','حذف')}</button></div></div>`).join('');
+    document.querySelectorAll('#bklist .br').forEach(b=>b.onclick=()=>restore({name:b.dataset.n}));
+    document.querySelectorAll('#bklist .bd').forEach(b=>b.onclick=async()=>{ if(confirm(L('Delete this backup?','این بکاپ حذف شود؟'))){await api('/api/backup/delete',{name:b.dataset.n});loadBk();} }); }catch(e){} };
+  const restore=async(body)=>{ body.panel=$('#bkpanel').checked; try{ let r; try{ r=await api('/api/backup/restore',body); }catch(e){ if(e.message==='exists' && confirm(L('Some tunnels already exist and will be overwritten. Continue?','برخی تونل‌ها از قبل وجود دارند و بازنویسی می‌شوند. ادامه؟'))){ body.overwrite=true; r=await api('/api/backup/restore',body); } else if(e.message!=='exists') throw e; else return; }
+    alert(L(r.restored+' tunnel(s) restored. Now set this server\'s new IP on the other side of each tunnel.',r.restored+' تونل بازیابی شد. حالا آی‌پی جدید این سرور را در سرور مقابل هر تونل وارد کنید.')); }catch(e){alert(e.message);} };
+  $('#bknow').onclick=async()=>{ try{ const r=await api('/api/backup/create',{full:$('#bkfull').checked,telegram:$('#bktg').checked}); alert(L('Done: ','انجام شد: ')+r.slots+L(' tunnels',' تونل')+(r.sent?' · Telegram ✓':'')); loadBk(); }catch(e){alert(e.message);} };
+  $('#absave').onclick=async()=>{ try{ await api('/api/backup/auto',{on:$('#abon').checked,hours:+$('#abh').value||24,full:$('#abfull').checked}); alert(L('Saved','ذخیره شد')); }catch(e){alert(e.message);} };
+  $('#bkrest').onclick=()=>{ const f=$('#bkfile').files[0]; if(!f) return alert(L('Choose a file','فایل را انتخاب کنید')); const rd=new FileReader(); rd.onload=()=>{ let d; try{d=JSON.parse(rd.result);}catch(e){return alert('Invalid JSON');} restore({data:d}); }; rd.readAsText(f); };
+  loadBk();
+}
 async function saveAccount(){
   try { await api('/api/account', {current:$('#scur').value, username:$('#sun').value.trim(), password:$('#snew').value});
     msg('Saved', true); $('#scur').value=''; $('#snew').value=''; } catch(e){ msg(e.message,false); } }
@@ -1092,6 +1162,226 @@ def collect_stats():
 
 
 
+
+# --------------------------------------------------------------------------
+# v5: one-time links, devices, Telegram, backups
+# --------------------------------------------------------------------------
+OTL_TTL = 40 * 60
+BACKUP_DIR = os.path.join(CONF_DIR, "backups")
+sess_info = {}   # session id -> {"ip","ua","t","how"}
+APP_VERSION = "1.4.0"
+
+
+def hash_tok(t):
+    return hashlib.sha256(t.encode()).hexdigest()
+
+
+def otl_create():
+    conf = load_panel_conf()
+    now = time.time()
+    lst = [x for x in conf.get("otl", []) if x["exp"] > now][-4:]
+    tok = secrets.token_urlsafe(24)
+    lst.append({"h": hash_tok(tok), "exp": now + OTL_TTL, "t": now})
+    conf["otl"] = lst
+    save_panel_conf(conf)
+    return tok, now + OTL_TTL
+
+
+def otl_use(tok):
+    """True if tok is a valid unused link token. Consumes it (single use)."""
+    with lock:
+        conf = load_panel_conf()
+        now = time.time()
+        h = hash_tok(tok)
+        ok = False
+        keep = []
+        for x in conf.get("otl", []):
+            if x["exp"] <= now:
+                continue
+            if hmac.compare_digest(x["h"], h):
+                ok = True
+                continue
+            keep.append(x)
+        conf["otl"] = keep
+        save_panel_conf(conf)
+        return ok
+
+
+def device_name(ua):
+    u = ua.lower()
+    osn = "Android" if "android" in u else "iPhone" if "iphone" in u else "iPad" if "ipad" in u else \
+        "Windows" if "windows" in u else "macOS" if "mac os" in u else "Linux" if "linux" in u else "Unknown OS"
+    br = "Edge" if "edg/" in u else "Opera" if "opr/" in u else "Chrome" if "chrome" in u else \
+        "Firefox" if "firefox" in u else "Safari" if "safari" in u else "Unknown browser"
+    return "%s · %s" % (br, osn)
+
+
+def host_label():
+    try:
+        return socket.gethostname()
+    except Exception:
+        return "server"
+
+
+def tg_call(method, fields=None, files=None):
+    """Calls the Telegram Bot API. Returns (ok, text). Never raises."""
+    import urllib.request
+    import uuid
+    tg = load_panel_conf().get("tg", {})
+    token = tg.get("token", "")
+    if not token:
+        return False, "no token"
+    base = (tg.get("api") or "https://api.telegram.org").rstrip("/")
+    url = "%s/bot%s/%s" % (base, token, method)
+    try:
+        if files:
+            bd = uuid.uuid4().hex
+            parts = []
+            for k, v in (fields or {}).items():
+                parts.append(("--%s\r\nContent-Disposition: form-data; name=\"%s\"\r\n\r\n%s\r\n" % (bd, k, v)).encode())
+            for k, (fn, data) in files.items():
+                parts.append(("--%s\r\nContent-Disposition: form-data; name=\"%s\"; filename=\"%s\"\r\n"
+                              "Content-Type: application/json\r\n\r\n" % (bd, k, fn)).encode() + data + b"\r\n")
+            parts.append(("--%s--\r\n" % bd).encode())
+            req = urllib.request.Request(url, b"".join(parts), {"Content-Type": "multipart/form-data; boundary=" + bd})
+        else:
+            req = urllib.request.Request(url, json.dumps(fields or {}).encode(), {"Content-Type": "application/json"})
+        with urllib.request.urlopen(req, timeout=15) as r:
+            return True, r.read().decode()[:300]
+    except Exception as exc:
+        return False, str(exc).replace(token, "***")[:200]
+
+
+def tg_send(text, event=None):
+    tg = load_panel_conf().get("tg", {})
+    if not tg.get("token") or not tg.get("chat") or not tg.get("on", True):
+        return
+    if event and event not in tg.get("events", ["tunnel", "login", "backup"]):
+        return
+    threading.Thread(target=tg_call, args=("sendMessage", {"chat_id": tg["chat"], "text": text}), daemon=True).start()
+
+
+def make_backup(full=False):
+    """Backup = every tunnel slot file (+ tokens) and, if full, the panel settings."""
+    slots = {}
+    for n in range(1, MAX_SLOT + 1):
+        if os.path.exists(slot_file(n)):
+            try:
+                with open(slot_file(n)) as fh:
+                    slots[str(n)] = fh.read()
+            except OSError:
+                pass
+    data = {"magic": "darkcore-backup", "v": 1, "created": int(time.time()), "host": host_label(),
+            "ip": public_ip_guess(), "slots": slots}
+    if full:
+        data["panel"] = load_panel_conf()
+    return data
+
+
+ENV_LINE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=[^\r\n\x00]*$")
+
+
+def check_backup(d):
+    if not isinstance(d, dict) or d.get("magic") != "darkcore-backup" or not isinstance(d.get("slots"), dict):
+        return "not a DarkCore backup file"
+    for k, v in d["slots"].items():
+        if not (k.isdigit() and 1 <= int(k) <= MAX_SLOT) or not isinstance(v, str) or len(v) > 8192:
+            return "bad slot entry"
+        for line in v.splitlines():
+            line = line.strip()
+            if line and not line.startswith("#") and not ENV_LINE.match(line):
+                return "bad line in slot %s" % k
+    return None
+
+
+def save_backup_file(data, keep=10):
+    os.makedirs(BACKUP_DIR, mode=0o700, exist_ok=True)
+    name = "darkcore-%s-%s.json" % (time.strftime("%Y%m%d-%H%M%S"), "full" if "panel" in data else "tunnels")
+    p = os.path.join(BACKUP_DIR, name)
+    fd = os.open(p, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w") as fh:
+        json.dump(data, fh)
+    files = sorted(f for f in os.listdir(BACKUP_DIR) if f.endswith(".json"))
+    for old in files[:-keep]:
+        try:
+            os.remove(os.path.join(BACKUP_DIR, old))
+        except OSError:
+            pass
+    return name
+
+
+def list_backups():
+    out = []
+    try:
+        for f in sorted(os.listdir(BACKUP_DIR), reverse=True):
+            if f.endswith(".json"):
+                st = os.stat(os.path.join(BACKUP_DIR, f))
+                out.append({"name": f, "size": st.st_size, "time": int(st.st_mtime)})
+    except OSError:
+        pass
+    return out
+
+
+def restore_backup(d, with_panel=False):
+    n_ok = 0
+    for k, v in d["slots"].items():
+        fd = os.open(slot_file(int(k)), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(fd, "w") as fh:
+            fh.write(v)
+        n_ok += 1
+    if with_panel and isinstance(d.get("panel"), dict):
+        cur = load_panel_conf()
+        new = dict(d["panel"])
+        new["base"] = cur.get("base", new.get("base", ""))   # keep this server's secret path
+        new["otl"] = []
+        save_panel_conf(new)
+    run(["systemctl", "daemon-reload"])
+    for k in d["slots"]:
+        run(["systemctl", "enable", "nicetunnel@%s" % k])
+        run(["systemctl", "restart", "nicetunnel@%s" % k])
+    return n_ok
+
+
+def background_loop():
+    last = {}
+    first = True
+    while True:
+        try:
+            conf = load_panel_conf()
+            cur = {}
+            for sl in list_slots():
+                cur[sl["slot"]] = sl["state"]
+            if not first:
+                for n, st in cur.items():
+                    old = last.get(n)
+                    if old is not None and old != st:
+                        up = st == "active"
+                        tg_send("%s تانل %d (%s) %s\nسرور: %s\nوضعیت: %s" % (
+                            "🟢" if up else "🔴", n, "ریورس" if True else "", "وصل شد" if up else "قطع شد",
+                            host_label(), st), "tunnel")
+                for n in last:
+                    if n not in cur:
+                        tg_send("🗑 تانل %d حذف شد (%s)" % (n, host_label()), "tunnel")
+                for n in cur:
+                    if n not in last:
+                        tg_send("➕ تانل %d ساخته شد (%s)" % (n, host_label()), "tunnel")
+            last, first = cur, False
+            ab = conf.get("autobackup", {})
+            if ab.get("on") and time.time() - conf.get("ab_last", 0) >= ab.get("hours", 24) * 3600:
+                data = make_backup(full=bool(ab.get("full")))
+                name = save_backup_file(data)
+                conf = load_panel_conf()
+                conf["ab_last"] = int(time.time())
+                save_panel_conf(conf)
+                tg = conf.get("tg", {})
+                if tg.get("token") and tg.get("chat") and "backup" in tg.get("events", ["backup"]):
+                    tg_call("sendDocument", {"chat_id": tg["chat"], "caption": "💾 بکاپ خودکار %s" % host_label()},
+                            {"document": (name, json.dumps(data).encode())})
+        except Exception:
+            pass
+        time.sleep(15)
+
+
 def collect_monitor():
     out = []
     for sl in list_spoof_slots():
@@ -1144,7 +1434,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             n = int(self.headers.get("Content-Length", 0))
         except ValueError:
             n = 0
-        if n > 65536:
+        if n > 1048576:
             raise ValueError("request too large")
         data = json.loads(self.rfile.read(n) if n else b"{}")
         if not isinstance(data, dict):
@@ -1208,6 +1498,52 @@ class Handler(http.server.BaseHTTPRequestHandler):
             role = "admin" if sess_owner.get(self.session_id()) == "admin" else "user"
             return self.send_json({"logged": logged, "role": role, "needSetup": "password" not in conf,
                                    "username": conf.get("username", "admin") if logged else ""})
+        if path == "/api/devices":
+            if not self.require_login():
+                return
+            me = self.session_id()
+            now = time.time()
+            out = []
+            for sid, exp in list(sessions.items()):
+                if exp <= now:
+                    continue
+                inf = sess_info.get(sid, {})
+                out.append({"id": sid[:12], "me": sid == me, "ip": inf.get("ip", "?"), "t": inf.get("t", 0),
+                            "how": inf.get("how", "password"), "dev": device_name(inf.get("ua", ""))})
+            out.sort(key=lambda x: -x["t"])
+            return self.send_json({"devices": out})
+        if path == "/api/tg":
+            if not self.require_login():
+                return
+            tg = load_panel_conf().get("tg", {})
+            t = tg.get("token", "")
+            return self.send_json({"has": bool(t), "masked": (t[:4] + "…" + t[-4:]) if t else "", "chat": tg.get("chat", ""),
+                                   "api": tg.get("api", ""), "on": tg.get("on", True),
+                                   "events": tg.get("events", ["tunnel", "login", "backup"])})
+        if path == "/api/backups":
+            if not self.require_login():
+                return
+            conf = load_panel_conf()
+            return self.send_json({"list": list_backups(), "auto": conf.get("autobackup", {"on": False, "hours": 24, "full": False}),
+                                   "last": conf.get("ab_last", 0)})
+        if path == "/api/backup/get":
+            if not self.require_login():
+                return
+            q = urlparse(self.path).query
+            m2 = re.search(r"name=(darkcore-[0-9-]+-(?:full|tunnels)\.json)", q)
+            if not m2:
+                return self.send_json({"error": "bad name"}, 400)
+            try:
+                with open(os.path.join(BACKUP_DIR, m2.group(1)), "rb") as fh:
+                    data = fh.read()
+            except OSError:
+                return self.send_json({"error": "not found"}, 404)
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+            return
         if path == "/api/slots":
             if not self.require_login():
                 return
@@ -1271,21 +1607,27 @@ class Handler(http.server.BaseHTTPRequestHandler):
             conf = load_panel_conf()
             pw = str(body.get("password", ""))
             owner = None
-            # Only the owner account (username + password) can log in.
-            # Access tokens alone never grant panel access.
-            if conf.get("password") and hmac.compare_digest(
+            how = "password"
+            if body.get("link"):
+                if otl_use(str(body["link"]).strip()[-80:]):
+                    owner, how = "admin", "link"
+            elif conf.get("password") and hmac.compare_digest(
                     str(body.get("username", "")), conf.get("username", "admin")) and check_password(pw, conf["password"]):
                 owner = "admin"
             if not owner:
                 with lock:
                     fails[ip] = [cnt + 1, first]
                 time.sleep(1)
-                return self.send_json({"error": "wrong username or password"}, 401)
+                tg_send("⚠️ تلاش ناموفق ورود به پنل %s\nIP: %s" % (host_label(), ip), "login")
+                return self.send_json({"error": "wrong username or password" if how == "password" and not body.get("link") else "link is invalid, expired or already used"}, 401)
             sid = secrets.token_hex(32)
             with lock:
                 fails.pop(ip, None)
                 sessions[sid] = time.time() + SESSION_TTL
                 sess_owner[sid] = owner
+                sess_info[sid] = {"ip": ip, "ua": self.headers.get("User-Agent", "")[:200], "t": int(time.time()), "how": how}
+            tg_send("🔐 ورود به پنل %s\nروش: %s\nIP: %s\nدستگاه: %s" % (
+                host_label(), "لینک یکبار مصرف" if how == "link" else "رمز", ip, device_name(self.headers.get("User-Agent", ""))), "login")
             return self.send_json({"ok": True}, headers=[(
                 "Set-Cookie", "nt_session=%s; Path=/; HttpOnly; SameSite=Strict; Max-Age=%d"
                 % (sid, SESSION_TTL))])
@@ -1296,6 +1638,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 with lock:
                     sessions.pop(sid, None)
                     sess_owner.pop(sid, None)
+                    sess_info.pop(sid, None)
             return self.send_json({"ok": True}, headers=[(
                 "Set-Cookie", "nt_session=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0")])
 
@@ -1338,6 +1681,113 @@ class Handler(http.server.BaseHTTPRequestHandler):
                             sessions.pop(s, None)
                             sess_owner.pop(s, None)
             return self.send_json({"ok": True, "username": conf.get("username", "admin")})
+
+        if path == "/api/otl/create":
+            tok, exp = otl_create()
+            return self.send_json({"token": tok, "exp": int(exp)})
+
+        if path == "/api/device/revoke":
+            sid = str(body.get("id", ""))
+            for s_ in list(sessions):
+                if s_[:12] == sid and s_ != self.session_id():
+                    with lock:
+                        sessions.pop(s_, None)
+                        sess_owner.pop(s_, None)
+                        sess_info.pop(s_, None)
+            return self.send_json({"ok": True})
+
+        if path == "/api/device/revoke-others":
+            keep = self.session_id()
+            with lock:
+                for s_ in list(sessions):
+                    if s_ != keep:
+                        sessions.pop(s_, None)
+                        sess_owner.pop(s_, None)
+                        sess_info.pop(s_, None)
+            return self.send_json({"ok": True})
+
+        if path == "/api/tg/save":
+            conf = load_panel_conf()
+            tg = conf.get("tg", {})
+            tok = str(body.get("token", "")).strip()
+            if tok:
+                if not re.fullmatch(r"\d{5,12}:[A-Za-z0-9_-]{30,60}", tok):
+                    return self.send_json({"error": "token format is wrong"}, 400)
+                tg["token"] = tok
+            chat = str(body.get("chat", "")).strip()
+            if chat and not re.fullmatch(r"-?\d{3,20}|@[A-Za-z0-9_]{4,40}", chat):
+                return self.send_json({"error": "chat id must be a number like 123456789"}, 400)
+            tg["chat"] = chat
+            api = str(body.get("api", "")).strip()
+            if api and not re.fullmatch(r"https?://[A-Za-z0-9.:/_-]{3,100}", api):
+                return self.send_json({"error": "bad API address"}, 400)
+            tg["api"] = api
+            tg["on"] = bool(body.get("on", True))
+            ev = [e for e in body.get("events", []) if e in ("tunnel", "login", "backup")]
+            tg["events"] = ev
+            conf["tg"] = tg
+            save_panel_conf(conf)
+            return self.send_json({"ok": True})
+
+        if path == "/api/tg/test":
+            tg = load_panel_conf().get("tg", {})
+            ok, out = tg_call("sendMessage", {"chat_id": tg.get("chat", ""), "text": "✅ DarkCore Panel: اتصال تلگرام برقرار است\n" + host_label()})
+            return self.send_json({"ok": ok, "detail": out}, 200 if ok else 400)
+
+        if path == "/api/tg/clear":
+            conf = load_panel_conf()
+            conf.pop("tg", None)
+            save_panel_conf(conf)
+            return self.send_json({"ok": True})
+
+        if path == "/api/backup/create":
+            data = make_backup(full=bool(body.get("full")))
+            name = save_backup_file(data)
+            tg = load_panel_conf().get("tg", {})
+            sent = False
+            if body.get("telegram") and tg.get("token") and tg.get("chat"):
+                sent, _ = tg_call("sendDocument", {"chat_id": tg["chat"], "caption": "💾 بکاپ %s" % host_label()},
+                                  {"document": (name, json.dumps(data).encode())})
+            return self.send_json({"ok": True, "name": name, "sent": sent, "slots": len(data["slots"])})
+
+        if path == "/api/backup/auto":
+            conf = load_panel_conf()
+            try:
+                hrs = max(1, min(168, int(body.get("hours", 24))))
+            except (TypeError, ValueError):
+                hrs = 24
+            conf["autobackup"] = {"on": bool(body.get("on")), "hours": hrs, "full": bool(body.get("full"))}
+            save_panel_conf(conf)
+            return self.send_json({"ok": True})
+
+        if path == "/api/backup/delete":
+            name = str(body.get("name", ""))
+            if re.fullmatch(r"darkcore-[0-9-]+-(full|tunnels)\.json", name):
+                try:
+                    os.remove(os.path.join(BACKUP_DIR, name))
+                except OSError:
+                    pass
+            return self.send_json({"ok": True})
+
+        if path == "/api/backup/restore":
+            d = body.get("data")
+            if d is None:
+                name = str(body.get("name", ""))
+                if not re.fullmatch(r"darkcore-[0-9-]+-(full|tunnels)\.json", name):
+                    return self.send_json({"error": "bad name"}, 400)
+                try:
+                    with open(os.path.join(BACKUP_DIR, name)) as fh:
+                        d = json.load(fh)
+                except Exception:
+                    return self.send_json({"error": "backup not found"}, 404)
+            err = check_backup(d)
+            if err:
+                return self.send_json({"error": err}, 400)
+            if not body.get("overwrite") and any(os.path.exists(slot_file(int(k))) for k in d["slots"]):
+                return self.send_json({"error": "exists", "need_confirm": True}, 409)
+            n = restore_backup(d, with_panel=bool(body.get("panel")))
+            tg_send("♻️ بکاپ روی %s برگردانده شد (%d تانل)" % (host_label(), n), "backup")
+            return self.send_json({"ok": True, "restored": n})
 
         if path == "/api/reverse":
             clean, err = validate_reverse(body)
@@ -1564,6 +2014,7 @@ def cmd_serve(args):
         ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         ctx.load_cert_chain(args.cert, args.key)
         srv.socket = ctx.wrap_socket(srv.socket, server_side=True)
+    threading.Thread(target=background_loop, daemon=True).start()
     print("NiceTunnel panel on %s:%d" % (args.bind, args.port))
     try:
         srv.serve_forever()
