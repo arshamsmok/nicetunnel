@@ -878,13 +878,26 @@ html body button.dlink:hover{color:#f4d58a;border-color:rgba(233,196,106,.6)!imp
 #shell[dir=rtl] .tg{margin-inline-start:0;margin-inline-end:8px}
 @media(max-width:820px){
  html:not([data-theme=light]){background:#040a16}
- #shell{display:block!important;padding:10px 10px 86px!important}
- #side{position:fixed!important;left:0;right:0;bottom:0;top:auto!important;width:auto!important;height:auto!important;flex-direction:row!important;flex-wrap:nowrap!important;justify-content:space-around;z-index:40;padding:6px 8px calc(6px + env(safe-area-inset-bottom,0px))!important;border-radius:0!important;border-style:solid!important;border-width:1px 0 0 0!important;border-color:rgba(233,196,106,.16)!important;overflow:visible!important}
- #side .nav{flex:1;min-width:0!important;padding:7px 2px!important}
+ #shell{display:flex!important;flex-direction:row!important;padding:0!important;gap:0!important}
+ #side{position:sticky!important;top:0!important;bottom:auto!important;width:68px!important;height:100vh!important;flex:none!important;flex-direction:column!important;flex-wrap:nowrap!important;justify-content:flex-start!important;overflow-y:auto!important;overflow-x:hidden!important;padding:12px 6px!important;gap:4px!important;border-radius:0!important;border-style:solid!important;border-width:0 0 0 1px!important;border-color:rgba(233,196,106,.14)!important}
+ #shell[dir=ltr] #side{border-width:0 1px 0 0!important}
+ #side .brand{display:flex!important;justify-content:center;padding:2px 0 12px!important}
+ #side .brand>div{display:none!important}
+ #side .sp{display:block!important;flex:1}
+ #side .nav{flex:none!important;flex-direction:column;gap:4px;padding:9px 2px!important;font-size:10px!important;text-align:center;min-width:0!important}
  #side .nav.on::after{display:none!important}
- #side .brand,#side .sp{display:none!important}
+ #main{flex:1;min-width:0;padding:10px}
  #top{margin-bottom:10px}
 }
+.lgbar{display:flex;gap:8px;flex-wrap:wrap;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.05);align-items:center}
+html body .lgbar select,html body .lgbar input{height:34px;background:#06101e!important;border:1px solid rgba(60,100,160,.4)!important;border-radius:9px!important;color:#e6ecf6!important;padding:0 10px;font-size:12.5px;font-family:inherit}
+.lgbar input{flex:1;min-width:120px}
+.lgseg{display:flex;gap:3px;padding:3px;border:1px solid rgba(60,100,160,.35);border-radius:10px}
+html body .lgseg button{height:26px;padding:0 10px;font-size:12px;border:0!important;border-radius:7px!important;background:transparent!important;color:#8fa2bf;box-shadow:none!important;transform:none!important}
+html body .lgseg button.on{background:#10233f!important;color:#f4d58a}
+.lg{max-height:64vh;min-height:260px;overflow:auto;padding:12px 16px;font:12px/1.75 ui-monospace,Menlo,Consolas,monospace;color:#cfd8e8;direction:ltr;text-align:left;background:#050d18}
+.lg div{white-space:pre-wrap;overflow-wrap:anywhere;border-bottom:1px solid rgba(255,255,255,.03)}
+.lg .e{color:#f0707a}.lg .w{color:#e9c46a}.lg .o{color:#34d0c3}.lg .t,.lg span.t{color:#6f86a8}
 @media(max-width:560px){.dgrid{grid-template-columns:1fr 1fr;gap:10px}.dc{padding:12px 13px}.dv{font-size:25px}.dph{padding:12px 13px}.tr{padding:11px 13px}}
 </style>
 <body>
@@ -896,6 +909,7 @@ const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let lang = localStorage.getItem('nt_lang') || 'en';
 const FA = {'Reverse tunnel':'تونل معکوس','Spoof tunnel':'تونل اسپوف','Settings':'تنظیمات','Account':'حساب کاربری','Language':'زبان','Apply':'اعمال','Save changes':'ذخیره تغییرات','Saved':'ذخیره شد','Current password':'رمز فعلی','New password (empty = keep)':'رمز جدید (خالی = بدون تغییر)','Changing the password logs out every other browser session.':'با تغییر رمز، سایر مرورگرها از پنل خارج می‌شوند.','Reverse TCP tunnels on this server':'تونل‌های معکوس TCP این سرور','Create reverse tunnel':'ساخت تونل معکوس','Iran (server: listens, forwards ports)':'ایران (سرور: گوش می‌دهد و پورت‌ها را منتقل می‌کند)','Foreign (client: connects to Iran)':'خارج (کلاینت: به ایران وصل می‌شود)','Bridge port (both sides)':'پورت پل (هر دو سر)','Ports to forward':'پورت‌های انتقالی','Iran server real IP':'آی‌پی واقعی سرور ایران','Kind':'نوع','No tunnel yet. Open Create to add one.':'هنوز تونلی نیست. از بخش ساخت یکی بسازید.','Tunnel created. Token (copy it to the other server):':'تونل ساخته شد. توکن را به سرور مقابل منتقل کنید:','Total restarts':'مجموع ری‌استارت','Active':'فعال','Down':'قطع','Memory used':'حافظه مصرفی','Logout':'خروج','Dashboard':'داشبورد','Tunnels':'تونل‌ها','Create':'ساخت','Monitoring':'پایش','Spoof tester':'تست اسپوف','Access tokens':'توکن‌های دسترسی','Logs':'لاگ‌ها','Logout':'خروج','Login':'ورود','Save password':'ذخیره رمز','Password or access token':'رمز یا توکن دسترسی','Create admin password (min 8 chars)':'ساخت رمز مدیر (حداقل ۸ کاراکتر)','Username':'نام کاربری','Password':'رمز عبور','CPU':'پردازنده','Memory':'حافظه','Disk':'دیسک','Uptime':'مدت روشنی','CPU history':'تاریخچه پردازنده','Network download':'دریافت شبکه','Network upload':'ارسال شبکه','Tunnel status':'وضعیت تونل‌ها','Tunnel monitor':'پایش تونل‌ها','(auto refresh 3s)':'(نوسازی خودکار هر ۳ ثانیه)','Spoof tunnels on this server':'تونل‌های اسپوف این سرور','Create spoof tunnel':'ساخت تونل اسپوف','Create and connect':'ساخت و اتصال','Create token':'ساخت توکن','Person name':'نام شخص','Connect':'اتصال','Restart':'ری‌استارت','Stop':'توقف','Start':'شروع','Delete':'حذف','Revoke':'بستن','Enable':'فعال‌سازی','Pause':'توقف موقت','Resume':'ادامه','Slot':'اسلات','Side':'سمت','Type:port':'نوع:پورت','Other server':'سرور مقابل','Other server real IP':'آی‌پی واقعی سرور مقابل','Source IPs':'آی‌پی‌های جعلی','Ports':'پورت‌ها','State':'وضعیت','Start test':'شروع تست','Refresh result':'بروزرسانی نتیجه','Mode':'حالت','Packet type':'نوع بسته','Port':'پورت','Logs':'لاگ‌ها','This server is':'این سرور است','Tunnel port (both sides)':'پورت تونل (هر دو سر)','Listen UDP port (apps send here)':'پورت UDP ورودی (برنامه‌ها اینجا می‌فرستند)','Forward to HOST:PORT':'ارسال به HOST:PORT','Fake source IPs (from Spoof tester)':'آی‌پی‌های جعلی (از تست اسپوف)','Token (empty = generate)':'توکن (خالی = ساخت خودکار)','Listen seconds (5-300)':'مدت گوش دادن (۵ تا ۳۰۰ ثانیه)','Fake source IPs to test':'آی‌پی‌های جعلی برای تست','Packets per address (1-10)':'تعداد بسته برای هر آدرس (۱ تا ۱۰)','Receive (run first)':'دریافت (اول اجرا شود)','Send (run second)':'ارسال (دوم اجرا شود)','Iran (entry: apps send UDP here)':'ایران (ورودی: برنامه‌ها UDP را اینجا می‌فرستند)','Foreign (exit: forwards to a UDP service)':'خارج (خروجی: به سرویس UDP وصل می‌کند)','active':'فعال','inactive':'غیرفعال','failed':'خطا','revoked':'بسته‌شده','paused':'متوقف','No tokens yet.':'هنوز توکنی نیست.','No spoof tunnel yet. Open Create to add one.':'هنوز تونلی نیست. از بخش ساخت یکی بسازید.','Open Tunnels and click Logs on a tunnel.':'از بخش تونل‌ها روی لاگ یک تونل بزنید.','No test run yet.':'هنوز تستی اجرا نشده.','Give each person their own token. They log in with it in the Password field. Revoke a token to cut off that person immediately.':'برای هر نفر یک توکن جدا بسازید. با آن در فیلد رمز وارد می‌شود. با بستن توکن، دسترسی آن شخص فوراً قطع می‌شود.','Run Receive on the receiving server first, then Send on the sending server, with the same packet type and port. Copy the fake source IPs that arrived into "Create".':'اول Receive را روی سرور دریافت‌کننده و بعد Send را روی سرور ارسال‌کننده با همان نوع بسته و پورت اجرا کنید. آی‌پی‌های جعلی که رسیدند را در بخش ساخت کپی کنید.'};
+FA['Logs']='لاگ';
 document.documentElement.lang = lang; document.documentElement.dir = lang==='fa' ? 'rtl' : 'ltr';
 function tr(root){
   if(lang!=='fa' || !root) return;
@@ -985,7 +999,8 @@ function loginView(){
   $('#pwtog').onclick = () => { const p=$('#pw'); p.type = p.type==='password' ? 'text' : 'password'; p.focus(); };
 }
 const IC={dash:'<svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="2"/><rect x="14" y="3" width="7" height="5" rx="2"/><rect x="14" y="12" width="7" height="9" rx="2"/><rect x="3" y="16" width="7" height="5" rx="2"/></svg>',rev:'<svg viewBox="0 0 24 24"><path d="M4 7h13l-3-3M20 17H7l3 3"/></svg>',spoof:'<svg viewBox="0 0 24 24"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>',set:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>',out:'<svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>',sun:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',moon:'<svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>'};
-const PAGES = [['dash',IC.dash,'Dashboard'],['tun',IC.rev,'Tunnels'],['set',IC.set,'Settings']];
+IC.logs='<svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>';
+const PAGES = [['dash',IC.dash,'Dashboard'],['tun',IC.rev,'Tunnels'],['logs',IC.logs,'Logs'],['set',IC.set,'Settings']];
   let tsel = 'rev';
 const LOGO = '<svg viewBox="0 0 64 64" width="34" height="34"><defs><linearGradient id="ntg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fde68a"/><stop offset="1" stop-color="#d97706"/></linearGradient></defs><rect x="2" y="2" width="60" height="60" rx="16" fill="#0b1226" stroke="url(#ntg)" stroke-width="2.5"/><path d="M12 52V32a20 20 0 0 1 40 0v20" fill="none" stroke="url(#ntg)" stroke-width="4" stroke-linecap="round"/><path d="M20 52V33a12 12 0 0 1 24 0v19" fill="none" stroke="url(#ntg)" stroke-width="3" stroke-linecap="round" opacity=".7"/><path d="M27 52V34a5 5 0 0 1 10 0v18z" fill="url(#ntg)" opacity=".9"/><path d="M6 52h52" stroke="url(#ntg)" stroke-width="3" stroke-linecap="round"/></svg>';
 function shell(){
@@ -1053,6 +1068,11 @@ function shell(){
       <pre id="tbox">No test run yet.</pre></div></div>
     <div class="sub" id="s-logs"><div class="sec glass"><h2>Logs</h2><pre id="logbox">Open Tunnels and click Logs on a tunnel.</pre></div></div>
   </div>
+  </div>
+  <div class="page" id="p-logs">
+    <div class="dpanel"><div class="dph"><div><h3>${L("Logs","لاگ‌ها")}</h3><p>${L("Live service logs of your tunnels, refreshed every few seconds.","لاگ زندهٔ سرویس تونل‌ها، هر چند ثانیه به‌روز می‌شود.")}</p></div><button class="dlink" id="lgcopy">${L("Copy","کپی")}</button></div>
+    <div class="lgbar"><select id="lgsel"></select><input id="lgq" placeholder="${L("Filter…","فیلتر…")}"><div class="lgseg" id="lgl"><button data-l="all" class="on">${L("All","همه")}</button><button data-l="w">${L("Warnings","هشدار")}</button><button data-l="e">${L("Errors","خطا")}</button></div></div>
+    <div class="lg" id="lgbox"></div></div>
   </div>
   <div class="page" id="p-set">
     <div class="sec glass sset"><h2>Account</h2>
@@ -1175,6 +1195,7 @@ function renderMap(st, slots){
   g+=`<text x="${X0}" y="${H/2+38}" text-anchor="middle" class="ml">${esc(st.hostname||'this server')}</text><text x="${X0}" y="${H/2+54}" text-anchor="middle" class="ms">${esc(st.ip||'')}</text>`;
   el.innerHTML=g+'</svg>';
 }
+const ICT2='<svg viewBox="0 0 24 24"><path d="M3 19V11a9 9 0 0 1 18 0v8M7 19v-8a5 5 0 0 1 10 0v8"/></svg>', ICS2='<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="6" rx="2"/><rect x="3" y="14" width="18" height="6" rx="2"/><path d="M7 7h.01M7 17h.01"/></svg>', ICC2='<svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></svg>';
 const ICA='<svg viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>';
 function fmtR(b){ const x=(+b||0)*8; if(x>=1e9) return [(x/1e9).toFixed(2),'Gbps']; if(x>=1e6) return [(x/1e6).toFixed(x>=1e8?0:1),'Mbps']; if(x>=1e3) return [(x/1e3).toFixed(0),'Kbps']; return [Math.round(x),'bps']; }
 function peerOf(s){ return (s.kind==='reverse' ? (s.server_ip||s.target_host) : s.peer) || 'remote'; }
@@ -1195,9 +1216,9 @@ function dashRender(st, slots){
   const mini=(k,p)=>`<div class="dm"><span>${k}</span><em><b style="width:${Math.max(0,Math.min(100,p||0))}%"></b></em><span>${(p||0).toFixed(0)}%</span></div>`;
   $('#dstats').innerHTML=`
    <div class="dc"><div class="dk">${ICA}${L('Throughput now','ترافیک همین حالا')}</div><div class="dv">${R[0]}<small>${R[1]}</small></div><canvas id="cth"></canvas><div class="ds"><bdi dir="ltr">↓ ${fmtB(st.rx_rate)}/s · ↑ ${fmtB(st.tx_rate)}/s</bdi></div></div>
-   <div class="dc"><div class="dk">${L('Tunnels flowing','تونل‌های جاری')}</div><div class="dv">${act}<small>${L('of','از')} ${slots.length}</small></div><div class="dseg">${seg(act,'#34d0c3')}${seg(bad,'#f0707a')}${seg(off,'#6b7a93')}${slots.length?'':'<i style="flex:1;background:#1d2e4a"></i>'}</div><div class="ds">${bad?`<span class="bd">${bad} ${L('broken','قطع')}</span>`:(slots.length?L('All healthy','همه سالم'):L('No tunnel yet','هنوز تونلی نیست'))}</div></div>
-   <div class="dc"><div class="dk">${L('Servers connected','سرورهای متصل')}</div><div class="dv">${pon}<small>${L('of','از')} ${pk.length}</small></div><div class="dseg">${seg(pon,'#34d0c3')}${seg(pbad,'#f0707a')}${seg(pk.length-pon-pbad,'#6b7a93')}${pk.length?'':'<i style="flex:1;background:#1d2e4a"></i>'}</div><div class="ds">${esc(st.hostname||'')} · ${esc(st.ip||'')}</div></div>
-   <div class="dc"><div class="dk">${L('This server','این سرور')}</div>${mini('CPU',st.cpu)}${mini('RAM',st.mem_pct)}${mini('Disk',st.disk_pct)}<div class="ds">${L('Uptime','آپتایم')} ${fmtUp(st.uptime)}</div></div>`;
+   <div class="dc"><div class="dk">${ICT2}${L('Tunnels flowing','تونل‌های جاری')}</div><div class="dv">${act}<small>${L('of','از')} ${slots.length}</small></div><div class="dseg">${seg(act,'#34d0c3')}${seg(bad,'#f0707a')}${seg(off,'#6b7a93')}${slots.length?'':'<i style="flex:1;background:#1d2e4a"></i>'}</div><div class="ds">${bad?`<span class="bd">${bad} ${L('broken','قطع')}</span>`:(slots.length?L('All healthy','همه سالم'):L('No tunnel yet','هنوز تونلی نیست'))}</div></div>
+   <div class="dc"><div class="dk">${ICS2}${L('Servers connected','سرورهای متصل')}</div><div class="dv">${pon}<small>${L('of','از')} ${pk.length}</small></div><div class="dseg">${seg(pon,'#34d0c3')}${seg(pbad,'#f0707a')}${seg(pk.length-pon-pbad,'#6b7a93')}${pk.length?'':'<i style="flex:1;background:#1d2e4a"></i>'}</div><div class="ds">${esc(st.hostname||'')} · ${esc(st.ip||'')}</div></div>
+   <div class="dc"><div class="dk">${ICC2}${L('This server','این سرور')}</div>${mini('CPU',st.cpu)}${mini('RAM',st.mem_pct)}${mini('Disk',st.disk_pct)}<div class="ds">${L('Uptime','آپتایم')} ${fmtUp(st.uptime)}</div></div>`;
   spark('#cth', hist.rx.map((v,i)=>v+(hist.tx[i]||0)), '#34d0c3');
   const W=[];
   slots.filter(s=>s.state==='failed').forEach(s=>W.push(`<div class="wr"><i>!</i><span>${L('Tunnel','تونل')} #${s.slot} · ${esc(peerOf(s))} ${L('is broken','قطع است')}</span><button class="dlink" onclick="go('${s.kind==='reverse'?'rev':'spoof'}')">${L('Open','باز کردن')}</button></div>`));
@@ -1242,6 +1263,29 @@ function dashMap(st, slots, pm, pk){
   pk.forEach((ip,i)=>{ const l=pm[ip], col=l.some(s=>s.state==='active')?'#34d0c3':l.some(s=>s.state==='failed')?'#f0707a':'#6b7a93'; g+=node(px(i),'middle',ip,(l[0].role==='server'?L('Foreign','خارج'):L('Iran','ایران'))+' · '+l.length+' '+L('tunnel','تونل'),col); });
   el.innerHTML=g+'</svg>';
 }
+let _lgsig='', _lgl='all', _lgsel='all', _lgbusy=false;
+async function logsPage(){
+  if(!$('#lgbox')||_lgbusy) return; _lgbusy=true;
+  try{
+    const slots=window._slots||[], sel=$('#lgsel');
+    const opts='<option value="all">'+L('All tunnels','همه تونل‌ها')+'</option>'+slots.map(x=>`<option value="${x.slot}">#${x.slot} · ${esc(peerOf(x))} · ${x.kind}</option>`).join('');
+    if(sel.dataset.o!==opts){ sel.innerHTML=opts; sel.dataset.o=opts; sel.value=slots.some(x=>String(x.slot)===_lgsel)?_lgsel:'all'; }
+    _lgsel=sel.value;
+    const ids=_lgsel==='all'?slots.map(x=>x.slot):[+_lgsel];
+    const res=await Promise.all(ids.map(n=>api('/api/slot/'+n+'/logs').then(r=>({n,t:r.logs||''})).catch(e=>({n,t:'error: '+e.message}))));
+    let lines=[]; res.forEach(r=>r.t.split('\n').forEach(l=>{ if(l.trim()) lines.push({n:r.n,l}); }));
+    const q=($('#lgq').value||'').trim().toLowerCase();
+    const isE=t=>/error|fail|panic|fatal|traceback|refused|denied/i.test(t), isW=t=>/warn|retry|reconnect|timeout|timed out|lost|closed/i.test(t);
+    lines=lines.filter(x=>(!q||x.l.toLowerCase().includes(q)) && (_lgl==='all'||(_lgl==='e'?isE(x.l):(isE(x.l)||isW(x.l)))));
+    const html=lines.length ? lines.slice(-400).map(x=>{ const m=x.l.match(/^([A-Z][a-z]{2} +\d+ [\d:]{8}) (\S+) (.*)$/), c=isE(x.l)?'e':isW(x.l)?'w':/start|connect|listen|active|ready|established/i.test(x.l)?'o':'';
+      return `<div class="${c}">${ids.length>1?'<span class="t">#'+x.n+'</span> ':''}${m?'<span class="t">'+esc(m[1])+'</span> '+esc(m[3]):esc(x.l)}</div>`; }).join('') : `<div class="t">${L('No log lines.','لاگی نیست.')}</div>`;
+    if(html!==_lgsig){ const b=$('#lgbox'), near=b.scrollHeight-b.scrollTop-b.clientHeight<60; _lgsig=html; b.innerHTML=html; if(near) b.scrollTop=b.scrollHeight; }
+  } finally { _lgbusy=false; }
+}
+document.addEventListener('input',e=>{ if(e.target.id==='lgq'){ _lgsig=''; logsPage(); } });
+document.addEventListener('change',e=>{ if(e.target.id==='lgsel'){ _lgsel=e.target.value; _lgsig=''; logsPage(); } });
+document.addEventListener('click',e=>{ const b=e.target.closest&&e.target.closest('#lgl button'); if(b){ _lgl=b.dataset.l; document.querySelectorAll('#lgl button').forEach(x=>x.classList.toggle('on',x===b)); _lgsig=''; logsPage(); return; }
+  if(e.target.id==='lgcopy'){ const t=$('#lgbox').innerText; try{ navigator.clipboard.writeText(t).then(()=>msg(L('Copied','کپی شد'),true)); }catch(_){} } });
 function rowBtns(n){ return `<td><button class="sm ok" onclick="act(${n},'start')">Connect</button><button class="sm" onclick="act(${n},'restart')">Restart</button><button class="sm" onclick="act(${n},'stop')">Stop</button><button class="sm" onclick="logs(${n})">Logs</button><button class="sm danger" onclick="del(${n})">Delete</button></td>`; }
 async function refresh(){
   try {
@@ -1249,7 +1293,7 @@ async function refresh(){
     push(hist.cpu, st.cpu); push(hist.rx, st.rx_rate); push(hist.tx, st.tx_rate);
     const lv=$('#live'); if(lv){lv.classList.remove('off'); lv.querySelector('b').textContent=L('Online','آنلاین');}
     $('#host').textContent = st.hostname + ' · ' + st.ip;
-    dashRender(st, sl.slots);
+    dashRender(st, sl.slots); window._slots=sl.slots; if(page==='logs') logsPage();
     $('#revtbl').innerHTML = slotTable(sl.slots.filter(s=>s.kind==='reverse'), true);
     $('#tbl').innerHTML = slotTable(sl.slots.filter(s=>s.kind==='spoof'), true);
   } catch(e){ const lv=$('#live'); if(lv){lv.classList.add('off'); lv.querySelector('b').textContent=L('Offline','آفلاین');} if(/login|auth|401/i.test(e.message)) load(); else msg(e.message,false); }
