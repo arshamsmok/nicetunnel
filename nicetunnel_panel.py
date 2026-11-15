@@ -649,7 +649,7 @@ html[data-theme=light] [style*="b8c2ee"],html[data-theme=light] [style*="9aa6d6"
 .tgbar{position:fixed;top:14px;left:14px;display:flex;gap:8px;z-index:5}
 .tgbar a{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:999px;background:rgba(56,189,248,.12);border:1px solid rgba(56,189,248,.35);color:#7dd3fc;text-decoration:none;font-size:12px}
 .tgbar a:hover{background:rgba(56,189,248,.22)}
-/* v4: DarkCore navy+gold dashboard */
+/* v4: NiceTunnel navy+gold dashboard */
 :root{--bg0:#050d18;--bg1:#081a2e;--st1:#0e2036;--st2:#14294a;--ln:#1d3a62;--gold:#e9c46a;--gold2:#f4d58a;--teal:#34d0c3;--tx:#eef2f7;--tx2:#a9b8cc}
 body{background:linear-gradient(180deg,var(--bg0),var(--bg1) 420px,#07162a)!important;color:var(--tx)}
 #bg,#grid{display:none!important}
@@ -708,6 +708,26 @@ td,th{border-bottom:1px solid #16304f!important}tr:hover td{background:rgba(52,2
  .scode{direction:ltr;background:rgba(0,0,0,.3);padding:7px 10px;border-radius:8px;font-size:12px;color:#fde68a;word-break:break-all;max-width:100%}
  .sbtn{padding:8px 14px;border-radius:10px;border:1px solid rgba(250,204,21,.4);color:#fde68a;text-decoration:none;font-size:13px}
  .lowmo *{animation:none!important;transition:none!important}
+
+ /* v6: fields */
+ #login .row{flex-direction:column;align-items:stretch;gap:16px}
+ #login .row>div{min-width:100%;gap:7px}
+ #login label{font-size:13px;font-weight:600;color:#c9d2ff;margin:0 2px}
+ #login input{height:48px;box-sizing:border-box;width:100%;padding:0 16px;font-size:15px;background:#0a1226!important;border:1px solid #2a3866!important;border-radius:14px!important;color:#fff}
+ #login input:focus{border-color:#facc15!important;box-shadow:0 0 0 3px rgba(250,204,21,.18)}
+ #login #pw{padding-inline-end:48px}
+ #login .ok{height:50px;margin-top:6px;font-size:16px}
+ #login .ltitle{font-size:32px;line-height:1.3}
+ #login .segm{margin:6px auto 18px!important}
+ .srow input,.srow select{height:42px;box-sizing:border-box;padding:0 14px;font-size:14px;border-radius:12px!important;background:#0a1226!important;border:1px solid #2a3866!important}
+ .srow input:focus,.srow select:focus{border-color:#facc15!important;box-shadow:0 0 0 3px rgba(250,204,21,.15)}
+ .srow{padding:18px 0;gap:14px 20px}
+ .srow .st p{margin-top:4px}
+ .srow>input,.srow>select{flex:0 1 280px;width:280px;max-width:100%}
+ @media(max-width:560px){.srow>input,.srow>select{flex:1 1 100%;width:100%}}
+ .sset h2{padding:16px 0 10px;font-size:16px}
+ .sset .sbtns{display:flex;gap:10px;flex-wrap:wrap;padding:16px 0 10px}
+ .sbtn,.sset button{min-height:40px}
 </style>
 <body>
 <div id="bg"></div><div id="grid"></div>
@@ -756,7 +776,7 @@ function lmode(m){ window._lm=m; document.querySelectorAll('#lsw button').forEac
   const pw=$('#pw'); if(!pw) return; const row=$('#un').parentNode.parentNode; $('#un').parentNode.classList.toggle('hide',m==='link'); pw.parentNode.parentNode.classList.toggle('hide',m==='link'); $('#lkbox').classList.toggle('hide',m!=='link');
   if(m==='link'){ const o=new URLSearchParams(location.search).get('otl'); if(o) $('#lk').value=o; } }
 function loginView(){
-  $('#app').innerHTML = `<div class="lwrap"><div id="login" class="glass"><div style="text-align:center"><svg viewBox="0 0 64 64" width="72" height="72"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fde68a"/><stop offset="1" stop-color="#d97706"/></linearGradient></defs><path d="M32 4 56 14v18c0 15-10 24-24 28C18 56 8 47 8 32V14z" fill="#0b1226" stroke="url(#g)" stroke-width="3"/><path d="M32 16c2 7 9 10 9 18a9 9 0 0 1-18 0c0-4 2-6 4-8 0 3 1 5 3 6-1-6 0-11 2-16z" fill="url(#g)"/></svg></div><h1 class="ltitle">دارک‌کور</h1><div class="lsub">DarkCore Panel · ${state.needSetup?'ساخت رمز مدیر':'ورود به پنل مدیریت'}</div>${state.needSetup?'':`<div class="segm" id="lsw" style="margin:10px auto;display:flex;justify-content:center"><button data-m="pw">${L('Password','رمز عبور')}</button><button data-m="link">${L('One-time link','لینک یکبار مصرف')}</button></div>`}${langBtn()}<div id="msg"></div>
+  $('#app').innerHTML = `<div class="lwrap"><div id="login" class="glass"><div style="text-align:center"><svg viewBox="0 0 64 64" width="72" height="72"><defs><linearGradient id="ntg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fde68a"/><stop offset="1" stop-color="#d97706"/></linearGradient></defs><rect x="2" y="2" width="60" height="60" rx="16" fill="#0b1226" stroke="url(#ntg)" stroke-width="2.5"/><path d="M12 52V32a20 20 0 0 1 40 0v20" fill="none" stroke="url(#ntg)" stroke-width="4" stroke-linecap="round"/><path d="M20 52V33a12 12 0 0 1 24 0v19" fill="none" stroke="url(#ntg)" stroke-width="3" stroke-linecap="round" opacity=".7"/><path d="M27 52V34a5 5 0 0 1 10 0v18z" fill="url(#ntg)" opacity=".9"/><path d="M6 52h52" stroke="url(#ntg)" stroke-width="3" stroke-linecap="round"/></svg></div><h1 class="ltitle">نایس‌تانل</h1><div class="lsub">NiceTunnel · ${state.needSetup?'ساخت رمز مدیر':'ورود به پنل مدیریت'}</div>${state.needSetup?'':`<div class="segm" id="lsw" style="margin:10px auto;display:flex;justify-content:center"><button data-m="pw">${L('Password','رمز عبور')}</button><button data-m="link">${L('One-time link','لینک یکبار مصرف')}</button></div>`}${langBtn()}<div id="msg"></div>
   <div class="row"><div><label>Username</label><input id="un" value="admin" autocomplete="username"></div>
   <div><label>${state.needSetup?'Create admin password (10+ chars, Aa, 1, !)':'Password'}</label>
   <div style="position:relative"><input id="pw" type="password" style="padding-right:44px">
@@ -781,7 +801,7 @@ function loginView(){
 const IC={dash:'<svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="2"/><rect x="14" y="3" width="7" height="5" rx="2"/><rect x="14" y="12" width="7" height="9" rx="2"/><rect x="3" y="16" width="7" height="5" rx="2"/></svg>',rev:'<svg viewBox="0 0 24 24"><path d="M4 7h13l-3-3M20 17H7l3 3"/></svg>',spoof:'<svg viewBox="0 0 24 24"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>',set:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>',out:'<svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>',sun:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',moon:'<svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>'};
 const PAGES = [['dash',IC.dash,'Dashboard'],['tun',IC.rev,'Tunnels'],['set',IC.set,'Settings']];
   let tsel = 'rev';
-const LOGO = '<svg viewBox="0 0 64 64" width="34" height="34"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fde68a"/><stop offset="1" stop-color="#d97706"/></linearGradient></defs><path d="M32 4 56 14v18c0 15-10 24-24 28C18 56 8 47 8 32V14z" fill="#0b1226" stroke="url(#g)" stroke-width="3"/><path d="M32 16c2 7 9 10 9 18a9 9 0 0 1-18 0c0-4 2-6 4-8 0 3 1 5 3 6-1-6 0-11 2-16z" fill="url(#g)"/></svg>';
+const LOGO = '<svg viewBox="0 0 64 64" width="34" height="34"><defs><linearGradient id="ntg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fde68a"/><stop offset="1" stop-color="#d97706"/></linearGradient></defs><rect x="2" y="2" width="60" height="60" rx="16" fill="#0b1226" stroke="url(#ntg)" stroke-width="2.5"/><path d="M12 52V32a20 20 0 0 1 40 0v20" fill="none" stroke="url(#ntg)" stroke-width="4" stroke-linecap="round"/><path d="M20 52V33a12 12 0 0 1 24 0v19" fill="none" stroke="url(#ntg)" stroke-width="3" stroke-linecap="round" opacity=".7"/><path d="M27 52V34a5 5 0 0 1 10 0v18z" fill="url(#ntg)" opacity=".9"/><path d="M6 52h52" stroke="url(#ntg)" stroke-width="3" stroke-linecap="round"/></svg>';
 function shell(){
   const nm = state.username || 'admin';
   $('#app').innerHTML = `<div id="shell"><div id="side" class="glass">
@@ -869,7 +889,8 @@ function shell(){
     </div>
     <div class="sec glass sset"><h2>Panel info</h2>
       <div class="srow"><div class="st"><b>Panel address</b><p>Secret path of this panel. Keep it private.</p></div><code id="sinfo" class="scode"></code></div>
-      <div class="srow"><div class="st"><b>Version</b><p>DarkCore Panel</p></div><code class="scode">v1.4.0</code></div>
+      <div class="srow"><div class="st"><b>Version</b><p>NiceTunnel Panel</p></div><code class="scode">v1.4.0</code></div>
+      <div class="srow"><div class="st"><b>سازنده / Creator</b><p>Arsham Smok · آرشام اسموک</p></div></div>
     </div>
     <div class="sec glass sset"><h2>${L('Security','امنیت')}</h2>
       <div class="srow"><div class="st"><b>${L('One-time login link','لینک ورود یکبار مصرف')}</b><p>${L('Valid for 40 minutes, works once. Useful when you forget the password.','۴۰ دقیقه اعتبار دارد و فقط یک بار کار می‌کند.')}</p></div><button class="ok" id="otlbtn">${L('Generate link','ساخت لینک')}</button></div>
@@ -899,7 +920,7 @@ function shell(){
       <div class="srow"><div class="st"><b>Telegram channel</b><p>News, updates and support.</p></div><a class="sbtn" href="https://t.me/DarkCore_Vpn" target="_blank" rel="noopener">@DarkCore_Vpn</a></div>
     </div>
   </div>
-  <div id="foot" class="glass"><span>DarkCore Panel</span><span>·</span><a href="https://t.me/DarkCore_Vpn" target="_blank" rel="noopener" style="color:var(--gold)">@DarkCore_Vpn</a></div>
+  <div id="foot" class="glass"><span>NiceTunnel · by Arsham Smok</span><span>·</span><a href="https://t.me/DarkCore_Vpn" target="_blank" rel="noopener" style="color:var(--gold)">@DarkCore_Vpn</a></div>
   </div></div>`;
   document.querySelectorAll('.nav[data-p]').forEach(e=>e.onclick=()=>go(e.dataset.p));
   document.querySelectorAll('.seg').forEach(e=>e.onclick=()=>go(e.dataset.s));
@@ -1283,7 +1304,7 @@ ENV_LINE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=[^\r\n\x00]*$")
 
 def check_backup(d):
     if not isinstance(d, dict) or d.get("magic") != "darkcore-backup" or not isinstance(d.get("slots"), dict):
-        return "not a DarkCore backup file"
+        return "not a NiceTunnel backup file"
     for k, v in d["slots"].items():
         if not (k.isdigit() and 1 <= int(k) <= MAX_SLOT) or not isinstance(v, str) or len(v) > 8192:
             return "bad slot entry"
@@ -1731,7 +1752,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
         if path == "/api/tg/test":
             tg = load_panel_conf().get("tg", {})
-            ok, out = tg_call("sendMessage", {"chat_id": tg.get("chat", ""), "text": "✅ DarkCore Panel: اتصال تلگرام برقرار است\n" + host_label()})
+            ok, out = tg_call("sendMessage", {"chat_id": tg.get("chat", ""), "text": "✅ NiceTunnel Panel: اتصال تلگرام برقرار است\n" + host_label()})
             return self.send_json({"ok": ok, "detail": out}, 200 if ok else 400)
 
         if path == "/api/tg/clear":
