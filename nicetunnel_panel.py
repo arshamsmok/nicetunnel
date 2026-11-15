@@ -67,6 +67,19 @@ def hash_password(pw, salt=None):
     return salt.hex() + "$" + dk.hex()
 
 
+def pw_problem(pw):
+    """Returns an error text if the password is weak, else None."""
+    if len(pw) < 10:
+        return "password must be at least 10 characters"
+    if not re.search(r"[a-z]", pw) or not re.search(r"[A-Z]", pw):
+        return "password needs lower and upper case letters"
+    if not re.search(r"\d", pw):
+        return "password needs a digit"
+    if not re.search(r"[^A-Za-z0-9]", pw):
+        return "password needs a symbol like ! @ # $"
+    return None
+
+
 def check_password(pw, stored):
     try:
         salt_hex, _ = stored.split("$", 1)
@@ -662,12 +675,16 @@ const fmtB = n => { const u=['B','KB','MB','GB','TB']; let i=0; n=+n||0; while(n
 const fmtUp = s => { s=Math.floor(s); const d=Math.floor(s/86400),h=Math.floor(s%86400/3600),m=Math.floor(s%3600/60); return (d?d+'d ':'')+h+'h '+m+'m'; };
 
 function loginView(){
-  $('#app').innerHTML = `<div id="login" class="glass"><h1>NiceTunnel Panel</h1>${langBtn()}<div id="msg"></div>
+  $('#app').innerHTML = `<div id="login" class="glass"><div style="text-align:center"><span class="logo" style="width:54px;height:54px;font-size:20px;display:inline-flex;align-items:center;justify-content:center">NT</span></div><h1 style="text-align:center;display:block">NiceTunnel Panel</h1>${langBtn()}<div id="msg"></div>
   <div class="row"><div><label>Username</label><input id="un" value="admin" autocomplete="username"></div>
-  <div><label>${state.needSetup?'Create owner password (min 8 chars)':'Password'}</label>
+  <div><label>${state.needSetup?'Create admin password (10+ chars, Aa, 1, !)':'Password'}</label>
   <div style="position:relative"><input id="pw" type="password" style="padding-right:44px">
   <button type="button" id="pwtog" style="position:absolute;right:3px;top:3px;padding:7px 10px;background:transparent;border:none;box-shadow:none;font-size:15px">&#128065;</button></div></div>
-  <div><button class="ok" id="go">${state.needSetup?'Save password':'Login'}</button></div></div></div>`;
+  <div id="pwhint" style="font-size:12px;color:#9aa6d6;display:${state.needSetup?'block':'none'}"></div>
+  <div><button class="ok" id="go">${state.needSetup?'Save password':'Login'}</button></div>
+  <div style="text-align:center;margin-top:10px"><a href="https://t.me/DarkCore_Vpn" target="_blank" rel="noopener" style="color:#a5b4fc;font-size:13px">Telegram: @DarkCore_Vpn</a></div></div></div>`;
+  if(state.needSetup) $('#pw').oninput = () => { const v=$('#pw').value, ok=(c,t)=>(c?'✓ ':'✗ ')+t;
+    $('#pwhint').innerHTML=[ok(v.length>=10,'10+ chars'),ok(/[a-z]/.test(v)&&/[A-Z]/.test(v),'Aa'),ok(/\d/.test(v),'0-9'),ok(/[^A-Za-z0-9]/.test(v),'!@#')].join(' &nbsp; '); };
   $('#go').onclick = async () => { try {
       await api(state.needSetup ? '/api/setup' : '/api/login', {username:$('#un').value,password:$('#pw').value});
       await load(); } catch(e){ msg(e.message,false); } };
@@ -751,7 +768,7 @@ function shell(){
     <div class="sec glass"><h2>Account</h2><div class="row">
       <div><label>Username</label><input id="sun" value="${esc(nm)}"></div>
       <div><label>Current password</label><input id="scur" type="password"></div>
-      <div><label>New password (empty = keep)</label><input id="snew" type="password" placeholder="min 8 chars"></div>
+      <div><label>New password (empty = keep)</label><input id="snew" type="password" placeholder="10+ chars, Aa, 1, !"></div>
     </div><p><button class="ok" id="ssave">Save changes</button></p>
     <p style="color:#9aa6d6;font-size:12px">Changing the password logs out every other browser session.</p></div>
     <div class="sec glass"><h2>Language</h2><div class="row" style="align-items:center"><div style="max-width:260px"><select id="slang"><option value="en">English</option><option value="fa">فارسی</option></select></div>
@@ -1125,8 +1142,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
             if "password" in conf:
                 return self.send_json({"error": "already set up"}, 400)
             pw = str(body.get("password", ""))
-            if len(pw) < 8:
-                return self.send_json({"error": "password must be at least 8 characters"}, 400)
+            if pw_problem(pw):
+                return self.send_json({"error": pw_problem(pw)}, 400)
             conf["password"] = hash_password(pw)
             conf["username"] = str(body.get("username", "admin")).strip() or "admin"
             save_panel_conf(conf)
@@ -1198,8 +1215,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
                     return self.send_json({"error": "username: 1-32 letters, digits . _ -"}, 400)
                 conf["username"] = nu
             if npw:
-                if len(npw) < 8:
-                    return self.send_json({"error": "password must be at least 8 characters"}, 400)
+                if pw_problem(npw):
+                    return self.send_json({"error": pw_problem(npw)}, 400)
                 conf["password"] = hash_password(npw)
             save_panel_conf(conf)
             if npw:
@@ -1268,9 +1285,11 @@ class Handler(http.server.BaseHTTPRequestHandler):
 # commands
 # --------------------------------------------------------------------------
 def cmd_set_password(_args):
-    pw = getpass.getpass("New panel password (min 8 chars): ")
-    if len(pw) < 8 or pw != getpass.getpass("Repeat: "):
-        sys.exit("error: passwords do not match or are too short")
+    pw = getpass.getpass("New panel password (10+ chars, upper+lower, digit, symbol): ")
+    if pw_problem(pw):
+        sys.exit("error: " + pw_problem(pw))
+    if pw != getpass.getpass("Repeat: "):
+        sys.exit("error: passwords do not match")
     conf = load_panel_conf()
     old = conf.get("username", "admin")
     user = input("Username [%s]: " % old).strip() or old
@@ -1316,7 +1335,7 @@ def cmd_install(args):
         save_panel_conf(conf)
     port = int(conf["port"])
     if "password" not in conf:
-        print("Set the panel password (min 8 characters):")
+        print("Set the panel password (10+ chars, upper+lower, digit, symbol):")
         cmd_set_password(args)
     unit = (
         "[Unit]\nDescription=NiceTunnel Spoof Panel\nAfter=network-online.target\n"
