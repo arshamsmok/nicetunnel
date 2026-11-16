@@ -933,6 +933,35 @@ html body .lgseg button.on{background:#10233f!important;color:#f4d58a}
 .nact{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .nkern{margin-inline-start:auto;font-size:11px;color:var(--tx2);direction:ltr}
 @media(max-width:560px){.nprof{grid-template-columns:1fr}.nrow{grid-template-columns:1fr 1fr}.nrow code{grid-column:1/-1}}
+/* v14: settings - tab bar, calmer cards, finer controls */
+#p-set .set-wrap{flex-direction:column;gap:14px}
+#p-set .set-nav{position:sticky;top:8px;z-index:5;width:100%;flex-direction:row;gap:4px;padding:6px;overflow-x:auto;scrollbar-width:none;border-radius:16px;background:rgba(8,22,40,.92);border:1px solid var(--ln);backdrop-filter:blur(10px);box-shadow:0 8px 24px rgba(0,0,0,.28)}
+#p-set .set-nav::-webkit-scrollbar{display:none}
+#p-set .set-nav .nav{flex:none;flex-direction:row;gap:7px;padding:8px 14px!important;border-radius:11px!important;font-size:12.5px!important;font-weight:500;white-space:nowrap;color:var(--tx2);border:1px solid transparent!important;background:transparent!important;transition:.18s}
+#p-set .set-nav .nav i,#p-set .set-nav .nav i svg{width:15px;height:15px}
+#p-set .set-nav .nav:hover{color:var(--tx);background:rgba(255,255,255,.05)!important;padding-inline-start:14px!important}
+#p-set .set-nav .nav.on{color:var(--gold2);background:linear-gradient(180deg,rgba(233,196,106,.16),rgba(233,196,106,.06))!important;border-color:rgba(233,196,106,.38)!important;font-weight:600}
+#p-set .set-nav .nav.on::after{display:none}
+#p-set .set-main{gap:14px}
+#p-set .sset{padding:4px 22px 10px;scroll-margin-top:76px}
+#p-set .sset h2{font-size:15px!important;font-weight:700;letter-spacing:0;padding:18px 0 14px;margin:0;border-bottom:0!important;display:flex;align-items:center;gap:8px}
+#p-set .sset h2::before{content:'';width:3px;height:15px;border-radius:3px;background:var(--gold);flex:none}
+#p-set .srow{padding:18px 0;gap:12px 18px;border-top:1px solid rgba(255,255,255,.06)}
+#p-set .srow .st b{font-size:13.5px;font-weight:600;margin-bottom:5px;color:var(--tx)}
+#p-set .srow .st p{font-size:12px;line-height:1.9;color:var(--tx2);opacity:.85}
+#p-set .srow button,#p-set .sbtns button,#p-set .sbtn{min-height:38px;padding:0 18px;border-radius:11px!important;font-size:12.5px;display:inline-flex;align-items:center;justify-content:center;gap:7px;background:rgba(255,255,255,.035)!important;border:1px solid rgba(255,255,255,.14)!important;color:var(--tx)!important;transition:.18s}
+#p-set .srow button:hover,#p-set .sbtns button:hover{background:rgba(233,196,106,.08)!important;border-color:rgba(233,196,106,.5)!important;color:var(--gold2)!important}
+#p-set .srow button.ok,#p-set .sbtns button.ok{background:linear-gradient(180deg,var(--gold2),var(--gold))!important;color:#1b1303!important;border-color:transparent!important;box-shadow:0 4px 14px rgba(233,196,106,.22)!important}
+#p-set .srow button.bad,#p-set .srow button.danger{background:rgba(244,63,94,.1)!important;color:#fda4af!important;border-color:rgba(244,63,94,.4)!important}
+#p-set .srow button:disabled{opacity:.5;cursor:default}
+#p-set .segm{padding:3px;border-radius:12px;background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.1)}
+#p-set .segm button{min-height:32px;padding:0 16px;border-radius:9px!important;background:transparent!important;border:0!important;color:var(--tx2)!important;font-size:12.5px}
+#p-set .segm button.on{background:linear-gradient(180deg,var(--gold2),var(--gold))!important;color:#1b1303!important;font-weight:700;box-shadow:0 2px 8px rgba(233,196,106,.25)!important}
+#p-set .srow input,#p-set .srow select{height:40px;border-radius:11px!important;font-size:13px;background:rgba(0,0,0,.25)!important;border:1px solid var(--ln)!important;color:var(--tx)}
+#p-set .srow input:focus,#p-set .srow select:focus{border-color:var(--gold)!important;box-shadow:0 0 0 3px rgba(233,196,106,.14)}
+#p-set .scode{background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:8px 12px}
+#p-set .nkern{unicode-bidi:isolate;direction:ltr;text-align:end;opacity:.7}
+@media(max-width:560px){#p-set .sset{padding:2px 16px 8px}#p-set .srow{flex-direction:column;align-items:stretch}#p-set .srow>button,#p-set .srow>.segm{align-self:flex-start}}
 </style>
 <body>
 <div id="bg"></div><div id="grid"></div>
