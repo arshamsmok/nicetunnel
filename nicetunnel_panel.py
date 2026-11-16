@@ -1814,7 +1814,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
     def same_origin_ok(self):
         origin = self.headers.get("Origin")
-        return not origin or urlparse(origin).netloc == self.headers.get("Host", "")
+        if not origin:
+            return True
+        return urlparse(origin).netloc.lower() == self.headers.get("Host", "").lower()
 
     # -- GET -----------------------------------------------------------------
     def do_GET(self):
@@ -1969,7 +1971,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             tg_send("🔐 ورود به پنل %s\nروش: %s\nIP: %s\nدستگاه: %s" % (
                 host_label(), "لینک یکبار مصرف" if how == "link" else "رمز", ip, device_name(self.headers.get("User-Agent", ""))), "login")
             return self.send_json({"ok": True}, headers=[(
-                "Set-Cookie", "nt_session=%s; Path=/; HttpOnly; SameSite=Strict; Max-Age=%d"
+                "Set-Cookie", "nt_session=%s; Path=/; HttpOnly; SameSite=Lax; Max-Age=%d"
                 % (sid, SESSION_TTL))])
 
         if path == "/api/logout":
@@ -2216,6 +2218,40 @@ def public_ip_guess():
     return "SERVER_IP"
 
 
+def public_ip_detect():
+    """Real public IPv4 (works behind NAT too); falls back to the local guess."""
+    import urllib.request
+    for u in ("https://api.ipify.org", "https://ipv4.icanhazip.com", "https://ifconfig.me/ip"):
+        try:
+            ip = urllib.request.urlopen(u, timeout=5).read().decode().strip()
+            if re.fullmatch(r"\d+\.\d+\.\d+\.\d+", ip):
+                return ip
+        except Exception:
+            pass
+    return public_ip_guess()
+
+
+def make_self_signed(host, cert, key):
+    """Creates a self-signed cert valid for the IP/domain (+ local IPs). Installs openssl if missing."""
+    if not shutil.which("openssl"):
+        subprocess.run("apt-get update -qq && apt-get install -y -qq openssl", shell=True,
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    sans = []
+    for h in {host, public_ip_guess()}:
+        if h and h != "SERVER_IP":
+            sans.append(("IP:%s" if re.fullmatch(r"[\d.]+", h) else "DNS:%s") % h)
+    sans.append("IP:127.0.0.1")
+    os.makedirs(os.path.dirname(cert), exist_ok=True)
+    r = subprocess.run(["openssl", "req", "-x509", "-newkey", "rsa:2048", "-nodes", "-days", "3650",
+                        "-keyout", key, "-out", cert, "-subj", "/CN=%s" % host,
+                        "-addext", "subjectAltName=" + ",".join(sans)],
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    if r.returncode != 0:
+        return False
+    os.chmod(key, 0o600)
+    return True
+
+
 def cmd_install(args):
     """Installs and starts the panel as a systemd service, then prints how to open it."""
     if os.geteuid() != 0:
@@ -2246,7 +2282,7 @@ def cmd_install(args):
     print("  3) Other   (my own certificate files)")
     print("  4) Plain HTTP (no encryption, not recommended)")
     choice = (input("Choose [1-4, default 2]: ").strip() or "2")
-    host = public_ip_guess()
+    host = public_ip_detect()
     scheme = "https"
     os.makedirs(CONF_DIR, exist_ok=True)
     cert, key = os.path.join(CONF_DIR, "panel.crt"), os.path.join(CONF_DIR, "panel.key")
@@ -2276,13 +2312,8 @@ def cmd_install(args):
         scheme = "http"
         cert = key = ""
     else:
-        r = subprocess.run(["openssl", "req", "-x509", "-newkey", "rsa:2048", "-nodes", "-days", "3650",
-                            "-keyout", key, "-out", cert, "-subj", "/CN=%s" % host,
-                            "-addext", "subjectAltName=IP:%s" % host if re.fullmatch(r"[\d.]+", host) else "subjectAltName=DNS:%s" % host],
-                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        if r.returncode != 0:
-            sys.exit("error: openssl failed (apt install openssl)")
-        os.chmod(key, 0o600)
+        if not make_self_signed(host, cert, key):
+            sys.exit("error: could not create certificate (apt install openssl)")
     if "base" not in conf:
         conf["base"] = "/k-" + secrets.token_hex(6)
     conf["host"], conf["scheme"] = host, scheme
@@ -2348,6 +2379,10 @@ def cmd_serve(args):
         sys.exit("error: %s not found. Install NiceTunnel first." % ENGINE)
     if "password" not in load_panel_conf():
         sys.exit("error: set a password first: python3 %s set-password" % sys.argv[0])
+    if args.cert and args.key and not (os.path.isfile(args.cert) and os.path.isfile(args.key)):
+        h = load_panel_conf().get("host") or public_ip_detect()
+        if not make_self_signed(h, args.cert, args.key):
+            sys.exit("error: certificate missing and could not be created")
     srv = http.server.ThreadingHTTPServer((args.bind, args.port), Handler)
     if args.cert and args.key:
         import ssl
