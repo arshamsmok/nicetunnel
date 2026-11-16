@@ -962,6 +962,52 @@ html body .lgseg button.on{background:#10233f!important;color:#f4d58a}
 #p-set .scode{background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:8px 12px}
 #p-set .nkern{unicode-bidi:isolate;direction:ltr;text-align:end;opacity:.7}
 @media(max-width:560px){#p-set .sset{padding:2px 16px 8px}#p-set .srow{flex-direction:column;align-items:stretch}#p-set .srow>button,#p-set .srow>.segm{align-self:flex-start}}
+/* v15: layout fixes, side flyout, splash, tunnel cards */
+#main,.page,.sec,.glass,.row>div{min-width:0}
+.sec table{display:block;overflow-x:auto;max-width:100%}
+button,.sbtn{max-width:100%}
+input,select{max-width:100%}
+.seg-bar,#setnav{display:none!important}
+.tabs{flex-wrap:nowrap!important;overflow-x:auto;scrollbar-width:none;gap:6px!important;border-bottom:1px solid rgba(255,255,255,.07)!important}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:none;white-space:nowrap;padding:8px 14px!important;font-size:12.5px!important;border-radius:10px!important;border:1px solid transparent!important;background:transparent!important;color:#9fb0c8!important;box-shadow:none!important}
+.tab.on{background:rgba(233,196,106,.12)!important;border-color:rgba(233,196,106,.32)!important;color:#f4d58a!important;box-shadow:none!important}
+.sset{scroll-margin-top:12px}#p-set .sset{scroll-margin-top:12px}
+@media(max-width:560px){#p-set .srow .st,.srow .st{flex:0 0 auto!important;width:100%}#p-set .srow>input,#p-set .srow>select,.srow>input,.srow>select{flex:0 0 auto!important;width:100%!important}}
+.tcards{display:flex;flex-direction:column;gap:10px}
+.tcard{border:1px solid rgba(233,196,106,.13);border-radius:14px;padding:12px 14px;background:rgba(255,255,255,.02)}
+.tch{display:flex;align-items:center;gap:12px}
+.tact{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.06)}
+.tact button.sm{height:32px;min-height:0;padding:0 14px;border-radius:9px!important;font-size:12.5px;margin:0}
+.fly{position:fixed;z-index:60;min-width:190px;max-width:min(260px,72vw);padding:6px;border-radius:14px;background:rgba(7,16,30,.97);border:1px solid rgba(233,196,106,.22);box-shadow:0 18px 50px rgba(0,0,0,.55);display:none;flex-direction:column;gap:2px;max-height:calc(100vh - 24px);overflow:auto}
+.fly.on{display:flex;animation:flyin .16s ease-out}
+@keyframes flyin{from{opacity:0;transform:translateX(6px)}to{opacity:1;transform:none}}
+.fly .fh{font-size:11px;color:#7f93b2;padding:6px 12px 4px}
+html body .fly button{display:flex;align-items:center;gap:10px;width:100%;height:38px;padding:0 12px;border:0!important;border-radius:10px!important;background:transparent!important;color:#cdd7ea;font-size:13px;box-shadow:none!important;transform:none!important;text-align:start;white-space:nowrap}
+.fly button svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
+html body .fly button:hover{background:rgba(255,255,255,.06)!important}
+html body .fly button.on{background:rgba(233,196,106,.12)!important;color:#f4d58a}
+#splash{position:fixed;inset:0;z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:radial-gradient(60% 40% at 50% 62%,rgba(233,196,106,.14),transparent 70%),linear-gradient(180deg,#040a16,#071426 60%,#0a1a2e);transition:opacity .45s ease,visibility .45s}
+#splash.out{opacity:0;visibility:hidden}
+#splash .sl{animation:splin .8s cubic-bezier(.2,.8,.2,1) both;filter:drop-shadow(0 0 28px rgba(233,196,106,.45))}
+#splash b{font-size:26px;font-weight:700;letter-spacing:.5px;background:linear-gradient(90deg,#fff3c9,#e9c46a);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;animation:splin .8s .1s cubic-bezier(.2,.8,.2,1) both}
+#splash i{display:block;width:120px;height:2px;border-radius:2px;background:linear-gradient(90deg,transparent,#34d0c3,transparent);animation:spline 1s ease-in-out infinite}
+@keyframes splin{from{opacity:0;transform:scale(.7)}to{opacity:1;transform:none}}
+@keyframes spline{0%,100%{opacity:.25;transform:scaleX(.5)}50%{opacity:1;transform:scaleX(1)}}
+@media(max-width:560px){
+ #top{flex-wrap:wrap!important;gap:8px 10px!important;padding:10px 12px!important}
+ #top>div:last-child{flex-wrap:wrap;justify-content:flex-end;min-width:0}
+ #host{display:none!important}
+ #ttl{font-size:16px!important;margin:0!important}
+ .hdr{min-width:0;flex-wrap:wrap}
+}
+.row{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))!important;gap:12px!important}
+.row input,.row select{width:100%!important;box-sizing:border-box}
+#p-set .set-wrap{align-items:stretch!important;width:100%}
+#p-set .set-main{width:100%;max-width:100%;min-width:0}
+#p-set .sset{max-width:100%;overflow:hidden}
+.nact{min-width:0}.nkern{max-width:100%;overflow-wrap:anywhere}
+input[type=file]{width:100%!important;max-width:100%!important;min-width:0!important;flex:1 1 100%!important}
 </style>
 <body>
 <div id="bg"></div><div id="grid"></div>
@@ -1010,7 +1056,7 @@ const fmtUp = s => { s=Math.floor(s); const d=Math.floor(s/86400),h=Math.floor(s
 function lmode(m){ window._lm=m; document.querySelectorAll('#lsw button').forEach(b=>{b.classList.toggle('on',b.dataset.m===m);b.onclick=()=>lmode(b.dataset.m);});
   if(!$('#pw')) return; $('#fun').classList.toggle('hide',m==='link'); $('#fpw').classList.toggle('hide',m==='link'); $('#lkbox').classList.toggle('hide',m!=='link');
   if(m==='link'){ const o=new URLSearchParams(location.search).get('otl'); if(o) $('#lk').value=o; } }
-function loginView(){
+function loginView(){ window._sp=true;
   const lg=s=>'<svg viewBox="0 0 64 64" width="'+s+'" height="'+s+'"><defs><linearGradient id="ntl'+s+'" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fde68a"/><stop offset="1" stop-color="#d97706"/></linearGradient></defs><rect x="2" y="2" width="60" height="60" rx="16" fill="#0b1226" stroke="url(#ntl'+s+')" stroke-width="2.5"/><path d="M12 52V32a20 20 0 0 1 40 0v20" fill="none" stroke="url(#ntl'+s+')" stroke-width="4" stroke-linecap="round"/><path d="M20 52V33a12 12 0 0 1 24 0v19" fill="none" stroke="url(#ntl'+s+')" stroke-width="3" stroke-linecap="round" opacity=".7"/><path d="M27 52V34a5 5 0 0 1 10 0v18z" fill="url(#ntl'+s+')" opacity=".9"/><path d="M6 52h52" stroke="url(#ntl'+s+')" stroke-width="3" stroke-linecap="round"/></svg>';
   const ICK='<svg viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2L20 3M16 7l3 3M14 9l2 2"/></svg>';
   const ICU='<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>';
@@ -1074,10 +1120,10 @@ const LOGO = '<svg viewBox="0 0 64 64" width="34" height="34"><defs><linearGradi
 function shell(){
   const nm = state.username || 'admin';
   $('#app').innerHTML = `<div id="shell"><div id="side" class="glass">
-    <div class="brand" style="display:flex;align-items:center;gap:10px;padding:2px 6px 16px">${LOGO}<div><div style="font-size:15px;-webkit-text-fill-color:#fff;background:none;color:#fff">NiceTunnel</div><small style="-webkit-text-fill-color:#9aa6d6">v1.4.0</small></div></div>
+    <div class="brand" style="display:flex;align-items:center;gap:10px;padding:2px 6px 16px">${LOGO}<div><div style="font-size:15px;-webkit-text-fill-color:#fff;background:none;color:#fff">NiceTunnel</div><small style="-webkit-text-fill-color:#9aa6d6">v1.5.0</small></div></div>
     ${PAGES.map(p=>`<div class="nav" data-p="${p[0]}"><i>${p[1]}</i><span>${p[2]}</span></div>`).join('')}
     <div class="sp"></div><div class="nav" id="lo"><i>${IC.out}</i><span>Logout</span></div></div>
-  <div id="main"><div id="top" class="glass"><div class="hdr">${LOGO}<span class="nm">NiceTunnel</span><span class="vv">v1.4.0</span><h1 id="ttl" style="margin:0 0 0 6px"></h1></div>
+  <div id="fly" class="fly"></div><div id="main"><div id="top" class="glass"><div class="hdr">${LOGO}<span class="nm">NiceTunnel</span><span class="vv">v1.5.0</span><h1 id="ttl" style="margin:0 0 0 6px"></h1></div>
     <div style="display:flex;align-items:center;gap:10px"><span id="live" class="live"><i></i><b>${L("Online","آنلاین")}</b></span><span id="host" style="color:#9aa6d6;font-size:12px"></span>${themeBtn()}${langBtn()}</div></div><div id="msg"></div>
   <div class="page" id="p-dash">
     <div class="dgrid" id="dstats"></div>
@@ -1146,10 +1192,10 @@ function shell(){
     <div class="set-wrap">
     <div class="set-nav" id="setnav">
       <div class="nav" data-anchor="sec-sec"><i>${ICSH}</i><span>${L('Security','امنیت')}</span></div>
-      <div class="nav" data-anchor="sec-up"><i>${IC.set}</i><span>${L('Update','به‌روزرسانی')}</span></div>
+      <div class="nav" data-anchor="sec-up"><i>${IC.set}</i><span>${L('About','درباره')}</span></div>
       <div class="nav" data-anchor="sec-net"><i><svg viewBox="0 0 24 24"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg></i><span>${L('Network & speed','شبکه و سرعت')}</span></div>
       <div class="nav" data-anchor="sec-tg"><i>${ICTG}</i><span>${L('Telegram','تلگرام')}</span></div>
-      <div class="nav" data-anchor="sec-usage"><i>${ICUS}</i><span>${L('Usage','مصرف')}</span></div>
+      <div class="nav" data-anchor="sec-time"><i>${ICUS}</i><span>${L('Date & time','تاریخ و ساعت')}</span></div>
       <div class="nav" data-anchor="sec-backup"><i>${ICBK}</i><span>${L('Backup','پشتیبان')}</span></div>
       <div class="nav" data-anchor="sec-app"><i>${ICAP}</i><span>${L('Appearance','ظاهر')}</span></div>
     </div>
@@ -1164,8 +1210,8 @@ function shell(){
       <div class="srow"><div class="st"><b>${L('Logged-in devices','دستگاه‌های واردشده')}</b><p>${L('Every active session with its device and IP.','هر نشست فعال با دستگاه و آی‌پی.')}</p></div><button id="devout">${L('Log out others','خروج بقیه')}</button></div>
       <div id="devs"></div>
     </div>
-    <div class="sec glass sset" id="sec-up"><h2>${L('Update','به‌روزرسانی')}</h2>
-      <div class="srow"><div class="st"><b>${L('Installed','نصب‌شده')}</b><p>NiceTunnel Panel</p></div><code class="scode">v1.4.0</code></div>
+    <div class="sec glass sset" id="sec-up"><h2>${L('About','درباره')}</h2>
+      <div class="srow"><div class="st"><b>${L('Installed','نصب‌شده')}</b><p>NiceTunnel Panel</p></div><code class="scode">v1.5.0</code></div>
       <div class="srow"><div class="st"><b>${L('Panel address','آدرس پنل')}</b><p>${L('Secret path of this panel. Keep it private.','مسیر مخفی این پنل. آن را محرمانه نگه دارید.')}</p></div><code id="sinfo" class="scode"></code></div>
       <div class="srow"><div class="st"><b>${L('Creator','سازنده')}</b><p>Arsham Smok · آرشام اسموک</p></div></div>
     </div>
@@ -1177,7 +1223,7 @@ function shell(){
     </div>
     <div class="sec glass sset" id="sec-dom"><h2>${L('Domain & SSL','دامنه و SSL')}</h2>
       <p class="nhint" id="domcur"></p>
-      <div class="srow"><div class="st"><b>${L('Domain','دامنه')}</b><p>${L('Add an A record for it pointing to this server first.','ابتدا یک A رکورد برای آن به IP همین سرور بسازید.')}</p></div><input id="domname" dir="ltr" placeholder="panel.example.com" autocomplete="off"></div>
+      <div class="srow"><div class="st"><b>${L('Domain','دامنه')}</b><p>${L('Add an A record pointing to this server first. Port 80 must be free when issuing and renewing.','ابتدا یک A رکورد به IP همین سرور بسازید. پورت ۸۰ هنگام دریافت و تمدید گواهی باید آزاد باشد.')}</p></div><input id="domname" dir="ltr" placeholder="panel.example.com" autocomplete="off"></div>
       <div class="srow"><div class="st"><b>${L('Email','ایمیل')}</b><p>${L('Optional, for certificate expiry notices.','اختیاری، برای اطلاع از انقضای گواهی.')}</p></div><input id="domemail" dir="ltr" placeholder="you@example.com" autocomplete="off"></div>
       <div class="nact"><button class="ok" id="domgo">${L('Get SSL & switch','دریافت SSL و فعال‌سازی')}</button></div>
     </div>
@@ -1188,7 +1234,7 @@ function shell(){
       <div class="srow"><div class="st"><b>${L('Notify about','اعلان برای')}</b></div><div style="display:flex;gap:14px;flex-wrap:wrap"><label><input type="checkbox" class="tgev" value="tunnel"> ${L('Tunnel up/down/created/deleted','وصل/قطع/ساخت/حذف تونل')}</label><label><input type="checkbox" class="tgev" value="login"> ${L('Logins & failed logins','ورودها و ورود ناموفق')}</label><label><input type="checkbox" class="tgev" value="backup"> ${L('Backups','بکاپ‌ها')}</label></div></div>
       <div class="srow"><div></div><div><button class="ok" id="tgsave">${L('Save','ذخیره')}</button> <button id="tgtest">${L('Send test','ارسال تست')}</button> <button id="tgdel">${L('Remove','حذف')}</button></div></div>
     </div>
-    <div class="sec glass sset" id="sec-usage"><h2>${L('Usage','مصرف')}</h2>
+    <div class="sec glass sset" id="sec-time"><h2>${L('Date & time','تاریخ و ساعت')}</h2>
       <div class="srow"><div class="st"><b>${L('Now','اکنون')}</b></div><code class="scode" id="clock"></code></div>
       <div class="srow"><div class="st"><b>${L('Calendar','تقویم')}</b></div><div class="segm" id="sgcal"><button data-v="persian">${L('Jalali','شمسی')}</button><button data-v="gregory">${L('Gregorian','میلادی')}</button></div></div>
       <div class="srow"><div class="st"><b>${L('Time zone','منطقه زمانی')}</b></div><select id="stz">${TZS.map(z=>`<option value="${z[0]}">${z[1]}</option>`).join('')}</select></div>
@@ -1210,7 +1256,7 @@ function shell(){
   </div>
   <div id="foot" class="glass"><span>NiceTunnel · by Arsham Smok</span><span>·</span><a href="https://t.me/DarkCore_Vpn" target="_blank" rel="noopener" style="color:var(--gold)">@DarkCore_Vpn</a></div>
   </div></div>`;
-  document.querySelectorAll('.nav[data-p]').forEach(e=>e.onclick=()=>go(e.dataset.p));
+  document.querySelectorAll('.nav[data-p]').forEach(e=>e.onclick=()=>navClick(e));
   document.querySelectorAll('.seg').forEach(e=>e.onclick=()=>go(e.dataset.s));
   document.querySelectorAll('.tab').forEach(e=>e.onclick=()=>sub(e.dataset.t));
   $('#lo').onclick = logout;
@@ -1286,12 +1332,12 @@ function sub(t){
 }
 function go(p){
   if(p==='rev'||p==='spoof'){ tsel = p; p = 'tun'; }
-  page = p;
+  page = p; if(p!=='tun'&&p!=='set') closeFly();
   document.querySelectorAll('.tsec').forEach(e=>e.classList.toggle('on', e.id==='t-'+tsel));
   document.querySelectorAll('.seg').forEach(e=>e.classList.toggle('on', e.dataset.s===tsel));
   document.querySelectorAll('.page').forEach(e=>e.classList.toggle('on', e.id==='p-'+p));
   document.querySelectorAll('.nav[data-p]').forEach(e=>e.classList.toggle('on', e.dataset.p===p));
-  $('#ttl').textContent = PAGES.filter(x=>x[0]===p)[0][2];
+  $('#ttl').textContent = (p==='tun' ? L('Tunnels','تونل‌ها')+' · '+(tsel==='rev'?L('Reverse','معکوس'):L('Spoof','اسپوف')) : PAGES.filter(x=>x[0]===p)[0][2]);
   refresh();
 }
 function spark(id, arr, color){
@@ -1304,17 +1350,6 @@ function spark(id, arr, color){
 }
 function push(a,v){ a.push(v); if(a.length>60) a.shift(); }
 function bar(id,p){ $(id).style.width=Math.max(0,Math.min(100,p))+'%'; }
-function slotTable(slots, full){
-  if(!slots.length) return '<p style="color:#b8c2ee">No tunnel yet. Open Create to add one.</p>';
-  return `<table><tr><th>Slot</th><th>Kind</th><th>Side</th><th>Type:port</th><th>Other server</th><th>Source IPs</th><th>Ports</th><th>State</th>${full?'<th></th>':''}</tr>`+
-  slots.map(s => s.kind==='reverse' ? `<tr><td>${s.slot}</td><td>reverse</td><td>${esc(s.side)}</td><td>tcp:${esc(s.bridge)}</td><td>${esc(s.server_ip||'-')}</td><td>-</td>
-   <td>${s.role==='server'?'listen '+esc(s.ports):'forward '+esc(s.target_host)}</td>
-   <td class="${esc(s.state)}"><span class="dot"></span>${esc(s.state)}</td>
-   ${full?rowBtns(s.slot):''}</tr>` : `<tr><td>${s.slot}</td><td>spoof</td><td>${esc(s.side)}</td><td>${esc(s.transport)}:${esc(s.port)}</td><td>${esc(s.peer)}</td><td>${esc(s.spoof_ips)}</td>
-   <td>${s.role==='server'?'listen UDP '+esc(s.listen_port):'forward '+esc(s.forward)}</td>
-   <td class="${esc(s.state)}"><span class="dot"></span>${esc(s.state)}</td>
-   ${full?rowBtns(s.slot):''}</tr>`).join('')+'</table>';
-}
 function renderMap(st, slots){
   const el=$('#map'); if(!el) return;
   const peers={}; slots.forEach(s=>{ const ip=s.kind==='reverse'?s.server_ip:s.peer; if(!ip) return; (peers[ip]=peers[ip]||[]).push(s); });
@@ -1424,6 +1459,48 @@ document.addEventListener('input',e=>{ if(e.target.id==='lgq'){ _lgsig=''; logsP
 document.addEventListener('change',e=>{ if(e.target.id==='lgsel'){ _lgsel=e.target.value; _lgsig=''; logsPage(); } });
 document.addEventListener('click',e=>{ const b=e.target.closest&&e.target.closest('#lgl button'); if(b){ _lgl=b.dataset.l; document.querySelectorAll('#lgl button').forEach(x=>x.classList.toggle('on',x===b)); _lgsig=''; logsPage(); return; }
   if(e.target.id==='lgcopy'){ const t=$('#lgbox').innerText; try{ navigator.clipboard.writeText(t).then(()=>msg(L('Copied','کپی شد'),true)); }catch(_){} } });
+window._sp = true;
+const ICRV='<svg viewBox="0 0 24 24"><path d="M4 8h14m0 0l-3-3m3 3l-3 3M20 16H6m0 0l3-3m-3 3l3 3"/></svg>', ICSF='<svg viewBox="0 0 24 24"><path d="M12 3l8 4v5c0 4.5-3.2 7.8-8 9-4.8-1.2-8-4.5-8-9V7z"/></svg>',
+  ICNT='<svg viewBox="0 0 24 24"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>', ICDM='<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg>', ICIN='<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>';
+const SETSECS=[['sec-sec',ICSH,'Security','امنیت'],['sec-up',ICIN,'About','درباره'],['sec-net',ICNT,'Network & speed','شبکه و سرعت'],['sec-dom',ICDM,'Domain & SSL','دامنه و SSL'],['sec-tg',ICTG,'Telegram','تلگرام'],['sec-time',ICUS,'Date & time','تاریخ و ساعت'],['sec-backup',ICBK,'Backup','پشتیبان'],['sec-app',ICAP,'Appearance','ظاهر']];
+function flyItems(p){
+  if(p==='tun') return [['rev',ICRV,L('Reverse tunnel','تونل معکوس'),tsel==='rev'],['spoof',ICSF,L('Spoof tunnel','تونل اسپوف'),tsel==='spoof']];
+  const a=((document.querySelector('#setnav .nav.on')||{}).dataset||{}).anchor||'sec-sec';
+  return SETSECS.map(x=>[x[0],x[1],L(x[2],x[3]),x[0]===a]);
+}
+function openFly(el,p){
+  const f=$('#fly'); if(!f) return;
+  f.dataset.p=p;
+  f.innerHTML=`<div class="fh">${p==='tun'?L('Tunnel type','نوع تونل'):L('Settings sections','بخش‌های تنظیمات')}</div>`+flyItems(p).map(x=>`<button data-k="${x[0]}" class="${x[3]?'on':''}">${x[1]}<span>${x[2]}</span></button>`).join('');
+  const r=el.getBoundingClientRect(), sr=$('#side').getBoundingClientRect(), rtl=getComputedStyle($('#shell')).direction==='rtl';
+  f.classList.add('on');
+  const h=f.offsetHeight; f.style.top=Math.max(8,Math.min(r.top,innerHeight-h-8))+'px';
+  if(rtl){ f.style.right=(innerWidth-sr.left+8)+'px'; f.style.left='auto'; } else { f.style.left=(sr.right+8)+'px'; f.style.right='auto'; }
+}
+function closeFly(){ const f=$('#fly'); if(f) f.classList.remove('on'); }
+function navClick(el){
+  const p=el.dataset.p;
+  if(p==='tun'||p==='set'){ const f=$('#fly'), same=f.classList.contains('on')&&f.dataset.p===p; if(page!==p) go(p); if(same) closeFly(); else openFly(el,p); }
+  else { closeFly(); go(p); }
+}
+document.addEventListener('click',e=>{
+  const f=$('#fly'); if(!f||!e.target.closest) return;
+  const b=e.target.closest('#fly button[data-k]');
+  if(b){ const p=f.dataset.p,k=b.dataset.k; closeFly(); if(p==='tun') go(k); else { const el=document.getElementById(k); if(el) el.scrollIntoView({behavior:'smooth',block:'start'}); } return; }
+  if(f.classList.contains('on') && !e.target.closest('#fly') && !e.target.closest('.nav[data-p="tun"]') && !e.target.closest('.nav[data-p="set"]')) closeFly();
+});
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeFly(); });
+function ntLogo(s){ return '<svg viewBox="0 0 64 64" width="'+s+'" height="'+s+'"><defs><linearGradient id="ntsp" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fde68a"/><stop offset="1" stop-color="#d97706"/></linearGradient></defs><rect x="2" y="2" width="60" height="60" rx="16" fill="#0b1226" stroke="url(#ntsp)" stroke-width="2.5"/><path d="M12 52V32a20 20 0 0 1 40 0v20" fill="none" stroke="url(#ntsp)" stroke-width="4" stroke-linecap="round"/><path d="M20 52V33a12 12 0 0 1 24 0v19" fill="none" stroke="url(#ntsp)" stroke-width="3" stroke-linecap="round" opacity=".7"/><path d="M27 52V34a5 5 0 0 1 10 0v18z" fill="url(#ntsp)" opacity=".9"/><path d="M6 52h52" stroke="url(#ntsp)" stroke-width="3" stroke-linecap="round"/></svg>'; }
+function splash(){
+  if(document.getElementById('splash')) return;
+  const d=document.createElement('div'); d.id='splash'; d.innerHTML='<div class="sl">'+ntLogo(96)+'</div><b>NiceTunnel</b><i></i>';
+  document.body.appendChild(d); setTimeout(()=>d.classList.add('out'),1000); setTimeout(()=>d.remove(),1550);
+}
+function slotBtns(n){ return `<button class="sm ok" onclick="act(${n},'start')">${L('Connect','اتصال')}</button><button class="sm" onclick="act(${n},'restart')">${L('Restart','ری‌استارت')}</button><button class="sm" onclick="act(${n},'stop')">${L('Stop','توقف')}</button><button class="sm" onclick="logs(${n})">${L('Logs','لاگ')}</button><button class="sm danger" onclick="del(${n})">${L('Delete','حذف')}</button>`; }
+function slotTable(slots, full){
+  if(!slots.length) return `<div class="dempty">${L('No tunnel yet. Open Create to add one.','هنوز تونلی نیست. از بخش ساخت یکی بسازید.')}</div>`;
+  return '<div class="tcards">'+slots.map(s=>`<div class="tcard"><div class="tch"><i class="tb ${stCls(s.state)}"></i><div class="tm"><b>#${s.slot} · ${esc(peerOf(s))}<em class="tg">${esc(s.side)}</em></b><span>${esc(slotDetail(s))}</span></div><div class="tp ${stCls(s.state)}">${stTxt(s.state)}</div></div>${full?`<div class="tact">${slotBtns(s.slot)}</div>`:''}</div>`).join('')+'</div>';
+}
 function rowBtns(n){ return `<td><button class="sm ok" onclick="act(${n},'start')">Connect</button><button class="sm" onclick="act(${n},'restart')">Restart</button><button class="sm" onclick="act(${n},'stop')">Stop</button><button class="sm" onclick="logs(${n})">Logs</button><button class="sm danger" onclick="del(${n})">Delete</button></td>`; }
 async function refresh(){
   try {
@@ -1471,7 +1548,7 @@ async function load(){
   clearInterval(timer);
   try { state = await api('/api/state');
     if(!state.logged){ loginView(); return; }
-    shell(); go(page); timer = setInterval(()=>{ refresh(); if(page==='tun' && tsel==='spoof' && cur==='mon') monitor(); }, 3000);
+    shell(); go(page); if(window._sp){ window._sp=false; splash(); } timer = setInterval(()=>{ refresh(); if(page==='tun' && tsel==='spoof' && cur==='mon') monitor(); }, 3000);
   } catch(e){ loginView(); msg(e.message,false); }
 }
 async function act(n, a){ try { const r = await api(`/api/slot/${n}/${a}`, {}); msg(`Tunnel ${n}: ${r.state}`, true); refresh(); } catch(e){ msg(e.message,false);} }
@@ -2542,6 +2619,8 @@ def domain_apply(domain, email):
     conf["host"], conf["scheme"] = domain, "https"
     save_panel_conf(conf)
     port = int(conf.get("port", 0))
+    if not (1 <= port <= 65535):
+        return None, "panel port is not configured"
     target = os.path.join(APP_DIR, "nicetunnel_panel.py")
     unit = (
         "[Unit]\nDescription=NiceTunnel Spoof Panel\nAfter=network-online.target\n"
