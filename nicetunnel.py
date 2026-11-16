@@ -37,6 +37,8 @@ import argparse
 import asyncio
 import collections
 import ctypes
+import ctypes.util
+import errno
 import functools
 import hashlib
 import hmac
@@ -57,7 +59,7 @@ import subprocess
 import sys
 import time
 
-VERSION = "1.3.1"
+VERSION = "1.3.2"
 log = logging.getLogger("nicetunnel")
 
 HANDSHAKE_TIMEOUT = 10   # seconds to finish an auth handshake
@@ -680,6 +682,75 @@ class Wire:
         return mtype, session, payload
 
 
+# -- batched raw send (sendmmsg) --------------------------------------------
+# Optional fast path: one syscall for many packets instead of one sendto() per
+# packet. Linux-only libc call; falls back cleanly to the plain per-packet
+# loop if the symbol isn't there or anything about the call misbehaves.
+try:
+    _libc = ctypes.CDLL(ctypes.util.find_library("c") or "libc.so.6", use_errno=True)
+
+    class _IOVec(ctypes.Structure):
+        _fields_ = [("iov_base", ctypes.c_void_p), ("iov_len", ctypes.c_size_t)]
+
+    class _MsgHdr(ctypes.Structure):
+        _fields_ = [
+            ("msg_name", ctypes.c_void_p),
+            ("msg_namelen", ctypes.c_uint32),
+            ("msg_iov", ctypes.POINTER(_IOVec)),
+            ("msg_iovlen", ctypes.c_size_t),
+            ("msg_control", ctypes.c_void_p),
+            ("msg_controllen", ctypes.c_size_t),
+            ("msg_flags", ctypes.c_int),
+        ]
+
+    class _MMsgHdr(ctypes.Structure):
+        _fields_ = [("msg_hdr", _MsgHdr), ("msg_len", ctypes.c_uint32)]
+
+    class _SockAddrIn(ctypes.Structure):
+        # sin_addr is the 4 raw address bytes, copied in verbatim below - NOT
+        # a number, so there is no byte-order conversion to get wrong here.
+        _fields_ = [
+            ("sin_family", ctypes.c_ushort),
+            ("sin_port", ctypes.c_ushort),
+            ("sin_addr", ctypes.c_ubyte * 4),
+            ("sin_zero", ctypes.c_byte * 8),
+        ]
+
+    _libc.sendmmsg.argtypes = [ctypes.c_int, ctypes.POINTER(_MMsgHdr), ctypes.c_uint, ctypes.c_uint]
+    _libc.sendmmsg.restype = ctypes.c_int
+    HAVE_SENDMMSG = True
+except (OSError, AttributeError, ValueError):
+    HAVE_SENDMMSG = False
+
+
+def sendmmsg_raw(fd, dest_ip_packed, packets):
+    """Send a list of already-built IPv4 packets (bytes) in ONE syscall via the
+    raw libc sendmmsg(). Returns how many the kernel actually accepted (a
+    partial send is normal under backpressure, same as a dropped sendto())."""
+    n = len(packets)
+    if n == 0:
+        return 0
+    addr = _SockAddrIn(sin_family=socket.AF_INET, sin_port=0,
+                        sin_addr=(ctypes.c_ubyte * 4)(*dest_ip_packed))
+    bufs = [ctypes.create_string_buffer(p) for p in packets]   # kept alive below
+    iovecs = (_IOVec * n)()
+    msgs = (_MMsgHdr * n)()
+    for i in range(n):
+        iovecs[i].iov_base = ctypes.cast(bufs[i], ctypes.c_void_p)
+        iovecs[i].iov_len = len(packets[i])
+        msgs[i].msg_hdr.msg_name = ctypes.cast(ctypes.byref(addr), ctypes.c_void_p)
+        msgs[i].msg_hdr.msg_namelen = ctypes.sizeof(addr)
+        msgs[i].msg_hdr.msg_iov = ctypes.cast(ctypes.byref(iovecs[i]), ctypes.POINTER(_IOVec))
+        msgs[i].msg_hdr.msg_iovlen = 1
+    sent = _libc.sendmmsg(fd, msgs, n, 0)
+    if sent < 0:
+        err = ctypes.get_errno()
+        if err in (errno.EAGAIN, errno.EWOULDBLOCK, errno.EINTR):
+            return 0
+        raise OSError(err, os.strerror(err))
+    return sent
+
+
 class RawSender:
     """Sends hand-built IPv4 packets to one peer with a rotating source address."""
 
@@ -713,6 +784,45 @@ class RawSender:
         except OSError as exc:
             if self.errors.ok():
                 log.warning("cannot send to %s: %s", self.peer, exc)
+
+    def send_many(self, payloads):
+        """Send several already-sealed wire payloads in as few syscalls as
+        possible: one sendmmsg() for the whole batch instead of one sendto()
+        per packet. Still rotates the spoofed source and bumps the per-packet
+        seq exactly like send() would, one time each. Falls back to the plain
+        per-packet loop (still correct, just slower) on any problem - and, if
+        the ctypes call itself ever misbehaves, disables the fast path for
+        good rather than risk losing packets silently to a packing bug."""
+        global HAVE_SENDMMSG
+        if not payloads:
+            return
+        if not HAVE_SENDMMSG or not self.spoofs:
+            for p in payloads:
+                self.send(p)
+            return
+        pkts = []
+        for payload in payloads:
+            src = self.spoofs[self.i]
+            self.i = (self.i + 1) % len(self.spoofs)
+            self.seq += 1
+            pkts.append(build_packet(self.transport, src, self.dst, self.sport, self.dport,
+                                      payload, self.icmp_type, self.ident, self.seq, self.tcp_flags))
+        try:
+            sendmmsg_raw(self.sock.fileno(), self.dst, pkts)
+        except (BlockingIOError, InterruptedError):
+            pass                                  # send buffer full: drop, like any UDP path
+        except OSError as exc:
+            if self.errors.ok():
+                log.warning("cannot send to %s: %s", self.peer, exc)
+        except Exception as exc:
+            HAVE_SENDMMSG = False
+            if self.errors.ok():
+                log.warning("batched send broke (%s), falling back to one-by-one", exc)
+            for pkt in pkts:                      # already built - just push them out one at a time
+                try:
+                    self.sock.sendto(pkt, (self.peer, 0))
+                except (BlockingIOError, InterruptedError, OSError):
+                    pass
 
     def close(self):
         self.sock.close()
@@ -1003,13 +1113,14 @@ class SpoofEntry(SpoofNode):
         super().close()
 
     def on_local(self):
+        batch, nbytes = [], 0
         for _ in range(256):
             try:
                 data, addr = self.local.recvfrom(65535)
             except (BlockingIOError, InterruptedError):
-                return
+                break
             except OSError:
-                return
+                break
             if self.too_big(data):
                 continue
             s = self.by_addr.get(addr)
@@ -1022,7 +1133,12 @@ class SpoofEntry(SpoofNode):
                 s = self.by_addr[addr] = self.by_id[sid] = Sess(sid, addr=addr)
                 log.debug("new session %08x from %s:%d", sid, addr[0], addr[1])
             s.last = time.monotonic()
-            self.send_msg(T_DATA, s.sid, data)
+            batch.append(self.wire.seal(T_DATA, s.sid, data))
+            nbytes += len(data)
+        if batch:
+            self.sender.send_many(batch)
+            self.sent += len(batch)
+            self.bytes_sent += nbytes
 
     def on_message(self, mtype, sid, payload):
         if mtype == T_DATA:
@@ -1126,17 +1242,23 @@ class SpoofExit(SpoofNode):
                 pass                                     # target not listening yet
 
     def on_target(self, s):
+        batch, nbytes = [], 0
         for _ in range(256):
             try:
                 data = s.sock.recv(65535)
             except (BlockingIOError, InterruptedError):
-                return
+                break
             except OSError:
-                return                                   # ICMP "refused" from the target
+                break                                     # ICMP "refused" from the target
             if self.too_big(data):
                 continue
             s.last = time.monotonic()
-            self.send_msg(T_DATA, s.sid, data)
+            batch.append(self.wire.seal(T_DATA, s.sid, data))
+            nbytes += len(data)
+        if batch:
+            self.sender.send_many(batch)
+            self.sent += len(batch)
+            self.bytes_sent += nbytes
 
     def tick(self, now):
         for sid, s in list(self.sessions.items()):
