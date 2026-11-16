@@ -911,6 +911,28 @@ html body .lgseg button.on{background:#10233f!important;color:#f4d58a}
 .sset input[type=checkbox]:checked{background:var(--gold);border-color:var(--gold)}
 .sset input[type=checkbox]:checked::after{inset-inline-start:18px;background:#1a1405}
 .sset label{display:inline-flex;align-items:center;gap:7px;font-size:13px;color:#c9d2ff;cursor:pointer}
+
+/* v13: network tuning */
+.nhint{color:var(--tx2);font-size:12.5px;line-height:1.9;margin:2px 0 14px}
+.nbadge{font-size:11px;font-weight:600;padding:3px 10px;border-radius:999px;margin-inline-start:8px;vertical-align:middle;background:rgba(255,255,255,.07);color:var(--tx2);border:1px solid rgba(255,255,255,.1)}
+.nbadge.on{background:rgba(52,208,195,.12);color:#34d0c3;border-color:rgba(52,208,195,.35)}
+.nprof{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.pcard{cursor:pointer;padding:14px 15px;border-radius:14px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.03);transition:.18s;position:relative}
+.pcard:hover{border-color:rgba(250,204,21,.4);transform:translateY(-1px)}
+.pcard.sel{border-color:var(--gold);background:linear-gradient(160deg,rgba(250,204,21,.12),rgba(250,204,21,.02));box-shadow:0 8px 24px rgba(250,204,21,.08)}
+.pcard b{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--tx)}
+.pcard p{margin:6px 0 0;font-size:12px;line-height:1.8;color:var(--tx2)}
+.pcard .pa{font-size:10px;padding:2px 8px;border-radius:999px;background:rgba(52,208,195,.14);color:#34d0c3}
+.ntable{border:1px solid rgba(255,255,255,.08);border-radius:12px;overflow:hidden;margin-bottom:14px}
+.nrow{display:grid;grid-template-columns:1.6fr 1fr 1fr;gap:8px;padding:9px 14px;font-size:12px;align-items:center;border-top:1px solid rgba(255,255,255,.05)}
+.nrow:first-child{border-top:0;background:rgba(255,255,255,.04);color:var(--tx2);font-weight:600}
+.nrow code{direction:ltr;text-align:start;font-size:11.5px;color:var(--tx);overflow-wrap:anywhere}
+.nrow .nv{direction:ltr;text-align:start;display:flex;align-items:center;gap:7px;color:var(--tx2);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.nrow .nv i{width:7px;height:7px;border-radius:50%;flex:none;background:#6b7280}
+.nrow .nv.ok i{background:#34d0c3;box-shadow:0 0 8px #34d0c3}
+.nact{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.nkern{margin-inline-start:auto;font-size:11px;color:var(--tx2);direction:ltr}
+@media(max-width:560px){.nprof{grid-template-columns:1fr}.nrow{grid-template-columns:1fr 1fr}.nrow code{grid-column:1/-1}}
 </style>
 <body>
 <div id="bg"></div><div id="grid"></div>
@@ -1096,6 +1118,7 @@ function shell(){
     <div class="set-nav" id="setnav">
       <div class="nav" data-anchor="sec-sec"><i>${ICSH}</i><span>${L('Security','امنیت')}</span></div>
       <div class="nav" data-anchor="sec-up"><i>${IC.set}</i><span>${L('Update','به‌روزرسانی')}</span></div>
+      <div class="nav" data-anchor="sec-net"><i><svg viewBox="0 0 24 24"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg></i><span>${L('Network & speed','شبکه و سرعت')}</span></div>
       <div class="nav" data-anchor="sec-tg"><i>${ICTG}</i><span>${L('Telegram','تلگرام')}</span></div>
       <div class="nav" data-anchor="sec-usage"><i>${ICUS}</i><span>${L('Usage','مصرف')}</span></div>
       <div class="nav" data-anchor="sec-backup"><i>${ICBK}</i><span>${L('Backup','پشتیبان')}</span></div>
@@ -1116,6 +1139,12 @@ function shell(){
       <div class="srow"><div class="st"><b>${L('Installed','نصب‌شده')}</b><p>NiceTunnel Panel</p></div><code class="scode">v1.4.0</code></div>
       <div class="srow"><div class="st"><b>${L('Panel address','آدرس پنل')}</b><p>${L('Secret path of this panel. Keep it private.','مسیر مخفی این پنل. آن را محرمانه نگه دارید.')}</p></div><code id="sinfo" class="scode"></code></div>
       <div class="srow"><div class="st"><b>${L('Creator','سازنده')}</b><p>Arsham Smok · آرشام اسموک</p></div></div>
+    </div>
+    <div class="sec glass sset" id="sec-net"><h2>${L('Network & speed','شبکه و سرعت')} <span class="nbadge" id="nbadge"></span></h2>
+      <p class="nhint">${L('Tunes the Linux network stack (BBR, fq, big buffers) for faster, steadier transfers on long or lossy routes. Reversible at any time.','پشته‌ی شبکه‌ی لینوکس (BBR، fq، بافرهای بزرگ) را برای انتقال سریع‌تر و پایدارتر روی مسیرهای دور یا پرافت تنظیم می‌کند. هر لحظه قابل برگشت است.')}</p>
+      <div class="nprof" id="nprof"></div>
+      <div class="ntable" id="ntable"></div>
+      <div class="nact"><button class="ok" id="napply">${L('Apply profile','اعمال پروفایل')}</button> <button id="nrevert">${L('Restore defaults','بازگشت به پیش‌فرض')}</button> <span class="nkern" id="nkern"></span></div>
     </div>
     <div class="sec glass sset" id="sec-tg"><h2>${L('Telegram bot','ربات تلگرام')}</h2>
       <div class="srow"><div class="st"><b>${L('Bot token','توکن ربات')}</b><p id="tgcur">${L('Get it from @BotFather.','از @BotFather بگیرید.')}</p></div><input id="tgtok" dir="ltr" placeholder="123456:ABC..." autocomplete="off"></div>
@@ -1162,8 +1191,29 @@ function shell(){
   document.documentElement.classList.toggle('lowmo',localStorage.getItem('nt_motion')==='low');
   setupSetNav();
   setExtras();
+  netTune();
   $('#tmode').onchange = tmodeView; $('#tstart').onclick = tstart; $('#tref').onclick = tstatus;
   if(lang==='fa') tr($('#app'));
+}
+
+async function netTune(){
+  let T; try{ T=await api('/api/tune'); }catch(e){ return; }
+  let sel=T.active||'balanced';
+  const names={balanced:[L('Balanced','متعادل'),L('Safe for every server. Larger buffers, BBR and fq.','امن برای همه‌ی سرورها. بافر بزرگ‌تر، BBR و fq.')],
+               turbo:[L('Turbo','توربو'),L('Maximum throughput for fast, distant links. Needs more RAM.','حداکثر توان عملیاتی برای لینک‌های سریع و دور. رم بیشتری مصرف می‌کند.')]};
+  const draw=()=>{
+    $('#nprof').innerHTML=Object.keys(names).map(k=>`<div class="pcard${k===sel?' sel':''}" data-k="${k}"><b>${k==='turbo'?'⚡':'🌿'} ${names[k][0]}${T.active===k?` <span class="pa">${L('Active','فعال')}</span>`:''}</b><p>${names[k][1]}</p></div>`).join('');
+    $('#nprof').querySelectorAll('.pcard').forEach(c=>c.onclick=()=>{sel=c.dataset.k;draw();});
+    const rows=T.profiles[sel]||[];
+    $('#ntable').innerHTML=`<div class="nrow"><span>${L('Setting','تنظیم')}</span><span>${L('Recommended','پیشنهادی')}</span><span>${L('Current','فعلی')}</span></div>`+
+      rows.map(r=>`<div class="nrow"><code>${esc(r.key)}</code><span class="nv">${esc(r.want)}</span><span class="nv${r.ok?' ok':''}"><i></i>${esc(r.cur)}</span></div>`).join('');
+    const b=$('#nbadge'); b.textContent=T.active?(L('Active: ','فعال: ')+names[T.active][0]):L('Default','پیش‌فرض'); b.classList.toggle('on',!!T.active);
+    $('#nkern').textContent='Linux '+T.kernel+' · '+(T.avail.join(', ')||'-');
+  };
+  draw();
+  const reload=async()=>{ T=await api('/api/tune'); sel=T.active||sel; draw(); };
+  $('#napply').onclick=async()=>{ const b=$('#napply'); b.disabled=true; try{ await api('/api/tune/apply',{profile:sel}); await reload(); alert(L('Applied and saved (survives reboot).','اعمال و ذخیره شد (بعد از ریبوت هم می‌ماند).')); }catch(e){ alert(e.message); } b.disabled=false; };
+  $('#nrevert').onclick=async()=>{ if(!confirm(L('Restore previous network values?','مقادیر قبلی شبکه برگردانده شود؟'))) return; try{ await api('/api/tune/revert',{}); await reload(); }catch(e){ alert(e.message); } };
 }
 function setupSetNav(){
   const links = [...document.querySelectorAll('#setnav .nav[data-anchor]')];
@@ -1682,6 +1732,123 @@ def restore_backup(d, with_panel=False):
     return n_ok
 
 
+# --------------------------------------------------------------------------
+# network speed tuning (sysctl profiles)
+# --------------------------------------------------------------------------
+TUNE_FILE = "/etc/sysctl.d/99-nicetunnel.conf"
+TUNE_MOD = "/etc/modules-load.d/nicetunnel.conf"
+TUNE_PREV = os.path.join(CONF_DIR, "sysctl-prev.json")
+_BASE_TUNE = [
+    ("net.core.default_qdisc", "fq"),
+    ("net.ipv4.tcp_congestion_control", "bbr"),
+    ("net.ipv4.tcp_fastopen", "3"),
+    ("net.ipv4.tcp_mtu_probing", "1"),
+    ("net.ipv4.tcp_slow_start_after_idle", "0"),
+    ("net.ipv4.tcp_no_metrics_save", "1"),
+]
+TUNE_PROFILES = {
+    "balanced": _BASE_TUNE + [
+        ("net.core.rmem_max", "33554432"), ("net.core.wmem_max", "33554432"),
+        ("net.core.rmem_default", "1048576"), ("net.core.wmem_default", "1048576"),
+        ("net.ipv4.tcp_rmem", "4096 131072 33554432"), ("net.ipv4.tcp_wmem", "4096 65536 33554432"),
+        ("net.core.netdev_max_backlog", "16384"), ("net.core.somaxconn", "4096"),
+        ("net.ipv4.tcp_notsent_lowat", "131072"),
+    ],
+    "turbo": _BASE_TUNE + [
+        ("net.core.rmem_max", "67108864"), ("net.core.wmem_max", "67108864"),
+        ("net.core.rmem_default", "4194304"), ("net.core.wmem_default", "4194304"),
+        ("net.ipv4.tcp_rmem", "4096 262144 67108864"), ("net.ipv4.tcp_wmem", "4096 131072 67108864"),
+        ("net.core.netdev_max_backlog", "32768"), ("net.core.somaxconn", "8192"),
+        ("net.core.netdev_budget", "600"), ("net.ipv4.tcp_notsent_lowat", "131072"),
+        ("net.ipv4.udp_rmem_min", "16384"), ("net.ipv4.udp_wmem_min", "16384"),
+        ("net.ipv4.tcp_fin_timeout", "15"),
+    ],
+}
+
+
+def sysctl_get(key):
+    try:
+        with open("/proc/sys/" + key.replace(".", "/")) as f:
+            return " ".join(f.read().split())
+    except Exception:
+        return None
+
+
+def tune_state():
+    try:
+        avail = open("/proc/sys/net/ipv4/tcp_available_congestion_control").read().split()
+    except Exception:
+        avail = []
+    profiles = {}
+    active = None
+    for name, items in TUNE_PROFILES.items():
+        rows = []
+        for k, v in items:
+            cur = sysctl_get(k)
+            if cur is None:
+                continue
+            rows.append({"key": k, "want": v, "cur": cur, "ok": cur == v})
+        profiles[name] = rows
+        if rows and all(r["ok"] for r in rows):
+            active = name
+    return {"profiles": profiles, "active": active, "avail": avail, "bbr": "bbr" in avail or os.path.exists("/lib/modules"),
+            "saved": os.path.exists(TUNE_FILE), "kernel": os.uname().release}
+
+
+def tune_apply(name):
+    items = TUNE_PROFILES.get(name)
+    if not items:
+        return False, "unknown profile"
+    run(["modprobe", "tcp_bbr"])
+    run(["modprobe", "sch_fq"])
+    avail = sysctl_get("net.ipv4.tcp_available_congestion_control") or ""
+    prev = {}
+    if os.path.exists(TUNE_PREV):
+        try:
+            prev = json.load(open(TUNE_PREV))
+        except Exception:
+            prev = {}
+    lines = ["# NiceTunnel speed profile: " + name]
+    applied = 0
+    for k, v in items:
+        if sysctl_get(k) is None:
+            continue
+        if k == "net.ipv4.tcp_congestion_control" and "bbr" not in avail.split():
+            continue
+        prev.setdefault(k, sysctl_get(k))
+        rc, _ = run(["sysctl", "-w", "%s=%s" % (k, v)])
+        if rc == 0:
+            lines.append("%s = %s" % (k, v))
+            applied += 1
+    try:
+        os.makedirs(CONF_DIR, exist_ok=True)
+        json.dump(prev, open(TUNE_PREV, "w"))
+        os.makedirs(os.path.dirname(TUNE_FILE), exist_ok=True)
+        open(TUNE_FILE, "w").write("\n".join(lines) + "\n")
+        os.makedirs(os.path.dirname(TUNE_MOD), exist_ok=True)
+        open(TUNE_MOD, "w").write("tcp_bbr\nsch_fq\n")
+    except Exception as exc:
+        return False, str(exc)
+    return True, applied
+
+
+def tune_revert():
+    prev = {}
+    try:
+        prev = json.load(open(TUNE_PREV))
+    except Exception:
+        pass
+    for k, v in prev.items():
+        if v is not None:
+            run(["sysctl", "-w", "%s=%s" % (k, v)])
+    for f in (TUNE_FILE, TUNE_MOD, TUNE_PREV):
+        try:
+            os.remove(f)
+        except OSError:
+            pass
+    return True
+
+
 def background_loop():
     last = {}
     first = True
@@ -1862,6 +2029,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return self.send_json({"has": bool(t), "masked": (t[:4] + "…" + t[-4:]) if t else "", "chat": tg.get("chat", ""),
                                    "api": tg.get("api", ""), "on": tg.get("on", True),
                                    "events": tg.get("events", ["tunnel", "login", "backup"])})
+        if path == "/api/tune":
+            if not self.require_login():
+                return
+            return self.send_json(tune_state())
         if path == "/api/backups":
             if not self.require_login():
                 return
@@ -2080,6 +2251,16 @@ class Handler(http.server.BaseHTTPRequestHandler):
             conf = load_panel_conf()
             conf.pop("tg", None)
             save_panel_conf(conf)
+            return self.send_json({"ok": True})
+
+        if path == "/api/tune/apply":
+            if os.geteuid() != 0:
+                return self.send_json({"error": "root required"}, 403)
+            ok, info = tune_apply(str(body.get("profile", "")))
+            return self.send_json({"ok": ok, "detail": info} if ok else {"error": str(info)}, 200 if ok else 400)
+
+        if path == "/api/tune/revert":
+            tune_revert()
             return self.send_json({"ok": True})
 
         if path == "/api/backup/create":
