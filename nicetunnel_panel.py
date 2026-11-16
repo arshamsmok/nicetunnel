@@ -957,8 +957,8 @@ html body .lgseg button.on{background:#10233f!important;color:#f4d58a}
 #p-set .segm{padding:3px;border-radius:12px;background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.1)}
 #p-set .segm button{min-height:32px;padding:0 16px;border-radius:9px!important;background:transparent!important;border:0!important;color:var(--tx2)!important;font-size:12.5px}
 #p-set .segm button.on{background:linear-gradient(180deg,var(--gold2),var(--gold))!important;color:#1b1303!important;font-weight:700;box-shadow:0 2px 8px rgba(233,196,106,.25)!important}
-#p-set .srow input,#p-set .srow select{height:40px;border-radius:11px!important;font-size:13px;background:rgba(0,0,0,.25)!important;border:1px solid var(--ln)!important;color:var(--tx)}
-#p-set .srow input:focus,#p-set .srow select:focus{border-color:var(--gold)!important;box-shadow:0 0 0 3px rgba(233,196,106,.14)}
+#p-set .srow input:not([type=checkbox]):not([type=radio]):not([type=file]),#p-set .srow select{height:40px;border-radius:11px!important;font-size:13px;background:rgba(0,0,0,.25)!important;border:1px solid var(--ln)!important;color:var(--tx)}
+#p-set .srow input:not([type=checkbox]):focus,#p-set .srow select:focus{border-color:var(--gold)!important;box-shadow:0 0 0 3px rgba(233,196,106,.14)}
 #p-set .scode{background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:8px 12px}
 #p-set .nkern{unicode-bidi:isolate;direction:ltr;text-align:end;opacity:.7}
 @media(max-width:560px){#p-set .sset{padding:2px 16px 8px}#p-set .srow{flex-direction:column;align-items:stretch}#p-set .srow>button,#p-set .srow>.segm{align-self:flex-start}}
@@ -1175,6 +1175,12 @@ function shell(){
       <div class="ntable" id="ntable"></div>
       <div class="nact"><button class="ok" id="napply">${L('Apply profile','اعمال پروفایل')}</button> <button id="nrevert">${L('Restore defaults','بازگشت به پیش‌فرض')}</button> <span class="nkern" id="nkern"></span></div>
     </div>
+    <div class="sec glass sset" id="sec-dom"><h2>${L('Domain & SSL','دامنه و SSL')}</h2>
+      <p class="nhint" id="domcur"></p>
+      <div class="srow"><div class="st"><b>${L('Domain','دامنه')}</b><p>${L('Add an A record for it pointing to this server first.','ابتدا یک A رکورد برای آن به IP همین سرور بسازید.')}</p></div><input id="domname" dir="ltr" placeholder="panel.example.com" autocomplete="off"></div>
+      <div class="srow"><div class="st"><b>${L('Email','ایمیل')}</b><p>${L('Optional, for certificate expiry notices.','اختیاری، برای اطلاع از انقضای گواهی.')}</p></div><input id="domemail" dir="ltr" placeholder="you@example.com" autocomplete="off"></div>
+      <div class="nact"><button class="ok" id="domgo">${L('Get SSL & switch','دریافت SSL و فعال‌سازی')}</button></div>
+    </div>
     <div class="sec glass sset" id="sec-tg"><h2>${L('Telegram bot','ربات تلگرام')}</h2>
       <div class="srow"><div class="st"><b>${L('Bot token','توکن ربات')}</b><p id="tgcur">${L('Get it from @BotFather.','از @BotFather بگیرید.')}</p></div><input id="tgtok" dir="ltr" placeholder="123456:ABC..." autocomplete="off"></div>
       <div class="srow"><div class="st"><b>Chat ID</b><p>${L('Your numeric ID (from @userinfobot) or a group ID.','آیدی عددی شما (از @userinfobot) یا گروه.')}</p></div><input id="tgchat" dir="ltr"></div>
@@ -1220,9 +1226,25 @@ function shell(){
   document.documentElement.classList.toggle('lowmo',localStorage.getItem('nt_motion')==='low');
   setupSetNav();
   setExtras();
-  netTune();
+  netTune(); domainSet();
   $('#tmode').onchange = tmodeView; $('#tstart').onclick = tstart; $('#tref').onclick = tstatus;
   if(lang==='fa') tr($('#app'));
+}
+
+async function domainSet(){
+  let D; try{ D=await api('/api/domain'); }catch(e){ return; }
+  const cur=$('#domcur');
+  cur.textContent=L('Server IP','آی‌پی سرور')+': '+D.ip+' — '+L('open as','آدرس فعلی')+': '+D.scheme+'://'+D.host;
+  cur.style.direction='ltr'; cur.style.unicodeBidi='isolate';
+  $('#domgo').onclick=async()=>{
+    const d=$('#domname').value.trim(); if(!d) return msg(L('Enter a domain','دامنه را وارد کنید'));
+    $('#domgo').disabled=true; msg(L('Requesting certificate, please wait…','در حال دریافت گواهی، کمی صبر کنید…'),true);
+    try{ const r=await api('/api/domain/apply',{domain:d,email:$('#domemail').value.trim()});
+      msg(L('Done. The panel restarts; open: ','انجام شد. پنل ری‌استارت می‌شود؛ آدرس جدید: ')+r.url,true);
+      setTimeout(()=>{ location.href=r.url; },4000);
+    }catch(e){ msg(e.message||String(e)); }
+    $('#domgo').disabled=false;
+  };
 }
 
 async function netTune(){
@@ -2062,6 +2084,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
             if not self.require_login():
                 return
             return self.send_json(tune_state())
+        if path == "/api/domain":
+            if not self.require_login():
+                return
+            return self.send_json(domain_state())
         if path == "/api/backups":
             if not self.require_login():
                 return
@@ -2186,6 +2212,14 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
         if not self.require_login():
             return
+
+        if path == "/api/domain/apply":
+            if os.geteuid() != 0:
+                return self.send_json({"error": "panel must run as root"}, 403)
+            url, err = domain_apply(body.get("domain"), body.get("email"))
+            if err:
+                return self.send_json({"error": err}, 400)
+            return self.send_json({"ok": True, "url": url})
 
         if path in ("/api/test/recv", "/api/test/send"):
             kind = path.rsplit("/", 1)[1]
@@ -2460,6 +2494,66 @@ def make_self_signed(host, cert, key):
         return False
     os.chmod(key, 0o600)
     return True
+
+
+DOMAIN_RE = re.compile(r"^(?=.{4,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$")
+
+
+def domain_state():
+    c = load_panel_conf()
+    host = c.get("host", "")
+    return {"host": host, "scheme": c.get("scheme", "https"), "ip": public_ip_detect(),
+            "is_domain": bool(DOMAIN_RE.match(host)), "port": c.get("port"), "base": c.get("base", ""),
+            "root": os.geteuid() == 0}
+
+
+def domain_apply(domain, email):
+    """Issues a Let's Encrypt cert for the domain and switches the panel service to it."""
+    domain = (domain or "").strip().lower()
+    email = (email or "").strip()
+    if not DOMAIN_RE.match(domain):
+        return None, "invalid domain name"
+    if email and not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email):
+        return None, "invalid email"
+    try:
+        ips = {a[4][0] for a in socket.getaddrinfo(domain, None, socket.AF_INET)}
+    except OSError:
+        return None, "domain does not resolve yet; add an A record pointing to this server"
+    ip = public_ip_detect()
+    if ip and ip not in ips:
+        return None, "domain points to %s, but this server is %s" % (", ".join(sorted(ips)), ip)
+    if not shutil.which("certbot"):
+        run(["sh", "-c", "apt-get update -qq && apt-get install -y -qq certbot"], timeout=300)
+        if not shutil.which("certbot"):
+            return None, "could not install certbot"
+    cmd = ["certbot", "certonly", "--standalone", "-d", domain, "--non-interactive", "--agree-tos"]
+    cmd += ["-m", email] if email else ["--register-unsafely-without-email"]
+    rc, out = run(cmd, timeout=180)
+    if rc != 0:
+        return None, "certbot failed (port 80 must be free and open): " + out[-400:]
+    cert = "/etc/letsencrypt/live/%s/fullchain.pem" % domain
+    key = "/etc/letsencrypt/live/%s/privkey.pem" % domain
+    hook_dir = "/etc/letsencrypt/renewal-hooks/deploy"
+    os.makedirs(hook_dir, exist_ok=True)
+    with open(hook_dir + "/nicetunnel-panel.sh", "w") as f:
+        f.write("#!/bin/sh\nsystemctl restart nicetunnel-panel\n")
+    os.chmod(hook_dir + "/nicetunnel-panel.sh", 0o755)
+    conf = load_panel_conf()
+    conf["host"], conf["scheme"] = domain, "https"
+    save_panel_conf(conf)
+    port = int(conf.get("port", 0))
+    target = os.path.join(APP_DIR, "nicetunnel_panel.py")
+    unit = (
+        "[Unit]\nDescription=NiceTunnel Spoof Panel\nAfter=network-online.target\n"
+        "Wants=network-online.target\n\n[Service]\n"
+        "ExecStart=%s %s serve --bind 0.0.0.0 --port %d --cert %s --key %s\nRestart=always\nRestartSec=3\n\n"
+        "[Install]\nWantedBy=multi-user.target\n"
+    ) % (sys.executable, target, port, cert, key)
+    with open(UNIT_PATH, "w") as f:
+        f.write(unit)
+    run(["systemctl", "daemon-reload"])
+    threading.Timer(1.5, lambda: run(["systemctl", "restart", "nicetunnel-panel"])).start()
+    return "https://%s:%d%s/" % (domain, port, conf.get("base", "")), None
 
 
 def cmd_install(args):
