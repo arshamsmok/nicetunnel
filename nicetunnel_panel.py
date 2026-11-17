@@ -18,6 +18,11 @@ Scope: reverse TCP tunnels, SPOOF tunnels and the spoof tester of THIS server.
 Standard library only. Python 3.8+.
 """
 import argparse
+import base64
+import concurrent.futures
+import http.client
+import ssl
+import struct
 import getpass
 import hashlib
 import hmac
@@ -34,7 +39,7 @@ import subprocess
 import sys
 import threading
 import time
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 APP_DIR = os.environ.get("NICETUNNEL_APP_DIR", "/opt/nicetunnel")
 CONF_DIR = os.environ.get("NICETUNNEL_CONF_DIR", "/etc/nicetunnel")
@@ -1008,6 +1013,50 @@ html body .fly button.on{background:rgba(233,196,106,.12)!important;color:#f4d58
 #p-set .sset{max-width:100%;overflow:hidden}
 .nact{min-width:0}.nkern{max-width:100%;overflow-wrap:anywhere}
 input[type=file]{width:100%!important;max-width:100%!important;min-width:0!important;flex:1 1 100%!important}
+/* v16: stats chips, details modal, servers, 2FA */
+@media(min-width:1100px){.dgrid{grid-template-columns:repeat(3,1fr)}}
+.mxs{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.mx{font-size:11px;padding:2px 9px;border-radius:999px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);color:#b9c6da;direction:ltr;white-space:nowrap}
+.mx.good{color:#34d0c3;border-color:rgba(52,208,195,.3)}.mx.warn{color:#e9c46a;border-color:rgba(233,196,106,.35)}.mx.bad{color:#f0707a;border-color:rgba(240,112,122,.4)}
+.dmo{position:fixed;inset:0;z-index:120;background:rgba(2,6,14,.72);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);display:flex;align-items:flex-start;justify-content:center;padding:max(14px,env(safe-area-inset-top)) 12px 18px;overflow:auto}
+.dmb{width:100%;max-width:640px;background:linear-gradient(160deg,#0d1d36,#07121f);border:1px solid rgba(233,196,106,.2);border-radius:18px;box-shadow:0 30px 80px rgba(0,0,0,.6);padding:0 0 14px;margin:auto 0;animation:nlin .25s ease-out both}
+.dmh{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.06)}
+.dmh b{font-size:15px;color:#fff}.dmh .tp{margin-inline-start:10px}
+html body button.dmx{width:32px;height:32px;padding:0;border-radius:10px!important;background:transparent!important;border:1px solid rgba(233,196,106,.25)!important;color:#cdd7ea;box-shadow:none!important;transform:none!important}
+#dmbody{padding:0 16px}
+.dmsec{margin-top:16px}.dmsec h4{display:flex;align-items:center;gap:8px;margin:0 0 8px;font-size:13px;font-weight:600;color:#fff}
+.dmsec h4 .lgd{margin-inline-start:auto;font-size:11px;color:#8fa2bf;font-weight:400}.dmsec h4 .lgd i{display:inline-block;width:8px;height:8px;border-radius:50%;margin:0 4px 0 8px}
+.dgr{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+@media(max-width:560px){.dgr{grid-template-columns:repeat(2,1fr)}}
+.dcell{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:10px 12px;min-width:0}
+.dcell span{display:block;font-size:11px;color:#8fa2bf}.dcell b{display:block;margin-top:4px;font-size:14px;color:#fff;direction:ltr;text-align:start;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.dcell small{display:block;margin-top:2px;font-size:11px;color:#8fa2bf;direction:ltr;text-align:start}
+.dnote{font-size:12px;color:#8fa2bf;margin:10px 2px 0;line-height:1.7}
+.dcv{width:100%;height:96px;display:block;border:1px solid rgba(255,255,255,.05);border-radius:12px;background:#050d18;margin-top:8px}
+.evs{max-height:200px;overflow:auto;border:1px solid rgba(255,255,255,.05);border-radius:12px}
+.ev{display:flex;align-items:center;gap:10px;padding:9px 12px;font-size:12.5px;color:#cfd8e8;border-bottom:1px solid rgba(255,255,255,.04)}
+.ev:last-child{border-bottom:0}.ev span{flex:1;min-width:0}.ev small{color:#6f86a8;direction:ltr;white-space:nowrap}.ev .tb{min-height:16px;align-self:center;height:16px}
+#dm details summary{cursor:pointer;font-size:13px;font-weight:600;color:#f4d58a;padding:4px 0}
+.efg{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-top:10px}
+.ef label{display:block;font-size:11.5px;color:#8fa2bf;margin-bottom:5px}
+html body .ef input,html body .ef select{width:100%;height:38px;padding:0 10px;border-radius:10px!important;background:#06101e!important;border:1px solid rgba(60,100,160,.4)!important;color:#e6ecf6!important;font-size:13px}
+.scard{border:1px solid rgba(233,196,106,.13);border-radius:14px;padding:12px 14px;margin:12px 14px;background:rgba(255,255,255,.02)}
+.sch{display:flex;align-items:center;gap:12px}
+.sdot{width:9px;height:9px;border-radius:50%;background:#6b7a93;flex:none}.sdot.on{background:#34d0c3;box-shadow:0 0 10px #34d0c3aa}.sdot.off{background:#f0707a}
+.sgr{display:grid;grid-template-columns:1.3fr 1fr;gap:16px;margin-top:10px;align-items:center}
+@media(max-width:560px){.sgr{grid-template-columns:1fr}}
+.sinfo{display:flex;flex-direction:column;gap:6px;font-size:12px;color:#8fa2bf}.sinfo span{display:flex;justify-content:space-between;gap:10px}.sinfo b{color:#e6ecf6;direction:ltr}
+.srows{margin-top:10px;border-top:1px solid rgba(255,255,255,.06)}
+.srows .tr{flex-wrap:wrap}
+a.sm.lnk,a.dlink{display:inline-flex;align-items:center;height:32px;padding:0 14px;border-radius:9px;font-size:12.5px;text-decoration:none;color:#cfd8e8;border:1px solid rgba(233,196,106,.25)}
+a.sm.lnk:hover,a.dlink:hover{color:#f4d58a;border-color:rgba(233,196,106,.6)}
+.srvform{padding:14px;border-bottom:1px solid rgba(255,255,255,.06)}
+.keybox,.tfabox{margin:12px 14px;padding:12px 14px;border:1px dashed rgba(233,196,106,.3);border-radius:12px;background:rgba(233,196,106,.04)}
+#p-set .tfabox{margin:10px 0}
+.keybox code,.tfabox code{display:block;direction:ltr;word-break:break-all;color:#f4d58a;font-size:13px;margin:6px 0}
+.rcodes{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px;margin:10px 0}.rcodes code{margin:0;padding:6px 10px;background:#06101e;border-radius:8px;text-align:center;letter-spacing:1px}
+.pa{padding:0 14px 14px}.pa p{font-size:12.5px;color:#8fa2bf;line-height:1.8}
+.pa .row2{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+html body .pa input{height:38px;padding:0 10px;border-radius:10px!important;background:#06101e!important;border:1px solid rgba(60,100,160,.4)!important;color:#e6ecf6!important;font-size:13px;flex:1;min-width:140px}
 </style>
 <body>
 <div id="bg"></div><div id="grid"></div>
@@ -1018,7 +1067,7 @@ const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let lang = localStorage.getItem('nt_lang') || 'en';
 const FA = {'Reverse tunnel':'تونل معکوس','Spoof tunnel':'تونل اسپوف','Settings':'تنظیمات','Account':'حساب کاربری','Language':'زبان','Apply':'اعمال','Save changes':'ذخیره تغییرات','Saved':'ذخیره شد','Current password':'رمز فعلی','New password (empty = keep)':'رمز جدید (خالی = بدون تغییر)','Changing the password logs out every other browser session.':'با تغییر رمز، سایر مرورگرها از پنل خارج می‌شوند.','Reverse TCP tunnels on this server':'تونل‌های معکوس TCP این سرور','Create reverse tunnel':'ساخت تونل معکوس','Iran (server: listens, forwards ports)':'ایران (سرور: گوش می‌دهد و پورت‌ها را منتقل می‌کند)','Foreign (client: connects to Iran)':'خارج (کلاینت: به ایران وصل می‌شود)','Bridge port (both sides)':'پورت پل (هر دو سر)','Ports to forward':'پورت‌های انتقالی','Iran server real IP':'آی‌پی واقعی سرور ایران','Kind':'نوع','No tunnel yet. Open Create to add one.':'هنوز تونلی نیست. از بخش ساخت یکی بسازید.','Tunnel created. Token (copy it to the other server):':'تونل ساخته شد. توکن را به سرور مقابل منتقل کنید:','Total restarts':'مجموع ری‌استارت','Active':'فعال','Down':'قطع','Memory used':'حافظه مصرفی','Logout':'خروج','Dashboard':'داشبورد','Tunnels':'تونل‌ها','Create':'ساخت','Monitoring':'پایش','Spoof tester':'تست اسپوف','Access tokens':'توکن‌های دسترسی','Logs':'لاگ‌ها','Logout':'خروج','Login':'ورود','Save password':'ذخیره رمز','Password or access token':'رمز یا توکن دسترسی','Create admin password (min 8 chars)':'ساخت رمز مدیر (حداقل ۸ کاراکتر)','Username':'نام کاربری','Password':'رمز عبور','CPU':'پردازنده','Memory':'حافظه','Disk':'دیسک','Uptime':'مدت روشنی','CPU history':'تاریخچه پردازنده','Network download':'دریافت شبکه','Network upload':'ارسال شبکه','Tunnel status':'وضعیت تونل‌ها','Tunnel monitor':'پایش تونل‌ها','(auto refresh 3s)':'(نوسازی خودکار هر ۳ ثانیه)','Spoof tunnels on this server':'تونل‌های اسپوف این سرور','Create spoof tunnel':'ساخت تونل اسپوف','Create and connect':'ساخت و اتصال','Create token':'ساخت توکن','Person name':'نام شخص','Connect':'اتصال','Restart':'ری‌استارت','Stop':'توقف','Start':'شروع','Delete':'حذف','Revoke':'بستن','Enable':'فعال‌سازی','Pause':'توقف موقت','Resume':'ادامه','Slot':'اسلات','Side':'سمت','Type:port':'نوع:پورت','Other server':'سرور مقابل','Other server real IP':'آی‌پی واقعی سرور مقابل','Source IPs':'آی‌پی‌های جعلی','Ports':'پورت‌ها','State':'وضعیت','Start test':'شروع تست','Refresh result':'بروزرسانی نتیجه','Mode':'حالت','Packet type':'نوع بسته','Port':'پورت','Logs':'لاگ‌ها','This server is':'این سرور است','Tunnel port (both sides)':'پورت تونل (هر دو سر)','Listen UDP port (apps send here)':'پورت UDP ورودی (برنامه‌ها اینجا می‌فرستند)','Forward to HOST:PORT':'ارسال به HOST:PORT','Fake source IPs (from Spoof tester)':'آی‌پی‌های جعلی (از تست اسپوف)','Token (empty = generate)':'توکن (خالی = ساخت خودکار)','Listen seconds (5-300)':'مدت گوش دادن (۵ تا ۳۰۰ ثانیه)','Fake source IPs to test':'آی‌پی‌های جعلی برای تست','Packets per address (1-10)':'تعداد بسته برای هر آدرس (۱ تا ۱۰)','Receive (run first)':'دریافت (اول اجرا شود)','Send (run second)':'ارسال (دوم اجرا شود)','Iran (entry: apps send UDP here)':'ایران (ورودی: برنامه‌ها UDP را اینجا می‌فرستند)','Foreign (exit: forwards to a UDP service)':'خارج (خروجی: به سرویس UDP وصل می‌کند)','active':'فعال','inactive':'غیرفعال','failed':'خطا','revoked':'بسته‌شده','paused':'متوقف','No tokens yet.':'هنوز توکنی نیست.','No spoof tunnel yet. Open Create to add one.':'هنوز تونلی نیست. از بخش ساخت یکی بسازید.','Open Tunnels and click Logs on a tunnel.':'از بخش تونل‌ها روی لاگ یک تونل بزنید.','No test run yet.':'هنوز تستی اجرا نشده.','Give each person their own token. They log in with it in the Password field. Revoke a token to cut off that person immediately.':'برای هر نفر یک توکن جدا بسازید. با آن در فیلد رمز وارد می‌شود. با بستن توکن، دسترسی آن شخص فوراً قطع می‌شود.','Run Receive on the receiving server first, then Send on the sending server, with the same packet type and port. Copy the fake source IPs that arrived into "Create".':'اول Receive را روی سرور دریافت‌کننده و بعد Send را روی سرور ارسال‌کننده با همان نوع بسته و پورت اجرا کنید. آی‌پی‌های جعلی که رسیدند را در بخش ساخت کپی کنید.'};
-FA['Logs']='لاگ';
+FA['Logs']='لاگ'; FA['Servers']='سرورها';
 document.documentElement.lang = lang; document.documentElement.dir = lang==='fa' ? 'rtl' : 'ltr';
 function tr(root){
   if(lang!=='fa' || !root) return;
@@ -1053,7 +1102,7 @@ async function api(path, body){
 const fmtB = n => { const u=['B','KB','MB','GB','TB']; let i=0; n=+n||0; while(n>=1024&&i<4){n/=1024;i++;} return n.toFixed(i?1:0)+' '+u[i]; };
 const fmtUp = s => { s=Math.floor(s); const d=Math.floor(s/86400),h=Math.floor(s%86400/3600),m=Math.floor(s%3600/60); return (d?d+'d ':'')+h+'h '+m+'m'; };
 
-function lmode(m){ window._lm=m; document.querySelectorAll('#lsw button').forEach(b=>{b.classList.toggle('on',b.dataset.m===m);b.onclick=()=>lmode(b.dataset.m);});
+function lmode(m){ window._lm=m; if($('#fotp')&&m==='link') $('#fotp').classList.add('hide'); document.querySelectorAll('#lsw button').forEach(b=>{b.classList.toggle('on',b.dataset.m===m);b.onclick=()=>lmode(b.dataset.m);});
   if(!$('#pw')) return; $('#fun').classList.toggle('hide',m==='link'); $('#fpw').classList.toggle('hide',m==='link'); $('#lkbox').classList.toggle('hide',m!=='link');
   if(m==='link'){ const o=new URLSearchParams(location.search).get('otl'); if(o) $('#lk').value=o; } }
 function loginView(){ window._sp=true;
@@ -1088,6 +1137,7 @@ function loginView(){ window._sp=true;
    <div id="msg"></div>
    <div class="nl-f" id="fun"><label for="un">${L('Username','نام کاربری')}</label><div class="nl-in"><span class="nl-ic">${ICU}</span><input id="un" value="admin" autocomplete="username" autocapitalize="off" spellcheck="false"></div></div>
    <div class="nl-f" id="fpw"><label for="pw">${ok?L('Create admin password','ساخت رمز مدیر'):L('Admin password','رمز مدیر')}</label><div class="nl-in"><span class="nl-ic">${ICK}</span><input id="pw" type="password" autocomplete="${ok?'new-password':'current-password'}"><button type="button" id="pwtog" class="nl-eye" aria-label="Show password">${ICE}</button></div></div>
+   <div class="nl-f hide" id="fotp"><label for="otp">${L('Verification code','کد تأیید')}</label><div class="nl-in"><span class="nl-ic">${ICK}</span><input id="otp" dir="ltr" inputmode="numeric" autocomplete="one-time-code" maxlength="14"></div></div>
    <div id="pwhint" class="nl-hint" style="display:${ok?'block':'none'}"></div>
    <div class="nl-f hide" id="lkbox"><label for="lk">${L('One-time link or code','لینک یا کد یک‌بارمصرف')}</label><div class="nl-in"><span class="nl-ic">${ICL}</span><input id="lk" dir="ltr" autocomplete="off"></div></div>
    <button class="nl-go" id="go" type="button">${ok?L('Save password','ذخیره رمز'):L('Login','ورود')}</button>
@@ -1102,9 +1152,12 @@ function loginView(){ window._sp=true;
   $('#go').onclick = async () => { try {
       if(!state.needSetup && window._lm==='link'){ let v=$('#lk').value.trim(); const m=v.match(/otl=([^&\s]+)/); if(m) v=m[1];
         await api('/api/login',{link:v}); history.replaceState(null,'',BASE+'/'); await load(); return; }
-      await api(state.needSetup ? '/api/setup' : '/api/login', {username:$('#un').value,password:$('#pw').value});
+      const body={username:$('#un').value,password:$('#pw').value}; if(!state.needSetup && $('#fotp') && !$('#fotp').classList.contains('hide')) body.otp=$('#otp').value.trim();
+      const rr=await apiX(state.needSetup ? '/api/setup' : '/api/login', body);
+      if(rr.j.need_otp){ $('#fotp').classList.remove('hide'); $('#otp').focus(); msg(L('Enter the 6-digit code from your authenticator app, or a recovery code.','کد ۶ رقمی برنامه احراز هویت یا یک کد بازیابی را وارد کنید.'),true); return; }
+      if(rr.s!==200) throw new Error(rr.j.error||'error');
       await load(); } catch(e){ msg(e.message,false); } };
-  $('#pw').onkeydown = e => { if(e.key==='Enter') $('#go').click(); };
+  $('#pw').onkeydown = e => { if(e.key==='Enter') $('#go').click(); }; if($('#otp')) $('#otp').onkeydown = e => { if(e.key==='Enter') $('#go').click(); };
   $('#pwtog').onclick = () => { const p=$('#pw'); p.type = p.type==='password' ? 'text' : 'password'; p.focus(); };
 }
 const IC={dash:'<svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="2"/><rect x="14" y="3" width="7" height="5" rx="2"/><rect x="14" y="12" width="7" height="9" rx="2"/><rect x="3" y="16" width="7" height="5" rx="2"/></svg>',rev:'<svg viewBox="0 0 24 24"><path d="M4 7h13l-3-3M20 17H7l3 3"/></svg>',spoof:'<svg viewBox="0 0 24 24"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>',set:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>',out:'<svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>',sun:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',moon:'<svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>'};
@@ -1113,17 +1166,18 @@ const ICSH='<svg viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-
   ICUS='<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>',
   ICBK='<svg viewBox="0 0 24 24"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>',
   ICAP='<svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.4-.3-.4-.5-.8-.5-1.3 0-1.1.9-2 2-2h2.3A4.7 4.7 0 0 0 22 10.7C22 5.9 17.5 2 12 2z"/><circle cx="7.5" cy="10.5" r="1.2"/><circle cx="12" cy="7" r="1.2"/><circle cx="16.5" cy="10.5" r="1.2"/></svg>';
+IC.srv='<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="6" rx="2"/><rect x="3" y="14" width="18" height="6" rx="2"/><path d="M7 7h.01M7 17h.01"/></svg>';
 IC.logs='<svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>';
-const PAGES = [['dash',IC.dash,'Dashboard'],['tun',IC.rev,'Tunnels'],['logs',IC.logs,'Logs'],['set',IC.set,'Settings']];
+const PAGES = [['dash',IC.dash,'Dashboard'],['srv',IC.srv,'Servers'],['tun',IC.rev,'Tunnels'],['logs',IC.logs,'Logs'],['set',IC.set,'Settings']];
   let tsel = 'rev';
 const LOGO = '<svg viewBox="0 0 64 64" width="34" height="34"><defs><linearGradient id="ntg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fde68a"/><stop offset="1" stop-color="#d97706"/></linearGradient></defs><rect x="2" y="2" width="60" height="60" rx="16" fill="#0b1226" stroke="url(#ntg)" stroke-width="2.5"/><path d="M12 52V32a20 20 0 0 1 40 0v20" fill="none" stroke="url(#ntg)" stroke-width="4" stroke-linecap="round"/><path d="M20 52V33a12 12 0 0 1 24 0v19" fill="none" stroke="url(#ntg)" stroke-width="3" stroke-linecap="round" opacity=".7"/><path d="M27 52V34a5 5 0 0 1 10 0v18z" fill="url(#ntg)" opacity=".9"/><path d="M6 52h52" stroke="url(#ntg)" stroke-width="3" stroke-linecap="round"/></svg>';
 function shell(){
   const nm = state.username || 'admin';
   $('#app').innerHTML = `<div id="shell"><div id="side" class="glass">
-    <div class="brand" style="display:flex;align-items:center;gap:10px;padding:2px 6px 16px">${LOGO}<div><div style="font-size:15px;-webkit-text-fill-color:#fff;background:none;color:#fff">NiceTunnel</div><small style="-webkit-text-fill-color:#9aa6d6">v1.5.0</small></div></div>
+    <div class="brand" style="display:flex;align-items:center;gap:10px;padding:2px 6px 16px">${LOGO}<div><div style="font-size:15px;-webkit-text-fill-color:#fff;background:none;color:#fff">NiceTunnel</div><small style="-webkit-text-fill-color:#9aa6d6">v1.6.0</small></div></div>
     ${PAGES.map(p=>`<div class="nav" data-p="${p[0]}"><i>${p[1]}</i><span>${p[2]}</span></div>`).join('')}
     <div class="sp"></div><div class="nav" id="lo"><i>${IC.out}</i><span>Logout</span></div></div>
-  <div id="fly" class="fly"></div><div id="main"><div id="top" class="glass"><div class="hdr">${LOGO}<span class="nm">NiceTunnel</span><span class="vv">v1.5.0</span><h1 id="ttl" style="margin:0 0 0 6px"></h1></div>
+  <div id="fly" class="fly"></div><div id="main"><div id="top" class="glass"><div class="hdr">${LOGO}<span class="nm">NiceTunnel</span><span class="vv">v1.6.0</span><h1 id="ttl" style="margin:0 0 0 6px"></h1></div>
     <div style="display:flex;align-items:center;gap:10px"><span id="live" class="live"><i></i><b>${L("Online","آنلاین")}</b></span><span id="host" style="color:#9aa6d6;font-size:12px"></span>${themeBtn()}${langBtn()}</div></div><div id="msg"></div>
   <div class="page" id="p-dash">
     <div class="dgrid" id="dstats"></div>
@@ -1183,6 +1237,16 @@ function shell(){
     <div class="sub" id="s-logs"><div class="sec glass"><h2>Logs</h2><pre id="logbox">Open Tunnels and click Logs on a tunnel.</pre></div></div>
   </div>
   </div>
+  <div class="page" id="p-srv">
+    <div class="dpanel"><div class="dph"><div><h3>${L("Servers","سرورها")}</h3><p>${L("Other NiceTunnel panels you manage from here.","پنل‌های دیگر نایس‌تانل که از اینجا مدیریت می‌کنید.")}</p></div><button class="dlink" id="srvadd">+ ${L("Add server","افزودن سرور")}</button></div>
+      <div id="srvform" class="srvform hide"><div class="efg"><div class="ef"><label>${L("Name","نام")}</label><input id="srvname" placeholder="Frankfurt"></div><div class="ef"><label>${L("Panel address","آدرس پنل")}</label><input id="srvurl" dir="ltr" placeholder="https://1.2.3.4:45152/k-abc123"></div><div class="ef"><label>${L("API key","کلید API")}</label><input id="srvkey" dir="ltr" placeholder="nt_..." autocomplete="off"></div></div><div class="nact"><button class="ok" id="srvsave">${L("Connect","اتصال")}</button> <span id="srvmsg" class="dnote"></span></div><p class="dnote">${L("Create the key on the other panel under Servers → Connect this server.","کلید را روی پنل مقابل در بخش سرورها ← «اتصال این سرور» بسازید.")}</p></div>
+      <div id="srvlist"></div></div>
+    <div class="dpanel"><div class="dph"><div><h3>${L("Connect this server","اتصال این سرور")}</h3><p>${L("Let another NiceTunnel panel see and manage this server. The key allows stats, start/stop/restart and logs only.","به پنل دیگری اجازه دهید این سرور را ببیند و مدیریت کند. کلید فقط آمار، شروع/توقف/ری‌استارت و لاگ را اجازه می‌دهد.")}</p></div></div>
+      <div class="pa"><p>${L("This panel's address:","آدرس این پنل:")}</p><code class="scode" id="srvaddr" style="direction:ltr;display:block;word-break:break-all"></code><div class="row2"><button class="sm" id="srvaddrcopy">${L("Copy","کپی")}</button></div>
+        <div class="row2" style="margin-top:16px"><input id="keyname" placeholder="${L("Key name (e.g. main panel)","نام کلید (مثلاً پنل اصلی)")}"><button class="ok" id="keymake">${L("Create key","ساخت کلید")}</button></div>
+        <div id="keynew" class="keybox hide"><p class="dnote" style="margin-top:0">${L("Copy this key now. It will not be shown again.","این کلید را همین حالا کپی کنید. دیگر نمایش داده نمی‌شود.")}</p><code id="keynewv"></code><button class="sm" id="keycopy">${L("Copy key","کپی کلید")}</button></div></div>
+      <div id="keylist"></div></div>
+  </div>
   <div class="page" id="p-logs">
     <div class="dpanel"><div class="dph"><div><h3>${L("Logs","لاگ‌ها")}</h3><p>${L("Live service logs of your tunnels, refreshed every few seconds.","لاگ زندهٔ سرویس تونل‌ها، هر چند ثانیه به‌روز می‌شود.")}</p></div><button class="dlink" id="lgcopy">${L("Copy","کپی")}</button></div>
     <div class="lgbar"><select id="lgsel"></select><input id="lgq" placeholder="${L("Filter…","فیلتر…")}"><div class="lgseg" id="lgl"><button data-l="all" class="on">${L("All","همه")}</button><button data-l="w">${L("Warnings","هشدار")}</button><button data-l="e">${L("Errors","خطا")}</button></div></div>
@@ -1192,7 +1256,7 @@ function shell(){
     <div class="set-wrap">
     <div class="set-nav" id="setnav">
       <div class="nav" data-anchor="sec-sec"><i>${ICSH}</i><span>${L('Security','امنیت')}</span></div>
-      <div class="nav" data-anchor="sec-up"><i>${IC.set}</i><span>${L('About','درباره')}</span></div>
+      <div class="nav" data-anchor="sec-up"><i>${IC.set}</i><span>${L('About & update','درباره و به‌روزرسانی')}</span></div>
       <div class="nav" data-anchor="sec-net"><i><svg viewBox="0 0 24 24"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg></i><span>${L('Network & speed','شبکه و سرعت')}</span></div>
       <div class="nav" data-anchor="sec-tg"><i>${ICTG}</i><span>${L('Telegram','تلگرام')}</span></div>
       <div class="nav" data-anchor="sec-time"><i>${ICUS}</i><span>${L('Date & time','تاریخ و ساعت')}</span></div>
@@ -1210,10 +1274,17 @@ function shell(){
       <div class="srow"><div class="st"><b>${L('Logged-in devices','دستگاه‌های واردشده')}</b><p>${L('Every active session with its device and IP.','هر نشست فعال با دستگاه و آی‌پی.')}</p></div><button id="devout">${L('Log out others','خروج بقیه')}</button></div>
       <div id="devs"></div>
     </div>
-    <div class="sec glass sset" id="sec-up"><h2>${L('About','درباره')}</h2>
-      <div class="srow"><div class="st"><b>${L('Installed','نصب‌شده')}</b><p>NiceTunnel Panel</p></div><code class="scode">v1.5.0</code></div>
+    <div class="sec glass sset" id="sec-2fa"><h2>${L('Two-factor login','ورود دو مرحله‌ای')}</h2>
+      <div class="srow"><div class="st"><b>${L('Authenticator app (TOTP)','برنامه احراز هویت (TOTP)')}</b><p id="tfastate"></p></div><div><button class="ok" id="tfaon">${L('Enable','فعال‌سازی')}</button><button id="tfaoff" class="hide">${L('Disable','غیرفعال‌سازی')}</button></div></div>
+      <div id="tfasetup" class="tfabox hide"><p class="dnote" style="margin-top:0">1. ${L('Add an account in Google Authenticator, Authy or any TOTP app using this key:','در Google Authenticator یا Authy یا هر برنامه TOTP با این کلید حساب اضافه کنید:')}</p><code id="tfakey"></code><div class="row2" style="display:flex;gap:8px;flex-wrap:wrap"><button class="sm" id="tfacopy">${L('Copy key','کپی کلید')}</button><a class="sm lnk" id="tfauri" href="#">${L('Open in authenticator app','باز کردن در برنامه')}</a></div><p class="dnote">2. ${L('Enter the 6-digit code it shows:','کد ۶ رقمی نمایش‌داده‌شده را وارد کنید:')}</p><div class="efg"><div class="ef"><input id="tfacode" inputmode="numeric" maxlength="6" dir="ltr" autocomplete="one-time-code"></div></div><div class="nact"><button class="ok" id="tfaconfirm">${L('Confirm & enable','تأیید و فعال‌سازی')}</button></div></div>
+      <div id="tfacodes" class="tfabox hide"></div>
+      <div id="tfadis" class="tfabox hide"><p class="dnote" style="margin-top:0">${L('Enter your password and a current code (or a recovery code) to turn it off.','برای خاموش کردن، رمز و یک کد فعلی (یا کد بازیابی) را وارد کنید.')}</p><div class="efg"><div class="ef"><label>${L('Password','رمز')}</label><input id="tfadpw" type="password"></div><div class="ef"><label>${L('Code','کد')}</label><input id="tfadcode" dir="ltr" maxlength="14"></div></div><div class="nact"><button class="ok" id="tfadisgo">${L('Turn off','خاموش کردن')}</button></div></div>
+    </div>
+    <div class="sec glass sset" id="sec-up"><h2>${L('About & update','درباره و به‌روزرسانی')}</h2>
+      <div class="srow"><div class="st"><b>${L('Installed','نصب‌شده')}</b><p>NiceTunnel Panel</p></div><code class="scode">v1.6.0</code></div>
       <div class="srow"><div class="st"><b>${L('Panel address','آدرس پنل')}</b><p>${L('Secret path of this panel. Keep it private.','مسیر مخفی این پنل. آن را محرمانه نگه دارید.')}</p></div><code id="sinfo" class="scode"></code></div>
       <div class="srow"><div class="st"><b>${L('Creator','سازنده')}</b><p>Arsham Smok · آرشام اسموک</p></div></div>
+      <div class="srow"><div class="st"><b>${L('Updates','به‌روزرسانی')}</b><p id="updst">${L('Check if a newer version is available.','بررسی کنید نسخه جدیدتری هست یا نه.')}</p></div><div><button id="updchk">${L('Check for updates','بررسی به‌روزرسانی')}</button> <button class="ok hide" id="updgo">${L('Update now','به‌روزرسانی')}</button></div></div>
     </div>
     <div class="sec glass sset" id="sec-net"><h2>${L('Network & speed','شبکه و سرعت')} <span class="nbadge" id="nbadge"></span></h2>
       <p class="nhint">${L('Tunes the Linux network stack (BBR, fq, big buffers) for faster, steadier transfers on long or lossy routes. Reversible at any time.','پشته‌ی شبکه‌ی لینوکس (BBR، fq، بافرهای بزرگ) را برای انتقال سریع‌تر و پایدارتر روی مسیرهای دور یا پرافت تنظیم می‌کند. هر لحظه قابل برگشت است.')}</p>
@@ -1231,7 +1302,8 @@ function shell(){
       <div class="srow"><div class="st"><b>${L('Bot token','توکن ربات')}</b><p id="tgcur">${L('Get it from @BotFather.','از @BotFather بگیرید.')}</p></div><input id="tgtok" dir="ltr" placeholder="123456:ABC..." autocomplete="off"></div>
       <div class="srow"><div class="st"><b>Chat ID</b><p>${L('Your numeric ID (from @userinfobot) or a group ID.','آیدی عددی شما (از @userinfobot) یا گروه.')}</p></div><input id="tgchat" dir="ltr"></div>
       <div class="srow"><div class="st"><b>${L('API address (optional)','آدرس API (اختیاری)')}</b><p>${L('Mirror/proxy for Telegram if blocked. Default: api.telegram.org','اگر تلگرام فیلتر است، آدرس پروکسی/میرور. پیش‌فرض: api.telegram.org')}</p></div><input id="tgapi" dir="ltr" placeholder="https://api.telegram.org"></div>
-      <div class="srow"><div class="st"><b>${L('Notify about','اعلان برای')}</b></div><div style="display:flex;gap:14px;flex-wrap:wrap"><label><input type="checkbox" class="tgev" value="tunnel"> ${L('Tunnel up/down/created/deleted','وصل/قطع/ساخت/حذف تونل')}</label><label><input type="checkbox" class="tgev" value="login"> ${L('Logins & failed logins','ورودها و ورود ناموفق')}</label><label><input type="checkbox" class="tgev" value="backup"> ${L('Backups','بکاپ‌ها')}</label></div></div>
+      <div class="srow"><div class="st"><b>${L('Notify about','اعلان برای')}</b></div><div style="display:flex;gap:14px;flex-wrap:wrap"><label><input type="checkbox" class="tgev" value="tunnel"> ${L('Tunnel up/down/created/deleted','وصل/قطع/ساخت/حذف تونل')}</label><label><input type="checkbox" class="tgev" value="login"> ${L('Logins & failed logins','ورودها و ورود ناموفق')}</label><label><input type="checkbox" class="tgev" value="backup"> ${L('Backups','بکاپ‌ها')}</label><label><input type="checkbox" class="tgev" value="resource"> ${L('High CPU / RAM / disk','پر شدن CPU / رم / دیسک')}</label><label><input type="checkbox" class="tgev" value="health"> ${L('Latency, packet loss, server offline','تأخیر، افت بسته، آفلاین شدن سرور')}</label><label><input type="checkbox" class="tgev" value="ssl"> ${L('SSL certificate expiring','نزدیک انقضای گواهی SSL')}</label></div></div>
+      <div class="srow"><div class="st"><b>${L('Alert threshold','حد هشدار')}</b><p>${L('CPU, RAM and disk usage in percent.','مصرف CPU، رم و دیسک به درصد.')}</p></div><input id="tgth" type="number" min="50" max="99" value="90"></div>
       <div class="srow"><div></div><div><button class="ok" id="tgsave">${L('Save','ذخیره')}</button> <button id="tgtest">${L('Send test','ارسال تست')}</button> <button id="tgdel">${L('Remove','حذف')}</button></div></div>
     </div>
     <div class="sec glass sset" id="sec-time"><h2>${L('Date & time','تاریخ و ساعت')}</h2>
@@ -1332,7 +1404,7 @@ function sub(t){
 }
 function go(p){
   if(p==='rev'||p==='spoof'){ tsel = p; p = 'tun'; }
-  page = p; if(p!=='tun'&&p!=='set') closeFly();
+  page = p; if(p!=='tun'&&p!=='set') closeFly(); if(p==='set') tfaExtras(); if(p==='srv') srvInit();
   document.querySelectorAll('.tsec').forEach(e=>e.classList.toggle('on', e.id==='t-'+tsel));
   document.querySelectorAll('.seg').forEach(e=>e.classList.toggle('on', e.dataset.s===tsel));
   document.querySelectorAll('.page').forEach(e=>e.classList.toggle('on', e.id==='p-'+p));
@@ -1368,10 +1440,13 @@ function renderMap(st, slots){
   g+=`<text x="${X0}" y="${H/2+38}" text-anchor="middle" class="ml">${esc(st.hostname||'this server')}</text><text x="${X0}" y="${H/2+54}" text-anchor="middle" class="ms">${esc(st.ip||'')}</text>`;
   el.innerHTML=g+'</svg>';
 }
-const ICT2='<svg viewBox="0 0 24 24"><path d="M3 19V11a9 9 0 0 1 18 0v8M7 19v-8a5 5 0 0 1 10 0v8"/></svg>', ICS2='<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="6" rx="2"/><rect x="3" y="14" width="18" height="6" rx="2"/><path d="M7 7h.01M7 17h.01"/></svg>', ICC2='<svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></svg>';
-const ICA='<svg viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>';
+/* ===== v6 frontend ===== */
+async function apiX(path, body){ const r=await fetch(BASE+path,{method:body===undefined?'GET':'POST',headers:body===undefined?{}:{'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)}); let j={}; try{ j=await r.json(); }catch(e){} return {s:r.status,j}; }
+const rateTxt=b=>b==null?'—':fmtR(b).join(' ');
+const ago=t=>{ if(!t) return '—'; const d=Math.max(0,Math.floor(Date.now()/1000-t)); if(d<60) return L('just now','هم‌اکنون'); if(d<3600) return Math.floor(d/60)+' '+L('min ago','دقیقه پیش'); if(d<86400) return Math.floor(d/3600)+' '+L('h ago','ساعت پیش'); return Math.floor(d/86400)+' '+L('d ago','روز پیش'); };
+const ICA='<svg viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>', ICT2='<svg viewBox="0 0 24 24"><path d="M3 19V11a9 9 0 0 1 18 0v8M7 19v-8a5 5 0 0 1 10 0v8"/></svg>', ICS2='<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="6" rx="2"/><rect x="3" y="14" width="18" height="6" rx="2"/><path d="M7 7h.01M7 17h.01"/></svg>', ICC2='<svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></svg>', ICX2='<svg viewBox="0 0 24 24"><path d="M4 8h14m0 0l-3-3m3 3l-3 3M20 16H6m0 0l3-3m-3 3l3 3"/></svg>', ICL2='<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
 function fmtR(b){ const x=(+b||0)*8; if(x>=1e9) return [(x/1e9).toFixed(2),'Gbps']; if(x>=1e6) return [(x/1e6).toFixed(x>=1e8?0:1),'Mbps']; if(x>=1e3) return [(x/1e3).toFixed(0),'Kbps']; return [Math.round(x),'bps']; }
-function peerOf(s){ return (s.kind==='reverse' ? (s.server_ip||s.target_host) : s.peer) || 'remote'; }
+function peerOf(s){ return s.peer_ip || (s.kind==='reverse' ? (s.server_ip||s.target_host) : s.peer) || 'remote'; }
 function stCls(s){ return s==='active'?'active':s==='failed'?'failed':'off'; }
 function stTxt(s){ return s==='active'?L('Flowing','جاری'):s==='failed'?L('Broken','قطع'):(s==='inactive'||s==='unknown')?L('Stopped','خاموش'):esc(s); }
 function slotProto(s){ return s.kind==='reverse' ? 'tcp:'+(s.bridge||'') : (s.transport||'spoof')+':'+(s.port||''); }
@@ -1379,102 +1454,99 @@ function slotDetail(s){
   if(s.kind==='reverse') return 'reverse '+slotProto(s)+' · '+(s.role==='server' ? 'listen '+(s.ports||'-') : 'forward '+(s.target_host||'-'));
   return 'spoof '+slotProto(s)+' · '+(s.role==='server' ? 'UDP '+(s.listen_port||'-') : '→ '+(s.forward||'-'))+(s.spoof_ips?' · src '+s.spoof_ips:'');
 }
+const latCls=s=>s.lat==null?'':(s.loss>=20||s.lat>300)?'bad':(s.lat>150?'warn':'good');
+function mxChips(s){
+  return (s.rx_rate!=null?`<span class="mx">↓ ${rateTxt(s.rx_rate)}</span><span class="mx">↑ ${rateTxt(s.tx_rate)}</span>`:'')
+   +(s.conns!=null&&s.acct?`<span class="mx">⇄ ${s.conns}</span>`:'')
+   +(s.lat!=null?`<span class="mx ${latCls(s)}">⏱ ${s.lat.toFixed(0)} ms${s.loss>0?' · '+s.loss.toFixed(0)+'% '+L('loss','افت'):''}</span>`:'')
+   +(s.up24!=null?`<span class="mx">▲ ${s.up24}%</span>`:'');
+}
+/* ---- network nodes: this server, other panels, peers ---- */
+function fleetNodes(st, slots){
+  const fl=window._fleet||[], nodes=[{key:'local',name:st.hostname||L('this server','همین سرور'),ip:st.ip||'',kind:'local',ok:true}], tuns=[], seen=new Set();
+  fl.forEach(f=>nodes.push({key:'srv:'+f.id,name:f.name,ip:(f.stats&&f.stats.ip)||'',kind:'remote',ok:f.ok,f}));
+  const peer=ip=>{ let n=ip&&ip!=='remote'?nodes.find(x=>x.ip&&x.ip===ip):nodes.find(x=>x.key==='ip:?'); if(!n){ n={key:'ip:'+(ip||'?'),name:ip&&ip!=='remote'?ip:L('unknown','نامشخص'),ip:ip==='remote'?'':ip,kind:'peer',ok:null}; nodes.push(n); } return n; };
+  slots.forEach(s=>{ const b=peer(peerOf(s)); tuns.push({a:nodes[0],b,s,own:L('this server','همین سرور')}); seen.add([nodes[0].key,b.key].sort().join('|')+':'+(s.port||s.bridge)); });
+  fl.forEach(f=>{ const a=nodes.find(x=>x.key==='srv:'+f.id); (f.slots||[]).forEach(s=>{ const ip=peerOf(s); if(!ip||ip==='remote'||ip===nodes[0].ip) return; const b=peer(ip), k=[a.key,b.key].sort().join('|')+':'+(s.port||s.bridge); if(seen.has(k)) return; seen.add(k); tuns.push({a,b,s,own:f.name,remote:f.id}); }); });
+  return {nodes,tuns};
+}
 let _dsig='';
 function dashRender(st, slots){
   if(!$('#dstats')) return;
-  const act=slots.filter(s=>s.state==='active').length, bad=slots.filter(s=>s.state==='failed').length, off=slots.length-act-bad;
-  const pm={}; slots.forEach(s=>{ const ip=peerOf(s); (pm[ip]=pm[ip]||[]).push(s); });
-  const pk=Object.keys(pm), pon=pk.filter(ip=>pm[ip].some(s=>s.state==='active')).length, pbad=pk.filter(ip=>!pm[ip].some(s=>s.state==='active')&&pm[ip].some(s=>s.state==='failed')).length;
+  const fl=window._fleet||[], act=slots.filter(s=>s.state==='active'), bad=slots.filter(s=>s.state==='failed').length, off=slots.length-act.length-bad;
+  const rAll=slots.concat(...fl.map(f=>f.slots||[])), rAct=rAll.filter(s=>s.state==='active').length, rBad=rAll.filter(s=>s.state==='failed').length, rOff=rAll.length-rAct-rBad;
+  const conns=rAll.reduce((a,s)=>a+(s.conns||0),0), lats=slots.filter(s=>s.lat!=null), avg=lats.length?lats.reduce((a,s)=>a+s.lat,0)/lats.length:null, worst=lats.length?Math.max(...lats.map(s=>s.lat)):null;
+  const online=1+fl.filter(f=>f.ok).length, total=1+fl.length;
   const R=fmtR((st.rx_rate||0)+(st.tx_rate||0)), seg=(n,c)=>n?`<i style="flex:${n};background:${c}"></i>`:'';
   const mini=(k,p)=>`<div class="dm"><span>${k}</span><em><b style="width:${Math.max(0,Math.min(100,p||0))}%"></b></em><span>${(p||0).toFixed(0)}%</span></div>`;
   $('#dstats').innerHTML=`
    <div class="dc"><div class="dk">${ICA}${L('Throughput now','ترافیک همین حالا')}</div><div class="dv">${R[0]}<small>${R[1]}</small></div><canvas id="cth"></canvas><div class="ds"><bdi dir="ltr">↓ ${fmtB(st.rx_rate)}/s · ↑ ${fmtB(st.tx_rate)}/s</bdi></div></div>
-   <div class="dc"><div class="dk">${ICT2}${L('Tunnels flowing','تونل‌های جاری')}</div><div class="dv">${act}<small>${L('of','از')} ${slots.length}</small></div><div class="dseg">${seg(act,'#34d0c3')}${seg(bad,'#f0707a')}${seg(off,'#6b7a93')}${slots.length?'':'<i style="flex:1;background:#1d2e4a"></i>'}</div><div class="ds">${bad?`<span class="bd">${bad} ${L('broken','قطع')}</span>`:(slots.length?L('All healthy','همه سالم'):L('No tunnel yet','هنوز تونلی نیست'))}</div></div>
-   <div class="dc"><div class="dk">${ICS2}${L('Servers connected','سرورهای متصل')}</div><div class="dv">${pon}<small>${L('of','از')} ${pk.length}</small></div><div class="dseg">${seg(pon,'#34d0c3')}${seg(pbad,'#f0707a')}${seg(pk.length-pon-pbad,'#6b7a93')}${pk.length?'':'<i style="flex:1;background:#1d2e4a"></i>'}</div><div class="ds">${esc(st.hostname||'')} · ${esc(st.ip||'')}</div></div>
+   <div class="dc"><div class="dk">${ICT2}${L('Tunnels flowing','تونل‌های جاری')}</div><div class="dv">${rAct}<small>${L('of','از')} ${rAll.length}</small></div><div class="dseg">${seg(rAct,'#34d0c3')}${seg(rBad,'#f0707a')}${seg(rOff,'#6b7a93')}${rAll.length?'':'<i style="flex:1;background:#1d2e4a"></i>'}</div><div class="ds">${rBad?`<span class="bd">${rBad} ${L('broken','قطع')}</span>`:(rAll.length?L('All healthy','همه سالم'):L('No tunnel yet','هنوز تونلی نیست'))}</div></div>
+   <div class="dc"><div class="dk">${ICX2}${L('Open connections','اتصال‌های باز')}</div><div class="dv">${conns}</div><div class="ds">${L('across','در')} ${rAct} ${L('flowing tunnels','تونل جاری')}</div></div>
+   <div class="dc"><div class="dk">${ICL2}${L('Latency to peers','تأخیر تا سرورهای مقصد')}</div><div class="dv">${avg==null?'—':avg.toFixed(0)}<small>ms</small></div><div class="ds">${worst==null?L('no ping data yet','هنوز داده‌ای نیست'):L('worst','بدترین')+' '+worst.toFixed(0)+' ms'}</div></div>
+   <div class="dc"><div class="dk">${ICS2}${L('Servers online','سرورهای آنلاین')}</div><div class="dv">${online}<small>${L('of','از')} ${total}</small></div><div class="dseg">${seg(online,'#34d0c3')}${seg(total-online,'#f0707a')}</div><div class="ds">${fl.filter(f=>!f.ok).map(f=>esc(f.name)).join(', ')||L('all reachable','همه در دسترس')}</div></div>
    <div class="dc"><div class="dk">${ICC2}${L('This server','این سرور')}</div>${mini('CPU',st.cpu)}${mini('RAM',st.mem_pct)}${mini('Disk',st.disk_pct)}<div class="ds">${L('Uptime','آپتایم')} ${fmtUp(st.uptime)}</div></div>`;
   spark('#cth', hist.rx.map((v,i)=>v+(hist.tx[i]||0)), '#34d0c3');
-  const W=[];
-  slots.filter(s=>s.state==='failed').forEach(s=>W.push(`<div class="wr"><i>!</i><span>${L('Tunnel','تونل')} #${s.slot} · ${esc(peerOf(s))} ${L('is broken','قطع است')}</span><button class="dlink" onclick="go('${s.kind==='reverse'?'rev':'spoof'}')">${L('Open','باز کردن')}</button></div>`));
-  slots.filter(s=>s.state!=='active'&&s.state!=='failed').forEach(s=>W.push(`<div class="wr"><i class="y">•</i><span>${L('Tunnel','تونل')} #${s.slot} · ${esc(peerOf(s))} ${L('is stopped','خاموش است')}</span><button class="dlink" onclick="go('${s.kind==='reverse'?'rev':'spoof'}')">${L('Open','باز کردن')}</button></div>`));
-  if((st.cpu||0)>85) W.push(`<div class="wr"><i class="y">%</i><span>${L('High CPU','پردازنده شلوغ است')} ${st.cpu.toFixed(0)}%</span></div>`);
-  if((st.mem_pct||0)>90) W.push(`<div class="wr"><i class="y">%</i><span>${L('High memory','حافظه پر است')} ${st.mem_pct.toFixed(0)}%</span></div>`);
-  if((st.disk_pct||0)>90) W.push(`<div class="wr"><i class="y">%</i><span>${L('Disk almost full','دیسک تقریباً پر است')} ${st.disk_pct.toFixed(0)}%</span></div>`);
-  if(!W.length) W.push(slots.length ? `<div class="wr"><i class="g">✓</i><span>${L('Everything is on track: all tunnels are flowing.','همه‌چیز روبه‌راه است: همه تونل‌ها جاری‌اند.')}</span></div>` : `<div class="wr"><i class="g">+</i><span>${L('Create your first tunnel to get started.','اولین تونل خود را بسازید.')}</span><button class="dlink" onclick="go('rev')">${L('Create','ساخت')}</button></div>`);
+  const W=[], go2=s=>s.kind==='reverse'?'rev':'spoof', nm=(o)=>o?esc(o)+' · ':'';
+  const addW=(cls,ico,txt,btn)=>W.push(`<div class="wr"><i class="${cls}">${ico}</i><span>${txt}</span>${btn||''}</div>`);
+  fl.filter(f=>!f.ok).forEach(f=>addW('', '!', `${L('Server','سرور')} ${esc(f.name)} ${L('is offline','آفلاین است')}${f.err?' · '+esc(f.err).slice(0,60):''}`, `<button class="dlink" onclick="go('srv')">${L('Servers','سرورها')}</button>`));
+  slots.concat(...fl.map(f=>(f.slots||[]).map(s=>Object.assign({_o:f.name},s)))).forEach(s=>{
+    if(s.state==='failed') addW('', '!', `${nm(s._o)}${L('Tunnel','تونل')} #${s.slot} · ${esc(peerOf(s))} ${L('is broken','قطع است')}`, s._o?'':`<button class="dlink" onclick="openDetail(${s.slot})">${L('Open','باز کردن')}</button>`);
+    else if(s.state!=='active') addW('y', '•', `${nm(s._o)}${L('Tunnel','تونل')} #${s.slot} · ${esc(peerOf(s))} ${L('is stopped','خاموش است')}`, s._o?'':`<button class="dlink" onclick="openDetail(${s.slot})">${L('Open','باز کردن')}</button>`);
+    else if(s.loss>=20||s.lat>300) addW('y', '⏱', `${nm(s._o)}${L('Tunnel','تونل')} #${s.slot}: ${s.lat!=null?s.lat.toFixed(0)+' ms':''}${s.loss>0?' · '+s.loss.toFixed(0)+'% '+L('packet loss','افت بسته'):''}`, s._o?'':`<button class="dlink" onclick="openDetail(${s.slot})">${L('Open','باز کردن')}</button>`);
+  });
+  if((st.cpu||0)>85) addW('y','%',`${L('High CPU','پردازنده شلوغ است')} ${st.cpu.toFixed(0)}%`);
+  if((st.mem_pct||0)>90) addW('y','%',`${L('High memory','حافظه پر است')} ${st.mem_pct.toFixed(0)}%`);
+  if((st.disk_pct||0)>90) addW('y','%',`${L('Disk almost full','دیسک تقریباً پر است')} ${st.disk_pct.toFixed(0)}%`);
+  if(!W.length) addW('g','✓',rAll.length?L('Everything is on track: all tunnels are flowing.','همه‌چیز روبه‌راه است: همه تونل‌ها جاری‌اند.'):L('Create your first tunnel to get started.','اولین تونل خود را بسازید.'), rAll.length?'':`<button class="dlink" onclick="go('rev')">${L('Create','ساخت')}</button>`);
   $('#dwarn').innerHTML=W.join('');
-  const cw=($('#map')||{}).clientWidth||0, sig=lang+'|'+cw+'|'+(st.hostname||'')+'|'+JSON.stringify(slots.map(s=>[s.slot,s.state,peerOf(s),s.port,s.bridge]));
+  const cw=($('#map')||{}).clientWidth||0, sig=lang+'|'+cw+'|'+(st.hostname||'')+'|'+JSON.stringify(rAll.map(s=>[s.slot,s.state,peerOf(s),s.port,s.bridge,s.rx_rate==null?0:Math.round(s.rx_rate/1e5)]))+JSON.stringify(fl.map(f=>[f.id,f.ok]));
   if(sig===_dsig) return; _dsig=sig;
-  dashMap(st, slots, pm, pk);
-  $('#dtun').innerHTML = slots.length ? slots.map(s=>`<div class="tr" onclick="go('${s.kind==='reverse'?'rev':'spoof'}')"><i class="tb ${stCls(s.state)}"></i><div class="tm"><b>#${s.slot} · ${esc(st.hostname||L('This server','این سرور'))} ↔ ${esc(peerOf(s))}<em class="tg">${esc(s.side)}</em></b><span>${esc(slotDetail(s))}</span></div><div class="tp ${stCls(s.state)}">${stTxt(s.state)}</div></div>`).join('') : `<div class="dempty">${L('No tunnels yet. Create one from the Tunnels page.','هنوز تونلی نیست. از صفحه تونل‌ها یکی بسازید.')}<br><br><button class="dlink" onclick="go('rev')">${L('Create tunnel','ساخت تونل')}</button></div>`;
+  dashMap(st, slots);
+  $('#dtun').innerHTML = rAll.length ? slotRows(slots) + fl.map(f=>(f.slots||[]).map(s=>slotRow(Object.assign({_o:f.name},s))).join('')).join('') : `<div class="dempty">${L('No tunnels yet. Create one from the Tunnels page.','هنوز تونلی نیست. از صفحه تونل‌ها یکی بسازید.')}<br><br><button class="dlink" onclick="go('rev')">${L('Create tunnel','ساخت تونل')}</button></div>`;
 }
-function dashMap(st, slots, pm, pk){
+function slotRow(s){ return `<div class="tr" onclick="${s._o?"go('srv')":'openDetail('+s.slot+')'}"><i class="tb ${stCls(s.state)}"></i><div class="tm"><b>${s._o?esc(s._o)+' · ':''}#${s.slot} · ${esc(peerOf(s))}<em class="tg">${esc(s.side)}</em></b><span>${esc(slotDetail(s))}</span>${mxChips(s)?`<div class="mxs">${mxChips(s)}</div>`:''}</div><div class="tp ${stCls(s.state)}">${stTxt(s.state)}</div></div>`; }
+function slotRows(slots){ return slots.map(slotRow).join(''); }
+function dashMap(st, slots){
   const el=$('#map'); if(!el) return;
-  const cw=Math.max(el.clientWidth||320,300), n=pk.length, W=Math.max(cw,(n+1)*150), H0=96, X0=Math.min(86,W*.15), XR=W-70;
-  const px=i=>X0+(i+1)*((XR-X0)/Math.max(n,1));
-  const rows=[]; pk.forEach((ip,i)=>pm[ip].forEach(s=>rows.push({s,i,ip})));
-  const yy=j=>H0+48+j*40, H=H0+48+Math.max(rows.length,1)*40+16;
-  const cut=(t,m)=>{t=String(t);return t.length>m?t.slice(0,m-1)+'…':t;};
+  const {nodes,tuns}=fleetNodes(st,slots), n=nodes.length-1, cw=Math.max(el.clientWidth||320,300), W=Math.max(cw,(n+1)*150), H0=96, X0=Math.min(86,W*.15), XR=W-70;
+  nodes.forEach((nd,i)=>{ nd.x=i===0?X0:X0+i*((XR-X0)/Math.max(n,1)); });
+  const yy=j=>H0+48+j*40, H=H0+48+Math.max(tuns.length,1)*40+16, cut=(t,m)=>{ t=String(t); return t.length>m?t.slice(0,m-1)+'…':t; };
   let g=`<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}"><defs><linearGradient id="dgd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0a1c33"/><stop offset="1" stop-color="#050d18"/></linearGradient><linearGradient id="dsk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#050b17"/><stop offset="1" stop-color="#112340"/></linearGradient></defs>`;
   g+=`<rect width="${W}" height="${H0}" fill="url(#dsk)"/><rect y="${H0}" width="${W}" height="${H-H0}" fill="url(#dgd)"/>`;
-  for(let k=0;k<46;k++){ g+=`<circle cx="${((k*137.5)%W).toFixed(0)}" cy="${((k*61.8)%(H0-10)+4).toFixed(0)}" r="${k%5?0.8:1.3}" fill="#fff" opacity="${(0.25+(k%4)*0.18).toFixed(2)}"/>`; }
+  for(let k=0;k<46;k++) g+=`<circle cx="${((k*137.5)%W).toFixed(0)}" cy="${((k*61.8)%(H0-10)+4).toFixed(0)}" r="${k%5?0.8:1.3}" fill="#fff" opacity="${(0.25+(k%4)*0.18).toFixed(2)}"/>`;
   g+=`<line x1="0" y1="${H0}" x2="${W}" y2="${H0}" stroke="#e9c46a" stroke-width="1.6" opacity=".9"/>`;
-  const dT=rows.length?yy(rows.length-1):H0+22, dP=pk.map((ip,i)=>{ const js=rows.map((r,j)=>r.i===i?j:-1).filter(j=>j>=0); return js.length?yy(Math.max(...js)):H0+22; });
-  g+=`<line x1="${X0}" y1="${H0}" x2="${X0}" y2="${dT}" stroke="#8a7340" stroke-width="2.5" stroke-linecap="round"/>`;
-  pk.forEach((ip,i)=>{ g+=`<line x1="${px(i)}" y1="${H0}" x2="${px(i)}" y2="${dP[i]}" stroke="#8a7340" stroke-width="2.5" stroke-linecap="round"/>`; });
-  rows.forEach((r,j)=>{
-    const s=r.s, y=yy(j), xp=px(r.i), dx=(xp-X0)*.4, col=s.state==='active'?'#34d0c3':s.state==='failed'?'#f0707a':'#6b7a93';
-    const d=`M${X0} ${y} C${X0+dx} ${y+12} ${xp-dx} ${y+12} ${xp} ${y}`, t='#'+s.slot+' · '+slotProto(s), pw=t.length*6.1+30, xm=(X0+xp)/2, ym=y+9;
-    g+=`<g style="cursor:pointer" onclick="go('${s.kind==='reverse'?'rev':'spoof'}')"><path d="${d}" fill="none" stroke="transparent" stroke-width="22"/>`
-     +`<path d="${d}" fill="none" stroke="${col}" stroke-opacity=".14" stroke-width="12" stroke-linecap="round"/>`
-     +`<path d="${d}" fill="none" stroke="${col}" stroke-width="${s.state==='active'?4:3}" stroke-linecap="round" ${s.state==='active'?'':'stroke-dasharray="5 6" opacity=".8"'}/>`
-     +(s.state==='active'?`<path class="mdash" d="${d}" fill="none" stroke="#e8fffd" stroke-opacity=".8" stroke-width="1.6"/>`:'')
-     +`<circle cx="${X0}" cy="${y}" r="4" fill="${col}"/><circle cx="${xp}" cy="${y}" r="4" fill="${col}"/>`
-     +`<rect x="${(xm-pw/2).toFixed(1)}" y="${ym-10}" width="${pw.toFixed(1)}" height="20" rx="10" fill="#0a1a30" stroke="${col}" stroke-opacity=".5"/><circle cx="${(xm-pw/2+12).toFixed(1)}" cy="${ym}" r="3" fill="${col}"/><text class="dpl" x="${(xm-pw/2+20).toFixed(1)}" y="${ym+3.6}">${esc(t)}</text></g>`;
+  const depth=nodes.map(()=>H0+22); tuns.forEach((t,j)=>{ [t.a,t.b].forEach(nd=>{ const i=nodes.indexOf(nd); depth[i]=Math.max(depth[i],yy(j)); }); });
+  nodes.forEach((nd,i)=>{ g+=`<line x1="${nd.x}" y1="${H0}" x2="${nd.x}" y2="${depth[i]}" stroke="#8a7340" stroke-width="2.5" stroke-linecap="round"/>`; });
+  tuns.forEach((t,j)=>{
+    const s=t.s, y=yy(j), x1=t.a.x, x2=t.b.x, dx=(x2-x1)*.4, col=s.state==='active'?'#34d0c3':s.state==='failed'?'#f0707a':'#6b7a93';
+    const d=`M${x1} ${y} C${x1+dx} ${y+12} ${x2-dx} ${y+12} ${x2} ${y}`, r=s.state==='active'&&s.rx_rate!=null?' · '+rateTxt((s.rx_rate||0)+(s.tx_rate||0)):'', tx=(t.remote?cut(t.own,7)+' ':'')+'#'+s.slot+' · '+slotProto(s)+r, pw=tx.length*6.1+30, xm=(x1+x2)/2, ym=y+9;
+    g+=`<g style="cursor:pointer" onclick="${t.remote?"go('srv')":'openDetail('+s.slot+')'}"><path d="${d}" fill="none" stroke="transparent" stroke-width="22"/><path d="${d}" fill="none" stroke="${col}" stroke-opacity=".14" stroke-width="12" stroke-linecap="round"/><path d="${d}" fill="none" stroke="${col}" stroke-width="${s.state==='active'?4:3}" stroke-linecap="round" ${s.state==='active'?'':'stroke-dasharray="5 6" opacity=".8"'}/>${s.state==='active'?`<path class="mdash" d="${d}" fill="none" stroke="#e8fffd" stroke-opacity=".8" stroke-width="1.6"/>`:''}<circle cx="${x1}" cy="${y}" r="4" fill="${col}"/><circle cx="${x2}" cy="${y}" r="4" fill="${col}"/><rect x="${(xm-pw/2).toFixed(1)}" y="${ym-10}" width="${pw.toFixed(1)}" height="20" rx="10" fill="#0a1a30" stroke="${col}" stroke-opacity=".5"/><circle cx="${(xm-pw/2+12).toFixed(1)}" cy="${ym}" r="3" fill="${col}"/><text class="dpl" x="${(xm-pw/2+20).toFixed(1)}" y="${ym+3.6}">${esc(tx)}</text></g>`;
   });
-  if(!rows.length) g+=`<text class="dn2" x="${W/2}" y="${H0+50}" text-anchor="middle">${L('No tunnel yet','هنوز تونلی نیست')}</text>`;
-  const node=(x,anc,name,sub,col)=>`<path d="M${x-9} ${H0} a9 9 0 0 1 18 0z" fill="#e9c46a"/><circle cx="${anc==='start'?x-6:x-(String(name).length*3.2+9)}" cy="${H0-34}" r="3" fill="${col}"/><text class="dn" x="${anc==='start'?x+2:x+4}" y="${H0-30}" text-anchor="${anc}">${esc(cut(name,24))}</text><text class="dn2" x="${anc==='start'?x-6:x}" y="${H0-16}" text-anchor="${anc}">${esc(cut(sub,34))}</text>`;
-  g+=node(X0,'start',st.hostname||L('this server','همین سرور'),(st.ip||''),'#34d0c3');
-  pk.forEach((ip,i)=>{ const l=pm[ip], col=l.some(s=>s.state==='active')?'#34d0c3':l.some(s=>s.state==='failed')?'#f0707a':'#6b7a93'; g+=node(px(i),'middle',ip,(l[0].role==='server'?L('Foreign','خارج'):L('Iran','ایران'))+' · '+l.length+' '+L('tunnel','تونل'),col); });
+  if(!tuns.length) g+=`<text class="dn2" x="${W/2}" y="${H0+50}" text-anchor="middle">${L('No tunnel yet','هنوز تونلی نیست')}</text>`;
+  nodes.forEach((nd,i)=>{
+    const mine=tuns.filter(t=>t.a===nd||t.b===nd), col=nd.kind==='local'?'#34d0c3':nd.kind==='remote'?(nd.ok?'#34d0c3':'#f0707a'):(mine.some(t=>t.s.state==='active')?'#34d0c3':mine.some(t=>t.s.state==='failed')?'#f0707a':'#6b7a93');
+    const sub=nd.kind==='local'?(nd.ip||''):nd.kind==='remote'?(nd.ok?'CPU '+((nd.f.stats||{}).cpu||0).toFixed(0)+'% · '+(nd.f.slots||[]).length+' '+L('tunnel','تونل'):L('offline','آفلاین')):((mine[0]&&mine[0].s.role==='server'?L('Foreign','خارج'):L('Iran','ایران'))+' · '+mine.length+' '+L('tunnel','تونل'));
+    const anc=i===0?'start':'middle', x=nd.x;
+    g+=`<path d="M${x-9} ${H0} a9 9 0 0 1 18 0z" fill="#e9c46a"/><circle cx="${anc==='start'?x-6:x-(String(nd.name).length*3.2+9)}" cy="${H0-34}" r="3" fill="${col}"/><text class="dn" x="${anc==='start'?x+2:x+4}" y="${H0-30}" text-anchor="${anc}">${esc(cut(nd.name,24))}</text><text class="dn2" x="${anc==='start'?x-6:x}" y="${H0-16}" text-anchor="${anc}">${esc(cut(sub,34))}</text>`;
+  });
   el.innerHTML=g+'</svg>';
 }
-let _lgsig='', _lgl='all', _lgsel='all', _lgbusy=false;
-async function logsPage(){
-  if(!$('#lgbox')||_lgbusy) return; _lgbusy=true;
-  try{
-    const slots=window._slots||[], sel=$('#lgsel');
-    const opts='<option value="all">'+L('All tunnels','همه تونل‌ها')+'</option>'+slots.map(x=>`<option value="${x.slot}">#${x.slot} · ${esc(peerOf(x))} · ${x.kind}</option>`).join('');
-    if(sel.dataset.o!==opts){ sel.innerHTML=opts; sel.dataset.o=opts; sel.value=slots.some(x=>String(x.slot)===_lgsel)?_lgsel:'all'; }
-    _lgsel=sel.value;
-    const ids=_lgsel==='all'?slots.map(x=>x.slot):[+_lgsel];
-    const res=await Promise.all(ids.map(n=>api('/api/slot/'+n+'/logs').then(r=>({n,t:r.logs||''})).catch(e=>({n,t:'error: '+e.message}))));
-    let lines=[]; res.forEach(r=>r.t.split('\n').forEach(l=>{ if(l.trim()) lines.push({n:r.n,l}); }));
-    const q=($('#lgq').value||'').trim().toLowerCase();
-    const isE=t=>/error|fail|panic|fatal|traceback|refused|denied/i.test(t), isW=t=>/warn|retry|reconnect|timeout|timed out|lost|closed/i.test(t);
-    lines=lines.filter(x=>(!q||x.l.toLowerCase().includes(q)) && (_lgl==='all'||(_lgl==='e'?isE(x.l):(isE(x.l)||isW(x.l)))));
-    const html=lines.length ? lines.slice(-400).map(x=>{ const m=x.l.match(/^([A-Z][a-z]{2} +\d+ [\d:]{8}) (\S+) (.*)$/), c=isE(x.l)?'e':isW(x.l)?'w':/start|connect|listen|active|ready|established/i.test(x.l)?'o':'';
-      return `<div class="${c}">${ids.length>1?'<span class="t">#'+x.n+'</span> ':''}${m?'<span class="t">'+esc(m[1])+'</span> '+esc(m[3]):esc(x.l)}</div>`; }).join('') : `<div class="t">${L('No log lines.','لاگی نیست.')}</div>`;
-    if(html!==_lgsig){ const b=$('#lgbox'), near=b.scrollHeight-b.scrollTop-b.clientHeight<60; _lgsig=html; b.innerHTML=html; if(near) b.scrollTop=b.scrollHeight; }
-  } finally { _lgbusy=false; }
-}
-document.addEventListener('input',e=>{ if(e.target.id==='lgq'){ _lgsig=''; logsPage(); } });
-document.addEventListener('change',e=>{ if(e.target.id==='lgsel'){ _lgsel=e.target.value; _lgsig=''; logsPage(); } });
-document.addEventListener('click',e=>{ const b=e.target.closest&&e.target.closest('#lgl button'); if(b){ _lgl=b.dataset.l; document.querySelectorAll('#lgl button').forEach(x=>x.classList.toggle('on',x===b)); _lgsig=''; logsPage(); return; }
-  if(e.target.id==='lgcopy'){ const t=$('#lgbox').innerText; try{ navigator.clipboard.writeText(t).then(()=>msg(L('Copied','کپی شد'),true)); }catch(_){} } });
+/* ---- shared UI bits ---- */
 window._sp = true;
 const ICRV='<svg viewBox="0 0 24 24"><path d="M4 8h14m0 0l-3-3m3 3l-3 3M20 16H6m0 0l3-3m-3 3l3 3"/></svg>', ICSF='<svg viewBox="0 0 24 24"><path d="M12 3l8 4v5c0 4.5-3.2 7.8-8 9-4.8-1.2-8-4.5-8-9V7z"/></svg>',
   ICNT='<svg viewBox="0 0 24 24"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>', ICDM='<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg>', ICIN='<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>';
-const SETSECS=[['sec-sec',ICSH,'Security','امنیت'],['sec-up',ICIN,'About','درباره'],['sec-net',ICNT,'Network & speed','شبکه و سرعت'],['sec-dom',ICDM,'Domain & SSL','دامنه و SSL'],['sec-tg',ICTG,'Telegram','تلگرام'],['sec-time',ICUS,'Date & time','تاریخ و ساعت'],['sec-backup',ICBK,'Backup','پشتیبان'],['sec-app',ICAP,'Appearance','ظاهر']];
+const SETSECS=[['sec-sec',ICSH,'Security','امنیت'],['sec-2fa',ICSH,'Two-factor login','ورود دو مرحله‌ای'],['sec-up',ICIN,'About & update','درباره و به‌روزرسانی'],['sec-net',ICNT,'Network & speed','شبکه و سرعت'],['sec-dom',ICDM,'Domain & SSL','دامنه و SSL'],['sec-tg',ICTG,'Telegram','تلگرام'],['sec-time',ICUS,'Date & time','تاریخ و ساعت'],['sec-backup',ICBK,'Backup','پشتیبان'],['sec-app',ICAP,'Appearance','ظاهر']];
 function flyItems(p){
   if(p==='tun') return [['rev',ICRV,L('Reverse tunnel','تونل معکوس'),tsel==='rev'],['spoof',ICSF,L('Spoof tunnel','تونل اسپوف'),tsel==='spoof']];
   const a=((document.querySelector('#setnav .nav.on')||{}).dataset||{}).anchor||'sec-sec';
   return SETSECS.map(x=>[x[0],x[1],L(x[2],x[3]),x[0]===a]);
 }
 function openFly(el,p){
-  const f=$('#fly'); if(!f) return;
-  f.dataset.p=p;
+  const f=$('#fly'); if(!f) return; f.dataset.p=p;
   f.innerHTML=`<div class="fh">${p==='tun'?L('Tunnel type','نوع تونل'):L('Settings sections','بخش‌های تنظیمات')}</div>`+flyItems(p).map(x=>`<button data-k="${x[0]}" class="${x[3]?'on':''}">${x[1]}<span>${x[2]}</span></button>`).join('');
   const r=el.getBoundingClientRect(), sr=$('#side').getBoundingClientRect(), rtl=getComputedStyle($('#shell')).direction==='rtl';
-  f.classList.add('on');
-  const h=f.offsetHeight; f.style.top=Math.max(8,Math.min(r.top,innerHeight-h-8))+'px';
+  f.classList.add('on'); const h=f.offsetHeight; f.style.top=Math.max(8,Math.min(r.top,innerHeight-h-8))+'px';
   if(rtl){ f.style.right=(innerWidth-sr.left+8)+'px'; f.style.left='auto'; } else { f.style.left=(sr.right+8)+'px'; f.style.right='auto'; }
 }
 function closeFly(){ const f=$('#fly'); if(f) f.classList.remove('on'); }
@@ -1489,26 +1561,137 @@ document.addEventListener('click',e=>{
   if(b){ const p=f.dataset.p,k=b.dataset.k; closeFly(); if(p==='tun') go(k); else { const el=document.getElementById(k); if(el) el.scrollIntoView({behavior:'smooth',block:'start'}); } return; }
   if(f.classList.contains('on') && !e.target.closest('#fly') && !e.target.closest('.nav[data-p="tun"]') && !e.target.closest('.nav[data-p="set"]')) closeFly();
 });
-document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeFly(); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeFly(); dmClose(); } });
 function ntLogo(s){ return '<svg viewBox="0 0 64 64" width="'+s+'" height="'+s+'"><defs><linearGradient id="ntsp" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fde68a"/><stop offset="1" stop-color="#d97706"/></linearGradient></defs><rect x="2" y="2" width="60" height="60" rx="16" fill="#0b1226" stroke="url(#ntsp)" stroke-width="2.5"/><path d="M12 52V32a20 20 0 0 1 40 0v20" fill="none" stroke="url(#ntsp)" stroke-width="4" stroke-linecap="round"/><path d="M20 52V33a12 12 0 0 1 24 0v19" fill="none" stroke="url(#ntsp)" stroke-width="3" stroke-linecap="round" opacity=".7"/><path d="M27 52V34a5 5 0 0 1 10 0v18z" fill="url(#ntsp)" opacity=".9"/><path d="M6 52h52" stroke="url(#ntsp)" stroke-width="3" stroke-linecap="round"/></svg>'; }
 function splash(){
   if(document.getElementById('splash')) return;
   const d=document.createElement('div'); d.id='splash'; d.innerHTML='<div class="sl">'+ntLogo(96)+'</div><b>NiceTunnel</b><i></i>';
   document.body.appendChild(d); setTimeout(()=>d.classList.add('out'),1000); setTimeout(()=>d.remove(),1550);
 }
-function slotBtns(n){ return `<button class="sm ok" onclick="act(${n},'start')">${L('Connect','اتصال')}</button><button class="sm" onclick="act(${n},'restart')">${L('Restart','ری‌استارت')}</button><button class="sm" onclick="act(${n},'stop')">${L('Stop','توقف')}</button><button class="sm" onclick="logs(${n})">${L('Logs','لاگ')}</button><button class="sm danger" onclick="del(${n})">${L('Delete','حذف')}</button>`; }
+function goLogs(n){ dmClose(); _lgsel=String(n); _lgsig=''; const s=$('#lgsel'); if(s) s.dataset.o=''; go('logs'); }
+function slotBtns(n){ return `<button class="sm" onclick="openDetail(${n})">${L('Details','جزئیات')}</button><button class="sm ok" onclick="act(${n},'start')">${L('Connect','اتصال')}</button><button class="sm" onclick="act(${n},'restart')">${L('Restart','ری‌استارت')}</button><button class="sm" onclick="act(${n},'stop')">${L('Stop','توقف')}</button><button class="sm" onclick="goLogs(${n})">${L('Logs','لاگ')}</button><button class="sm danger" onclick="del(${n})">${L('Delete','حذف')}</button>`; }
 function slotTable(slots, full){
   if(!slots.length) return `<div class="dempty">${L('No tunnel yet. Open Create to add one.','هنوز تونلی نیست. از بخش ساخت یکی بسازید.')}</div>`;
-  return '<div class="tcards">'+slots.map(s=>`<div class="tcard"><div class="tch"><i class="tb ${stCls(s.state)}"></i><div class="tm"><b>#${s.slot} · ${esc(peerOf(s))}<em class="tg">${esc(s.side)}</em></b><span>${esc(slotDetail(s))}</span></div><div class="tp ${stCls(s.state)}">${stTxt(s.state)}</div></div>${full?`<div class="tact">${slotBtns(s.slot)}</div>`:''}</div>`).join('')+'</div>';
+  return '<div class="tcards">'+slots.map(s=>`<div class="tcard"><div class="tch"><i class="tb ${stCls(s.state)}"></i><div class="tm"><b>#${s.slot} · ${esc(peerOf(s))}<em class="tg">${esc(s.side)}</em></b><span>${esc(slotDetail(s))}</span></div><div class="tp ${stCls(s.state)}">${stTxt(s.state)}</div></div>${mxChips(s)?`<div class="mxs">${mxChips(s)}</div>`:''}${full?`<div class="tact">${slotBtns(s.slot)}</div>`:''}</div>`).join('')+'</div>';
+}
+/* ---- charts ---- */
+function drawLines(cv, series, fmt){
+  if(!cv) return; const dpr=window.devicePixelRatio||1, w=cv.clientWidth||300, h=cv.clientHeight||90; cv.width=w*dpr; cv.height=h*dpr;
+  const c=cv.getContext('2d'); c.scale(dpr,dpr); c.clearRect(0,0,w,h);
+  const n=Math.max(0,...series.map(s=>s.data.length)); c.font='11px sans-serif';
+  if(n<2){ c.fillStyle='#6f86a8'; c.fillText(L('Collecting data…','در حال جمع‌آوری داده…'),10,h/2); return; }
+  const top=Math.max(1e-9,...series.flatMap(s=>s.data))*1.15, step=w/89;
+  c.strokeStyle='rgba(255,255,255,.06)'; for(let i=1;i<4;i++){ c.beginPath(); c.moveTo(0,h*i/4); c.lineTo(w,h*i/4); c.stroke(); }
+  series.forEach(s=>{ const d=s.data; c.beginPath(); d.forEach((v,i)=>{ const x=w-(d.length-1-i)*step, y=h-4-(v/top)*(h-12); i?c.lineTo(x,y):c.moveTo(x,y); }); c.strokeStyle=s.color; c.lineWidth=1.8; c.stroke();
+    c.lineTo(w,h); c.lineTo(w-(d.length-1)*step,h); c.closePath(); const gr=c.createLinearGradient(0,0,0,h); gr.addColorStop(0,s.color+'44'); gr.addColorStop(1,s.color+'00'); c.fillStyle=gr; c.fill(); });
+  c.fillStyle='#8fa2bf'; c.fillText(fmt(top/1.15),6,12);
+}
+/* ---- tunnel details ---- */
+let _dm=null, _dmTimer=null;
+function dmClose(){ clearInterval(_dmTimer); _dmTimer=null; _dm=null; const o=$('#dm'); if(o) o.remove(); }
+function inp(id,label,val,extra){ return `<div class="ef"><label for="${id}">${label}</label><input id="${id}" dir="ltr" value="${esc(val==null?'':String(val))}" ${extra||''}></div>`; }
+function editForm(s){
+  const sp=s.kind==='spoof', srv=s.role==='server';
+  const f= sp ? inp('ed_peer',L('Peer IP','آی‌پی طرف مقابل'),s.peer)+`<div class="ef"><label>${L('Packet type','نوع بسته')}</label><select id="ed_transport">${['udp','tcp','icmp'].map(t=>`<option ${t===s.transport?'selected':''}>${t}</option>`).join('')}</select></div>`+inp('ed_port',L('Tunnel port','پورت تونل'),s.port)+inp('ed_spoof_ips',L('Spoofed IPs','آی‌پی‌های جعلی'),s.spoof_ips)+(srv?inp('ed_listen_port',L('Listen port','پورت شنود'),s.listen_port):inp('ed_forward',L('Forward to (host:port)','فوروارد به (host:port)'),s.forward))
+   : inp('ed_bridge',L('Bridge port','پورت پل'),s.bridge)+(srv?inp('ed_ports',L('Forwarded ports','پورت‌های انتقالی'),s.ports):inp('ed_server_ip',L('Server IP','آی‌پی سرور'),s.server_ip)+inp('ed_target_host',L('Target host','مقصد'),s.target_host));
+  return f+inp('ed_token',L('Token','توکن'),'', `type="password" placeholder="${L('leave empty to keep','خالی = بدون تغییر')}" autocomplete="new-password"`);
+}
+async function openDetail(n){
+  dmClose(); closeFly();
+  const o=document.createElement('div'); o.id='dm'; o.className='dmo'; o.onclick=e=>{ if(e.target===o) dmClose(); };
+  o.innerHTML=`<div class="dmb"><div class="dmh"><div><b id="dmt">#${n}</b><span id="dms"></span></div><button class="dmx" onclick="dmClose()" aria-label="Close">✕</button></div><div id="dmbody"><div class="dempty">…</div></div></div>`;
+  document.body.appendChild(o); _dm={n,built:false};
+  await dmLoad(); _dmTimer=setInterval(dmLoad,3000);
+}
+async function dmLoad(){
+  if(!_dm) return; const r=await apiX('/api/slot/'+_dm.n+'/detail'); if(!_dm) return;
+  if(r.s!==200){ $('#dmbody').innerHTML=`<div class="dempty">${esc(r.j.error||'error')}</div>`; return; }
+  const d=r.j, s=d.slot, st=d.stats||{}, h=d.health||{}, n=_dm.n;
+  $('#dmt').innerHTML=`#${n} · ${esc(peerOf(s))}<em class="tg">${esc(s.side)}</em>`; $('#dms').className='tp '+stCls(s.state); $('#dms').textContent=stTxt(s.state);
+  const cell=(k,v,sub)=>`<div class="dcell"><span>${k}</span><b>${v}</b>${sub?`<small>${sub}</small>`:''}</div>`;
+  const stats=`<div class="dgr">${cell(L('Speed','سرعت'),'↓ '+rateTxt(st.rx_rate),'↑ '+rateTxt(st.tx_rate))}${cell(L('Open connections','اتصال‌های باز'),st.acct?st.conns:'—',s.kind==='reverse'?'TCP':L('TCP only','فقط TCP'))}${cell(L('Today','امروز'),'↓ '+fmtB(st.day_rx||0),'↑ '+fmtB(st.day_tx||0))}${cell(L('Total','مجموع'),'↓ '+fmtB(st.rx_total||0),'↑ '+fmtB(st.tx_total||0))}${cell(L('Service uptime','آپتایم سرویس'),st.uptime==null?'—':fmtUp(st.uptime),(st.restarts||0)+' '+L('restarts','ری‌استارت'))}${cell(L('CPU / RAM','پردازنده / رم'),st.cpu==null?'—':st.cpu.toFixed(1)+'%',fmtB(st.mem||0))}</div>`+(st.acct?'':`<p class="dnote">${L('Traffic counters start after this tunnel restarts once.','شمارنده ترافیک بعد از یک بار ری‌استارت این تانل شروع می‌شود.')}</p>`);
+  const lat=h.lat==null?'—':h.lat.toFixed(1)+' ms', hl=`<div class="dgr">${cell(L('Ping to peer','پینگ تا مقصد'),lat,h.peer?esc(h.peer):L('peer unknown yet','آدرس مقصد هنوز معلوم نیست'))}${cell(L('Packet loss','افت بسته'),h.loss==null?'—':h.loss.toFixed(0)+'%',h.t?ago(h.t):'')}${cell(L('Uptime 24h','آپتایم ۲۴ ساعت'),d.up24==null?'—':d.up24+'%',L('7 days','۷ روز')+': '+(d.up7==null?'—':d.up7+'%'))}${cell(L('Last reachable','آخرین دسترسی'),h.ok_t?ago(h.ok_t):'—','')}</div>`;
+  const evTxt=e=>e.k==='state'||e.k==='seen'?(e.k==='seen'?L('First seen as ','برای اولین بار دیده شد: '):L('Became ','تغییر وضعیت به '))+stTxt(e.s):e.k==='edit'?L('Settings edited','تنظیمات ویرایش شد'):e.k==='loss'?L('Packet loss ','افت بسته ')+(e.v||0).toFixed(0)+'%':e.k==='loss_ok'?L('Connection to peer recovered','ارتباط با مقصد برگشت'):esc(e.k);
+  const evs=(d.events||[]).map(e=>`<div class="ev"><i class="tb ${e.s?stCls(e.s):'off'}"></i><span>${evTxt(e)}</span><small>${new Date(e.t*1000).toLocaleString()}</small></div>`).join('')||`<div class="dempty">${L('No events yet.','هنوز رویدادی ثبت نشده.')}</div>`;
+  if(!_dm.built){
+    _dm.built=true;
+    $('#dmbody').innerHTML=`<div id="dmstats"></div><div class="dmsec"><h4>${L('Traffic (last ~7 min)','ترافیک (۷ دقیقه اخیر)')}<span class="lgd"><i style="background:#34d0c3"></i>↓ <i style="background:#e9c46a"></i>↑</span></h4><canvas id="dch" class="dcv"></canvas></div>
+     <div class="dmsec"><h4>${L('Health','سلامت')}<button class="sm" id="dmprobe" style="margin-inline-start:auto">${L('Test now','تست همین حالا')}</button></h4><div id="dmhl"></div><canvas id="dlat" class="dcv" style="height:70px"></canvas></div>
+     <div class="dmsec"><h4>${L('Events','رویدادها')}</h4><div id="dmev" class="evs"></div></div>
+     <div class="dmsec"><details id="dmedit"><summary>${L('Edit tunnel','ویرایش تانل')}</summary><div class="efg">${editForm(s)}</div><p class="dnote">${L('Ports, token and spoofed IPs must match on the other server too.','پورت، توکن و آی‌پی‌های جعلی باید روی سرور مقابل هم یکی باشند.')}</p><div class="nact"><button class="ok" id="dmsave">${L('Save & restart','ذخیره و ری‌استارت')}</button> <span id="dmmsg" class="dnote"></span></div></details></div>
+     <div class="tact">${slotBtns(n)}</div>`;
+    $('#dmprobe').onclick=async()=>{ const b=$('#dmprobe'); b.disabled=true; const r=await apiX('/api/slot/'+n+'/probe',{}); b.disabled=false; if(r.s!==200) alert(r.j.error||'error'); dmLoad(); };
+    $('#dmsave').onclick=async()=>{ const body={}; ['peer','transport','port','spoof_ips','listen_port','forward','bridge','ports','server_ip','target_host','token'].forEach(k=>{ const e=$('#ed_'+k); if(e&&e.value.trim()!=='') body[k]=e.value.trim(); }); const b=$('#dmsave'); b.disabled=true; const r=await apiX('/api/slot/'+n+'/edit',body); b.disabled=false; $('#dmmsg').style.color=r.s===200?'#34d0c3':'#f0707a'; $('#dmmsg').textContent=r.s===200?(L('Saved','ذخیره شد')+(r.j.restarted?' · '+L('restarted','ری‌استارت شد'):'')+(r.j.token_changed?' · '+L('token changed','توکن عوض شد'):'')):(r.j.error||'error'); if(r.s===200) refresh(); };
+  }
+  $('#dmstats').innerHTML=stats; $('#dmhl').innerHTML=hl; $('#dmev').innerHTML=evs;
+  drawLines($('#dch'),[{data:d.hist.rx,color:'#34d0c3'},{data:d.hist.tx,color:'#e9c46a'}],v=>rateTxt(v));
+  drawLines($('#dlat'),[{data:d.hist.lat,color:'#8ab4ff'}],v=>v.toFixed(0)+' ms');
+}
+/* ---- servers page ---- */
+const _srvOpen=new Set();
+async function refreshFleet(){ const r=await apiX('/api/fleet'); window._fleet=(r.j&&r.j.servers)||[]; srvRender(); }
+function mbar(l,p){ return `<div class="dm"><span>${l}</span><em><b style="width:${Math.max(0,Math.min(100,p||0))}%"></b></em><span>${(p||0).toFixed(0)}%</span></div>`; }
+function srvCard(name,url,ok,st,slots,id,errTxt,t){
+  const sl=slots||[], act=sl.filter(s=>s.state==='active').length, open=_srvOpen.has(id||'local');
+  const rate=st?fmtR((st.rx_rate||0)+(st.tx_rate||0)).join(' '):'—';
+  return `<div class="scard"><div class="sch"><span class="sdot ${ok?'on':'off'}"></span><div class="tm"><b>${esc(name)}${id?'':`<em class="tg">${L('This server','این سرور')}</em>`}</b><span>${esc(url||'')}${ok||!id?'':' · '+L('offline','آفلاین')+(errTxt?' · '+esc(errTxt).slice(0,60):'')+(t?' · '+L('last seen','آخرین دیدار')+' '+ago(t):'')}</span></div><div class="tp ${ok?'active':'failed'}">${ok?L('Online','آنلاین'):L('Offline','آفلاین')}</div></div>
+   ${st?`<div class="sgr"><div>${mbar('CPU',st.cpu)}${mbar('RAM',st.mem_pct)}${mbar('Disk',st.disk_pct)}</div><div class="sinfo"><span>${L('Tunnels','تونل‌ها')}<b>${act} / ${sl.length}</b></span><span>${L('Throughput','ترافیک')}<b>${rate}</b></span><span>${L('Uptime','آپتایم')}<b>${fmtUp(st.uptime)}</b></span></div></div>`:''}
+   <div class="tact"><button class="sm" onclick="srvToggle('${id||'local'}')">${open?L('Hide tunnels','بستن تونل‌ها'):L('Tunnels','تونل‌ها')} (${sl.length})</button>${id?`<a class="sm lnk" href="${esc(url)}" target="_blank" rel="noopener">${L('Open panel','باز کردن پنل')} ↗</a><button class="sm danger" onclick="srvDel('${id}')">${L('Remove','حذف')}</button>`:''}</div>
+   ${open?`<div class="srows">${sl.length?sl.map(s=>`<div class="tr" style="cursor:default"><i class="tb ${stCls(s.state)}"></i><div class="tm"><b>#${s.slot} · ${esc(peerOf(s))}<em class="tg">${esc(s.side)}</em></b><span>${esc(slotDetail(s))}</span>${mxChips(s)?`<div class="mxs">${mxChips(s)}</div>`:''}</div><div class="tp ${stCls(s.state)}">${stTxt(s.state)}</div>${id?`<div class="tact" style="margin:0;padding:0;border:0"><button class="sm" onclick="srvAct('${id}',${s.slot},'start')">${L('Connect','اتصال')}</button><button class="sm" onclick="srvAct('${id}',${s.slot},'restart')">${L('Restart','ری‌استارت')}</button><button class="sm" onclick="srvAct('${id}',${s.slot},'stop')">${L('Stop','توقف')}</button><button class="sm" onclick="srvLogs('${id}',${s.slot})">${L('Logs','لاگ')}</button></div>`:`<button class="sm" onclick="openDetail(${s.slot})">${L('Details','جزئیات')}</button>`}</div>`).join(''):`<div class="dempty">${L('No tunnels.','تونلی نیست.')}</div>`}</div>`:''}</div>`;
+}
+function srvRender(){
+  const el=$('#srvlist'); if(!el) return; const st=window._st||{}, fl=window._fleet||[];
+  el.innerHTML=srvCard(st.hostname||L('This server','این سرور'), st.ip||'', true, st, window._slots||[], '', '', 0)+fl.map(f=>srvCard(f.name,f.url,f.ok,f.stats,f.slots,f.id,f.err,f.t)).join('')+(fl.length?'':`<div class="dempty">${L('No other servers yet. Add one to see it on the map and manage its tunnels from here.','هنوز سرور دیگری اضافه نشده. اضافه کنید تا روی نقشه ببینید و تانل‌هایش را از اینجا مدیریت کنید.')}</div>`);
+}
+function srvToggle(id){ _srvOpen.has(id)?_srvOpen.delete(id):_srvOpen.add(id); srvRender(); }
+async function srvDel(id){ if(!confirm(L('Remove this server from the panel? Its tunnels keep running.','این سرور از پنل حذف شود؟ تانل‌هایش به کار خود ادامه می‌دهند.'))) return; await apiX('/api/servers/delete',{id}); _srvOpen.delete(id); await refreshFleet(); _dsig=''; }
+async function srvAct(id,slot,action){ const r=await apiX('/api/servers/act',{id,slot,action}); if(r.s!==200) alert(r.j.error||'error'); setTimeout(refreshFleet,1500); }
+async function srvLogs(id,slot){
+  dmClose(); const o=document.createElement('div'); o.id='dm'; o.className='dmo'; o.onclick=e=>{ if(e.target===o) dmClose(); };
+  o.innerHTML=`<div class="dmb"><div class="dmh"><div><b>${L('Logs','لاگ')} #${slot}</b></div><button class="dmx" onclick="dmClose()">✕</button></div><div class="lg" id="srvlg" style="max-height:60vh">…</div></div>`; document.body.appendChild(o);
+  const r=await apiX('/api/servers/logs?id='+encodeURIComponent(id)+'&slot='+slot); $('#srvlg').innerHTML=r.s===200?(r.j.logs||'').split('\n').filter(Boolean).map(l=>`<div>${esc(l)}</div>`).join('')||'—':esc(r.j.error||'error');
+}
+async function srvSave(pin){
+  const b={name:$('#srvname').value,url:$('#srvurl').value.trim(),key:$('#srvkey').value.trim()}; if(pin) b.pin=pin;
+  const btn=$('#srvsave'); btn.disabled=true; const r=await apiX('/api/servers/add',b); btn.disabled=false;
+  if(r.s===409&&r.j.need_pin){ if(confirm(L('This server uses a self-signed certificate.\nFingerprint (SHA-256):\n','این سرور گواهی خودامضا دارد.\nاثر انگشت (SHA-256):\n')+r.j.fingerprint+'\n\n'+L('Only trust it if this matches the other panel. Trust it?','فقط اگر با پنل مقابل یکی است اعتماد کنید. اعتماد می‌کنید؟'))) return srvSave(r.j.fingerprint); return; }
+  if(r.s!==200){ $('#srvmsg').style.color='#f0707a'; $('#srvmsg').textContent=r.j.error||'error'; return; }
+  ['srvname','srvurl','srvkey'].forEach(i=>$(('#'+i)).value=''); $('#srvform').classList.add('hide'); $('#srvmsg').textContent=''; _dsig=''; await refreshFleet();
+}
+async function keysRender(){
+  const r=await apiX('/api/apikeys'); const el=$('#keylist'); if(!el) return;
+  el.innerHTML=(r.j.keys||[]).map(k=>`<div class="wr"><span><b>${esc(k.name)}</b> <small>· ${new Date(k.t*1000).toLocaleDateString()} · ${k.last?L('used','استفاده')+' '+ago(k.last):L('never used','استفاده نشده')}</small></span><button class="dlink" onclick="keyRevoke('${k.id}')">${L('Revoke','ابطال')}</button></div>`).join('')||`<div class="dempty">${L('No API keys.','کلیدی نیست.')}</div>`;
+}
+async function keyRevoke(id){ if(!confirm(L('Revoke this key? Panels using it lose access.','این کلید باطل شود؟ پنل‌هایی که از آن استفاده می‌کنند دسترسی را از دست می‌دهند.'))) return; await apiX('/api/apikeys/revoke',{id}); keysRender(); }
+function srvInit(){
+  $('#srvaddr').textContent=location.origin+BASE;
+  $('#srvadd').onclick=()=>$('#srvform').classList.toggle('hide');
+  $('#srvsave').onclick=()=>srvSave();
+  $('#srvaddrcopy').onclick=()=>{ try{ navigator.clipboard.writeText(location.origin+BASE); }catch(e){} };
+  $('#keymake').onclick=async()=>{ const r=await apiX('/api/apikeys/create',{name:$('#keyname').value}); if(r.s!==200){ alert(r.j.error||'error'); return; } $('#keyname').value=''; $('#keynew').classList.remove('hide'); $('#keynewv').textContent=r.j.key; keysRender(); };
+  $('#keycopy').onclick=()=>{ try{ navigator.clipboard.writeText($('#keynewv').textContent); }catch(e){} };
+  refreshFleet(); keysRender();
+}
+/* ---- settings extras: 2FA, update, telegram ---- */
+function tfaRender(s){ $('#tfastate').textContent=s.on?L('On','روشن')+' · '+s.left+' '+L('recovery codes left','کد بازیابی باقی مانده'):L('Off — only the password protects the panel','خاموش — فقط رمز از پنل محافظت می‌کند'); $('#tfaon').classList.toggle('hide',!!s.on); $('#tfaoff').classList.toggle('hide',!s.on); }
+async function setExtras(){
+  const r=await apiX('/api/2fa'); if(r.s===200){ window._tfa=r.j.on; tfaRender(r.j); }
+  $('#tfaon').onclick=async()=>{ const r=await apiX('/api/2fa/setup',{}); if(r.s!==200){ alert(r.j.error||'error'); return; } $('#tfakey').textContent=r.j.secret.replace(/(.{4})/g,'$1 ').trim(); $('#tfauri').href=r.j.uri; $('#tfasetup').classList.remove('hide'); $('#tfacode').value=''; $('#tfacode').focus(); };
+  $('#tfacopy').onclick=()=>{ try{ navigator.clipboard.writeText($('#tfakey').textContent.replace(/\s/g,'')); }catch(e){} };
+  $('#tfaconfirm').onclick=async()=>{ const r=await apiX('/api/2fa/enable',{code:$('#tfacode').value}); if(r.s!==200){ alert(r.j.error||'error'); return; } $('#tfasetup').classList.add('hide'); const b=$('#tfacodes'); b.classList.remove('hide'); b.innerHTML=`<p class="dnote">${L('Save these recovery codes now. Each works once if you lose your phone. They will not be shown again.','این کدهای بازیابی را همین حالا ذخیره کنید. هر کدام یک بار کار می‌کند و دیگر نمایش داده نمی‌شوند.')}</p><div class="rcodes">${r.j.codes.map(c=>`<code>${c}</code>`).join('')}</div><button class="sm" id="rccopy">${L('Copy all','کپی همه')}</button>`; $('#rccopy').onclick=()=>{ try{ navigator.clipboard.writeText(r.j.codes.join('\n')); }catch(e){} }; const s=await apiX('/api/2fa'); tfaRender(s.j); };
+  $('#tfaoff').onclick=()=>{ $('#tfadis').classList.toggle('hide'); };
+  $('#tfadisgo').onclick=async()=>{ const r=await apiX('/api/2fa/disable',{password:$('#tfadpw').value,code:$('#tfadcode').value}); if(r.s!==200){ alert(r.j.error||'error'); return; } $('#tfadis').classList.add('hide'); $('#tfadpw').value=''; $('#tfadcode').value=''; const s=await apiX('/api/2fa'); tfaRender(s.j); };
+  $('#updchk').onclick=async()=>{ const st=$('#updst'); st.textContent=L('Checking…','در حال بررسی…'); const r=await apiX('/api/update/check'); if(r.j.error){ st.textContent=L('Could not check: ','بررسی نشد: ')+r.j.error; return; } if(r.j.newer){ st.textContent=L('New version v','نسخه جدید v')+r.j.latest+L(' is available',' موجود است'); $('#updgo').classList.remove('hide'); } else { st.textContent=L('You have the latest version (v','آخرین نسخه را دارید (v')+r.j.current+')'; $('#updgo').classList.add('hide'); } };
+  $('#updgo').onclick=async()=>{ if(!confirm(L('Update the panel now? It restarts for a few seconds and your tunnels keep running.','پنل الان به‌روز شود؟ چند ثانیه راه‌اندازی مجدد می‌شود و تانل‌ها به کار خود ادامه می‌دهند.'))) return; const st=$('#updst'); st.textContent=L('Updating…','در حال به‌روزرسانی…'); const r=await apiX('/api/update/apply',{}); if(r.s!==200){ st.textContent=r.j.error||'error'; return; } st.textContent=L('Updated to v','به‌روز شد به v')+r.j.version+L(' — restarting…',' — در حال راه‌اندازی مجدد…'); setTimeout(()=>location.reload(),6000); };
 }
 function rowBtns(n){ return `<td><button class="sm ok" onclick="act(${n},'start')">Connect</button><button class="sm" onclick="act(${n},'restart')">Restart</button><button class="sm" onclick="act(${n},'stop')">Stop</button><button class="sm" onclick="logs(${n})">Logs</button><button class="sm danger" onclick="del(${n})">Delete</button></td>`; }
 async function refresh(){
   try {
-    const [st, sl] = await Promise.all([api('/api/stats'), api('/api/slots')]);
+    const [st, sl, fl] = await Promise.all([api('/api/stats'), api('/api/slots'), api('/api/fleet').catch(()=>({servers:[]}))]); window._fleet=fl.servers||[]; window._st=st;
     push(hist.cpu, st.cpu); push(hist.rx, st.rx_rate); push(hist.tx, st.tx_rate);
     const lv=$('#live'); if(lv){lv.classList.remove('off'); lv.querySelector('b').textContent=L('Online','آنلاین');}
     $('#host').textContent = st.hostname + ' · ' + st.ip;
-    dashRender(st, sl.slots); window._slots=sl.slots; if(page==='logs') logsPage();
+    dashRender(st, sl.slots); window._slots=sl.slots; if(page==='logs') logsPage(); if(page==='srv') srvRender();
     $('#revtbl').innerHTML = slotTable(sl.slots.filter(s=>s.kind==='reverse'), true);
     $('#tbl').innerHTML = slotTable(sl.slots.filter(s=>s.kind==='spoof'), true);
   } catch(e){ const lv=$('#live'); if(lv){lv.classList.add('off'); lv.querySelector('b').textContent=L('Offline','آفلاین');} if(/login|auth|401/i.test(e.message)) load(); else msg(e.message,false); }
@@ -1568,7 +1751,7 @@ async function createRev(){
     $('#rnew').innerHTML = `<div class="msg good">Tunnel ${r.slot} created. Token (copy it to the other server):<br><code>${esc(r.token)}</code></div>`;
     refresh(); } catch(e){ msg(e.message,false); } }
 
-async function setExtras(){
+async function tfaExtras(){
   const sv=(k,d)=>localStorage.getItem(k)||d;
   const clk=()=>{ const c=$('#clock'); if(c) c.textContent=nowStr(); }; clk(); if(window._ck) clearInterval(window._ck); window._ck=setInterval(clk,1000);
   $('#stz').value=sv('nt_tz','Asia/Tehran'); $('#stz').onchange=()=>{localStorage.setItem('nt_tz',$('#stz').value);clk();loadDevs();loadBk();};
@@ -1581,8 +1764,8 @@ async function setExtras(){
   $('#devout').onclick=async()=>{ await api('/api/device/revoke-others',{}); loadDevs(); }; loadDevs();
   // telegram
   try{ const t=await api('/api/tg'); $('#tgchat').value=t.chat; $('#tgapi').value=t.api; if(t.has) $('#tgcur').textContent=L('Saved: ','ذخیره‌شده: ')+t.masked+L(' (leave empty to keep)',' (خالی = بدون تغییر)');
-    document.querySelectorAll('.tgev').forEach(c=>c.checked=t.events.includes(c.value)); }catch(e){}
-  $('#tgsave').onclick=async()=>{ try{ await api('/api/tg/save',{token:$('#tgtok').value,chat:$('#tgchat').value,api:$('#tgapi').value,on:true,events:[...document.querySelectorAll('.tgev')].filter(c=>c.checked).map(c=>c.value)}); $('#tgtok').value=''; alert(L('Saved','ذخیره شد')); }catch(e){alert(e.message);} };
+    document.querySelectorAll('.tgev').forEach(c=>c.checked=t.events.includes(c.value)); if($('#tgth')) $('#tgth').value=t.th||90; }catch(e){}
+  $('#tgsave').onclick=async()=>{ try{ await api('/api/tg/save',{token:$('#tgtok').value,chat:$('#tgchat').value,api:$('#tgapi').value,on:true,events:[...document.querySelectorAll('.tgev')].filter(c=>c.checked).map(c=>c.value),th:+($('#tgth').value||90)}); $('#tgtok').value=''; alert(L('Saved','ذخیره شد')); }catch(e){alert(e.message);} };
   $('#tgtest').onclick=async()=>{ try{ await api('/api/tg/test',{}); alert(L('Sent. Check Telegram.','ارسال شد. تلگرام را ببینید.')); }catch(e){alert(e.message);} };
   $('#tgdel').onclick=async()=>{ if(confirm(L('Remove Telegram settings?','تنظیمات تلگرام حذف شود؟'))){ await api('/api/tg/clear',{}); $('#tgchat').value='';$('#tgapi').value='';$('#tgcur').textContent=''; } };
   // backups
@@ -1687,7 +1870,7 @@ def collect_stats():
 OTL_TTL = 40 * 60
 BACKUP_DIR = os.path.join(CONF_DIR, "backups")
 sess_info = {}   # session id -> {"ip","ua","t","how"}
-APP_VERSION = "1.4.0"
+APP_VERSION = "1.6.0"
 
 
 def hash_tok(t):
@@ -1774,7 +1957,7 @@ def tg_send(text, event=None):
     tg = load_panel_conf().get("tg", {})
     if not tg.get("token") or not tg.get("chat") or not tg.get("on", True):
         return
-    if event and event not in tg.get("events", ["tunnel", "login", "backup"]):
+    if event and event not in tg.get("events", ["tunnel", "login", "backup", "resource", "ssl", "health"]):
         return
     threading.Thread(target=tg_call, args=("sendMessage", {"chat_id": tg["chat"], "text": text}), daemon=True).start()
 
@@ -2047,6 +2230,875 @@ def route_path(raw):
     return None
 
 
+# --------------------------------------------------------------------------
+# v6: per-tunnel stats, health, edit, update, 2FA, API keys, multi-server
+# --------------------------------------------------------------------------
+conf_lock = threading.RLock()
+EVENTS_FILE = os.path.join(CONF_DIR, "events.json")
+USAGE_FILE = os.path.join(CONF_DIR, "usage.json")
+ACCT_DIR = "/etc/systemd/system/nicetunnel@.service.d"
+HIST_LEN = 90
+slot_stats = {}    # slot -> live numbers from the sampler
+slot_hist = {}     # slot -> {"rx": [], "tx": [], "lat": []}
+slot_health = {}   # slot -> {"lat", "loss", "peer", "t", "ok_t"}
+events_log = []    # [{"t", "slot", "k", "s"?, "v"?}]
+usage = {}         # str(slot) -> persistent traffic counters
+fleet = {}         # server id -> last poll of a remote panel
+_prev = {}
+_last_state = {}
+_alert_state = {}
+_key_last = {}
+_state = {"dirty": False}
+_cpu_prev = [None]
+
+
+def _num(v):
+    """systemd prints '[not set]' or UINT64_MAX when accounting is off."""
+    try:
+        x = int(v)
+    except (TypeError, ValueError):
+        return None
+    return x if 0 <= x < 2 ** 63 else None
+
+
+def _delta(cur, last):
+    if cur is None or last is None:
+        return 0
+    return cur - last if cur >= last else cur
+
+
+def _atomic_write(path, text):
+    os.makedirs(CONF_DIR, mode=0o700, exist_ok=True)
+    tmp = path + ".tmp"
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w") as fh:
+        fh.write(text)
+    os.replace(tmp, path)
+
+
+def load_state():
+    global events_log
+    try:
+        with open(EVENTS_FILE) as fh:
+            ev = json.load(fh)
+        if isinstance(ev, list):
+            events_log = [e for e in ev if isinstance(e, dict)][-300:]
+    except Exception:
+        events_log = []
+    try:
+        with open(USAGE_FILE) as fh:
+            u = json.load(fh)
+        if isinstance(u, dict):
+            usage.update(u)
+    except Exception:
+        pass
+    for e in events_log:
+        if e.get("s"):
+            _last_state[e["slot"]] = e["s"]
+
+
+def save_state():
+    try:
+        _atomic_write(EVENTS_FILE, json.dumps(events_log[-300:]))
+        _atomic_write(USAGE_FILE, json.dumps(usage))
+    except OSError:
+        pass
+    _state["dirty"] = False
+
+
+def record_event(n, kind, state=None, value=None):
+    e = {"t": int(time.time()), "slot": n, "k": kind}
+    if state is not None:
+        e["s"] = state
+    if value is not None:
+        e["v"] = value
+    events_log.append(e)
+    del events_log[:-300]
+    _state["dirty"] = True
+
+
+def uptime_pct(n, window=86400):
+    """Share of the last `window` seconds the tunnel was active, from recorded state changes."""
+    now = time.time()
+    evs = sorted((e for e in events_log if e.get("slot") == n and e.get("s")), key=lambda e: e["t"])
+    if not evs:
+        return None
+    start = max(now - window, evs[0]["t"])
+    if now - start < 60:
+        return None
+    cur = None
+    for e in evs:
+        if e["t"] <= start:
+            cur = e["s"]
+        else:
+            break
+    if cur is None:
+        cur = evs[0]["s"]
+    act, t = 0.0, start
+    for e in evs:
+        if e["t"] <= start:
+            continue
+        if cur == "active":
+            act += e["t"] - t
+        t, cur = e["t"], e["s"]
+    if cur == "active":
+        act += now - t
+    return round(100.0 * act / (now - start), 1)
+
+
+# -- alerts ------------------------------------------------------------------
+def alert_raise(key, text, event, cooldown=1800):
+    s = _alert_state.setdefault(key, {"on": False, "t": 0})
+    now = time.time()
+    if not s["on"] or now - s["t"] >= cooldown:
+        tg_send(text, event)
+        s["t"] = now
+    s["on"] = True
+
+
+def alert_clear(key, text, event):
+    s = _alert_state.get(key)
+    if s and s["on"]:
+        s["on"] = False
+        tg_send(text, event)
+
+
+# -- per-tunnel stats --------------------------------------------------------
+def ensure_accounting(slots=None):
+    """Per-service byte/CPU/memory accounting is what makes per-tunnel numbers possible."""
+    want = "[Service]\nIPAccounting=yes\nCPUAccounting=yes\nMemoryAccounting=yes\n"
+    try:
+        os.makedirs(ACCT_DIR, exist_ok=True)
+        p = os.path.join(ACCT_DIR, "accounting.conf")
+        cur = ""
+        if os.path.exists(p):
+            with open(p) as fh:
+                cur = fh.read()
+        if cur != want:
+            with open(p, "w") as fh:
+                fh.write(want)
+            run(["systemctl", "daemon-reload"])
+    except OSError:
+        pass
+    for sl in (slots if slots is not None else list_slots()):
+        if sl["state"] == "active":
+            run(["systemctl", "set-property", "--runtime", "nicetunnel@%d" % sl["slot"],
+                 "IPAccounting=yes", "CPUAccounting=yes", "MemoryAccounting=yes"])
+
+
+def tcp_conn_counts():
+    out = {}
+    _, o = run(["ss", "-H", "-t", "-n", "-p", "state", "established"], timeout=8)
+    for line in o.splitlines():
+        for pid in re.findall(r"pid=(\d+)", line):
+            out[pid] = out.get(pid, 0) + 1
+    return out
+
+
+def cgroup_pids(cg):
+    if not cg or not cg.startswith("/") or ".." in cg:
+        return []
+    try:
+        with open("/sys/fs/cgroup" + cg + "/cgroup.procs") as fh:
+            return [x.strip() for x in fh if x.strip().isdigit()]
+    except OSError:
+        return []
+
+
+def sample_slots():
+    slots = list_slots()
+    conns = tcp_conn_counts()
+    now = time.time()
+    today = time.strftime("%Y-%m-%d")
+    seen = set()
+    ncpu = os.cpu_count() or 1
+    for sl in slots:
+        n = sl["slot"]
+        seen.add(n)
+        _, o = run(["systemctl", "show", "nicetunnel@%d" % n, "-p",
+                    "IPIngressBytes,IPEgressBytes,CPUUsageNSec,MemoryCurrent,NRestarts,"
+                    "ActiveEnterTimestampMonotonic,ControlGroup"])
+        p = dict(l.split("=", 1) for l in o.splitlines() if "=" in l)
+        i_b, o_b = _num(p.get("IPIngressBytes")), _num(p.get("IPEgressBytes"))
+        cpu_ns, mem = _num(p.get("CPUUsageNSec")), _num(p.get("MemoryCurrent"))
+        state = sl["state"]
+        u = usage.setdefault(str(n), {})
+        if u.get("day") != today:
+            u.update(day=today, drx=0, dtx=0)
+        d_in, d_out = _delta(i_b, u.get("li")), _delta(o_b, u.get("lo"))
+        if i_b is not None:
+            u["li"] = i_b
+        if o_b is not None:
+            u["lo"] = o_b
+        u["rx"], u["tx"] = u.get("rx", 0) + d_in, u.get("tx", 0) + d_out
+        u["drx"], u["dtx"] = u.get("drx", 0) + d_in, u.get("dtx", 0) + d_out
+        pv = _prev.get(n)
+        rx = tx = cpu = None
+        if pv and now > pv["t"] + 0.5:
+            dt = now - pv["t"]
+            if i_b is not None:
+                rx, tx = d_in / dt, d_out / dt
+            if cpu_ns is not None and pv.get("cpu") is not None and cpu_ns >= pv["cpu"]:
+                cpu = min(999.0, (cpu_ns - pv["cpu"]) / 1e9 / dt * 100.0)
+        _prev[n] = {"t": now, "cpu": cpu_ns}
+        up_s = None
+        amt = _num(p.get("ActiveEnterTimestampMonotonic"))
+        if state == "active" and amt:
+            up_s = max(0, int(time.monotonic() - amt / 1e6))
+        slot_stats[n] = {
+            "state": state, "acct": i_b is not None, "rx_rate": rx, "tx_rate": tx,
+            "rx_total": u["rx"], "tx_total": u["tx"], "day_rx": u["drx"], "day_tx": u["dtx"],
+            "conns": sum(conns.get(x, 0) for x in cgroup_pids(p.get("ControlGroup", ""))),
+            "cpu": cpu, "mem": mem or 0, "uptime": up_s,
+            "restarts": int(p["NRestarts"]) if p.get("NRestarts", "").isdigit() else 0,
+        }
+        if rx is not None:
+            h = slot_hist.setdefault(n, {"rx": [], "tx": [], "lat": []})
+            h["rx"].append(round(rx, 1))
+            h["tx"].append(round(tx, 1))
+            del h["rx"][:-HIST_LEN], h["tx"][:-HIST_LEN]
+        if _last_state.get(n) != state:
+            record_event(n, "seen" if n not in _last_state else "state", state=state)
+            _last_state[n] = state
+    for n in list(slot_stats):
+        if n not in seen:
+            for d in (slot_stats, slot_hist, slot_health, _prev):
+                d.pop(n, None)
+            usage.pop(str(n), None)
+            _last_state.pop(n, None)
+
+
+def reverse_server_peer(bridge):
+    """On the Iran side of a reverse tunnel the peer is whoever holds the bridge connection."""
+    if not str(bridge).isdigit():
+        return ""
+    _, o = run(["ss", "-H", "-t", "-n", "state", "established", "sport", "=", ":%s" % bridge], timeout=6)
+    for line in o.splitlines():
+        parts = line.split()
+        if len(parts) >= 4:
+            ip = parts[-1].rsplit(":", 1)[0].strip("[]")
+            if valid_ipv4(ip):
+                return ip
+    return ""
+
+
+def slot_peer(sl):
+    ip = sl.get("peer") if sl["kind"] == "spoof" else sl.get("server_ip")
+    if ip and valid_ipv4(ip):
+        return ip
+    if sl["kind"] == "reverse" and sl.get("role") == "server":
+        return reverse_server_peer(sl.get("bridge"))
+    return ""
+
+
+def probe_host(ip, count=3):
+    if not valid_ipv4(ip):
+        return None
+    _, out = run(["ping", "-n", "-c", str(count), "-i", "0.3", "-W", "1", ip], timeout=count * 2 + 5)
+    m = re.search(r"([\d.]+)% packet loss", out)
+    if not m:
+        return None
+    r = re.search(r"= [\d.]+/([\d.]+)/([\d.]+)/", out)
+    return {"lat": float(r.group(1)) if r else None, "max": float(r.group(2)) if r else None,
+            "loss": float(m.group(1)), "t": int(time.time())}
+
+
+def apply_probe(n, ip, r):
+    h = slot_health.get(n, {})
+    if r:
+        h = dict(h, lat=r["lat"], loss=r["loss"], max=r["max"], t=r["t"], peer=ip)
+        if r["loss"] < 100:
+            h["ok_t"] = r["t"]
+        hist = slot_hist.setdefault(n, {"rx": [], "tx": [], "lat": []})
+        if r["lat"] is not None:
+            hist["lat"].append(round(r["lat"], 1))
+            del hist["lat"][:-HIST_LEN]
+    else:
+        h = dict(h, peer=ip, t=int(time.time()), lat=None, loss=None)
+    slot_health[n] = h
+    return h
+
+
+def health_round():
+    slots = list_slots()
+    targets = {}
+    for sl in slots:
+        ip = slot_peer(sl)
+        if ip:
+            targets[sl["slot"]] = ip
+    results = {}
+    if targets:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as ex:
+            futs = {n: ex.submit(probe_host, ip) for n, ip in targets.items()}
+            for n, f in futs.items():
+                try:
+                    results[n] = f.result(timeout=30)
+                except Exception:
+                    results[n] = None
+    for n in list(slot_health):
+        if n not in targets:
+            slot_health.pop(n, None)
+    for n, ip in targets.items():
+        h = apply_probe(n, ip, results.get(n))
+        key = "loss:%d" % n
+        if h.get("loss") is not None and h["loss"] >= 50:
+            h["bad"] = h.get("bad", 0) + 1
+            if h["bad"] == 2:
+                record_event(n, "loss", value=h["loss"])
+            if h["bad"] >= 2:
+                alert_raise(key, "📉 تانل %d (%s): افت بسته %d٪ به %s" % (n, host_label(), h["loss"], ip), "health")
+        elif h.get("loss") is not None:
+            if h.get("bad", 0) >= 2:
+                record_event(n, "loss_ok")
+            h["bad"] = 0
+            alert_clear(key, "✅ تانل %d (%s): ارتباط با %s برگشت" % (n, host_label(), ip), "health")
+        key2 = "lat:%d" % n
+        if h.get("lat") is not None and h["lat"] > 350:
+            h["slow"] = h.get("slow", 0) + 1
+            if h["slow"] >= 3:
+                alert_raise(key2, "🐢 تانل %d (%s): تأخیر بالا %d ms به %s" % (n, host_label(), h["lat"], ip), "health")
+        elif h.get("lat") is not None:
+            h["slow"] = 0
+            alert_clear(key2, "✅ تانل %d (%s): تأخیر عادی شد" % (n, host_label()), "health")
+        slot_health[n] = h
+
+
+def health_loop():
+    while True:
+        try:
+            health_round()
+        except Exception:
+            pass
+        time.sleep(30)
+
+
+# -- server resources & certificate alerts -----------------------------------
+def cpu_percent():
+    try:
+        with open("/proc/stat") as fh:
+            v = [int(x) for x in fh.readline().split()[1:]]
+    except Exception:
+        return None
+    idle, total = v[3] + (v[4] if len(v) > 4 else 0), sum(v)
+    p, _cpu_prev[0] = _cpu_prev[0], (idle, total)
+    if not p or total == p[1]:
+        return None
+    return 100.0 * (1 - (idle - p[0]) / (total - p[1]))
+
+
+def mem_percent():
+    try:
+        m = {}
+        with open("/proc/meminfo") as fh:
+            for line in fh:
+                k, _, v = line.partition(":")
+                m[k] = int(v.split()[0])
+        return 100.0 * (1 - m["MemAvailable"] / m["MemTotal"])
+    except Exception:
+        return None
+
+
+def disk_percent():
+    try:
+        u = shutil.disk_usage("/")
+        return 100.0 * u.used / u.total
+    except Exception:
+        return None
+
+
+_cpu_samples = []
+
+
+def resource_alerts():
+    th = int((load_panel_conf().get("tg") or {}).get("th", 90) or 90)
+    c = cpu_percent()
+    if c is not None:
+        _cpu_samples.append(c)
+        del _cpu_samples[:-6]
+        avg = sum(_cpu_samples) / len(_cpu_samples)
+        if len(_cpu_samples) >= 6 and avg >= th:
+            alert_raise("cpu", "🔥 مصرف پردازنده سرور %s بالاست: %d٪" % (host_label(), avg), "resource")
+        elif avg < th - 5:
+            alert_clear("cpu", "✅ مصرف پردازنده سرور %s عادی شد" % host_label(), "resource")
+    for key, val, label in (("mem", mem_percent(), "حافظه (RAM)"), ("disk", disk_percent(), "دیسک")):
+        if val is None:
+            continue
+        if val >= th:
+            alert_raise(key, "⚠️ %s سرور %s پر شده: %d٪" % (label, host_label(), val), "resource")
+        elif val < th - 5:
+            alert_clear(key, "✅ %s سرور %s به حالت عادی برگشت" % (label, host_label()), "resource")
+
+
+def ssl_days_left():
+    import calendar
+    try:
+        with open(UNIT_PATH) as fh:
+            txt = fh.read()
+    except OSError:
+        return None
+    m = re.search(r"--cert (\S+)", txt)
+    if not m:
+        return None
+    _, out = run(["openssl", "x509", "-enddate", "-noout", "-in", m.group(1)])
+    mm = re.search(r"notAfter=(.+)", out)
+    if not mm:
+        return None
+    try:
+        ts = calendar.timegm(time.strptime(re.sub(r"\s+", " ", mm.group(1).replace("GMT", "")).strip(), "%b %d %H:%M:%S %Y"))
+    except ValueError:
+        return None
+    return (ts - time.time()) / 86400.0
+
+
+def ssl_alert():
+    d = ssl_days_left()
+    if d is None:
+        return
+    if d < 14:
+        alert_raise("ssl", "🔐 گواهی SSL پنل %s تا %d روز دیگر منقضی می‌شود" % (host_label(), max(0, d)), "ssl", cooldown=86400)
+    elif d > 20:
+        alert_clear("ssl", "✅ گواهی SSL پنل %s تمدید شد" % host_label(), "ssl")
+
+
+def sampler_loop():
+    load_state()
+    try:
+        ensure_accounting()
+    except Exception:
+        pass
+    tick = 0
+    while True:
+        try:
+            sample_slots()
+            resource_alerts()
+            if tick % 720 == 0:
+                ssl_alert()
+            if tick % 12 == 0 or _state["dirty"]:
+                save_state()
+        except Exception:
+            pass
+        tick += 1
+        time.sleep(5)
+
+
+def slots_with_stats():
+    out = list_slots()
+    for sl in out:
+        n = sl["slot"]
+        st, h = slot_stats.get(n, {}), slot_health.get(n, {})
+        sl.update(rx_rate=st.get("rx_rate"), tx_rate=st.get("tx_rate"), rx_total=st.get("rx_total"),
+                  tx_total=st.get("tx_total"), conns=st.get("conns"), acct=st.get("acct", False),
+                  lat=h.get("lat"), loss=h.get("loss"), peer_ip=h.get("peer", "") or slot_peer_cached(sl),
+                  up24=uptime_pct(n))
+    return out
+
+
+def slot_peer_cached(sl):
+    ip = sl.get("peer") if sl["kind"] == "spoof" else sl.get("server_ip")
+    return ip if ip and valid_ipv4(ip) else ""
+
+
+def slot_detail(n):
+    sl = next((x for x in slots_with_stats() if x["slot"] == n), None)
+    if not sl:
+        return None
+    return {"slot": sl, "stats": slot_stats.get(n, {}), "health": slot_health.get(n, {}),
+            "hist": slot_hist.get(n, {"rx": [], "tx": [], "lat": []}),
+            "events": [e for e in events_log if e.get("slot") == n][-30:][::-1],
+            "up24": uptime_pct(n), "up7": uptime_pct(n, 7 * 86400)}
+
+
+# -- edit a tunnel -------------------------------------------------------------
+def slot_edit(n, d):
+    """Changes a tunnel's settings in place. Role cannot change. Returns (result, error)."""
+    try:
+        env = read_env(slot_file(n))
+    except OSError:
+        return None, "no such tunnel"
+    kind = env.get("TYPE") or "tcp"
+    role = env.get("ROLE", "")
+    if kind == "spoof":
+        base = {"role": role, "transport": env.get("TRANSPORT", "udp"), "peer": env.get("PEER_IP", ""),
+                "spoof_ips": env.get("SPOOF_IPS", ""), "port": env.get("TPORT", "4500"),
+                "listen_port": env.get("LISTEN_PORT", "0"), "forward": env.get("FORWARD", ""),
+                "token": env.get("NICETUNNEL_TOKEN", "")}
+        check, writer = validate_spoof, write_spoof_slot
+    else:
+        base = {"role": role, "bridge": env.get("BRIDGE", "7000"), "ports": env.get("PORTS", ""),
+                "server_ip": env.get("SERVER_IP", ""), "target_host": env.get("TARGET_HOST", ""),
+                "token": env.get("NICETUNNEL_TOKEN", "")}
+        check, writer = validate_reverse, write_reverse_slot
+    for k, v in d.items():
+        if k in base and k != "role" and v is not None and str(v).strip() != "":
+            base[k] = v
+    clean, err = check(base)
+    if err:
+        return None, err
+    _, st = run(["systemctl", "is-active", "nicetunnel@%d" % n])
+    was_active = st.strip() == "active"
+    writer(n, clean)
+    run(["systemctl", "daemon-reload"])
+    restarted = False
+    if was_active or d.get("restart"):
+        code, out = run(["systemctl", "restart", "nicetunnel@%d" % n])
+        restarted = code == 0
+        if code != 0:
+            return None, "saved but could not restart: " + out.strip()[-200:]
+    record_event(n, "edit")
+    tg_send("✏️ تانل %d ویرایش شد (%s)" % (n, host_label()), "tunnel")
+    return {"ok": True, "restarted": restarted, "token_changed": clean["token"] != env.get("NICETUNNEL_TOKEN", "")}, None
+
+
+# -- update ----------------------------------------------------------------------
+def version_tuple(v):
+    return tuple(int(x) for x in re.findall(r"\d+", v)[:4])
+
+
+def update_fetch():
+    import urllib.request
+    req = urllib.request.Request(RAW_URL, headers={"User-Agent": "NiceTunnelPanel/" + APP_VERSION,
+                                                    "Cache-Control": "no-cache"})
+    with urllib.request.urlopen(req, timeout=25) as r:
+        data = r.read(4000000)
+    m = re.search(rb'^APP_VERSION = "([0-9][0-9.]*)"', data, re.M)
+    return data, (m.group(1).decode() if m else None)
+
+
+def update_check():
+    try:
+        _, ver = update_fetch()
+    except Exception as exc:
+        return {"current": APP_VERSION, "error": str(exc)[:160]}
+    if not ver:
+        return {"current": APP_VERSION, "error": "remote file has no version"}
+    return {"current": APP_VERSION, "latest": ver, "newer": version_tuple(ver) > version_tuple(APP_VERSION)}
+
+
+def update_apply():
+    data, ver = update_fetch()
+    if not ver or len(data) < 50000 or b"def main" not in data or b"class Handler" not in data:
+        raise ValueError("downloaded file looks wrong")
+    compile(data, "nicetunnel_panel.py", "exec")   # never replace a working panel with a broken file
+    target = os.path.join(APP_DIR, "nicetunnel_panel.py")
+    try:
+        shutil.copy2(target, target + ".bak")
+    except OSError:
+        pass
+    with open(target + ".new", "wb") as fh:
+        fh.write(data)
+    os.chmod(target + ".new", 0o755)
+    os.replace(target + ".new", target)
+    threading.Timer(1.5, lambda: run(["systemctl", "restart", "nicetunnel-panel"])).start()
+    return ver
+
+
+# -- two-factor login (TOTP, RFC 6238) ---------------------------------------------
+def totp_at(secret, counter, digits=6):
+    key = base64.b32decode(secret + "=" * (-len(secret) % 8), casefold=True)
+    h = hmac.new(key, struct.pack(">Q", counter), hashlib.sha1).digest()
+    o = h[-1] & 15
+    return "%0*d" % (digits, (struct.unpack(">I", h[o:o + 4])[0] & 0x7FFFFFFF) % (10 ** digits))
+
+
+def totp_match(secret, code, now=None, window=1):
+    """Counter of the matching 30 s step, or None."""
+    code = re.sub(r"\s", "", str(code))
+    if not re.fullmatch(r"\d{6}", code):
+        return None
+    c0 = int((now if now is not None else time.time()) // 30)
+    found = None
+    for d in range(-window, window + 1):
+        if hmac.compare_digest(totp_at(secret, c0 + d), code):
+            found = c0 + d
+    return found
+
+
+def tfa_enabled(conf=None):
+    t = (conf if conf is not None else load_panel_conf()).get("tfa") or {}
+    return bool(t.get("on") and t.get("secret"))
+
+
+def norm_rec(c):
+    return re.sub(r"[^0-9a-f]", "", str(c).lower())
+
+
+def tfa_verify(code):
+    """TOTP code (each 30 s step only once) or a single-use recovery code."""
+    with conf_lock:
+        conf = load_panel_conf()
+        t = conf.get("tfa") or {}
+        if not t.get("secret"):
+            return False
+        ctr = totp_match(t["secret"], code)
+        if ctr is not None:
+            if ctr > int(t.get("last", 0)):
+                t["last"] = ctr
+                conf["tfa"] = t
+                save_panel_conf(conf)
+                return True
+            return False
+        rc = norm_rec(code)
+        if len(rc) == 12:
+            h = hash_tok(rc)
+            for x in list(t.get("rec", [])):
+                if hmac.compare_digest(x, h):
+                    t["rec"].remove(x)
+                    conf["tfa"] = t
+                    save_panel_conf(conf)
+                    return True
+        return False
+
+
+def tfa_setup():
+    from urllib.parse import quote
+    secret = base64.b32encode(os.urandom(20)).decode().rstrip("=")
+    with conf_lock:
+        conf = load_panel_conf()
+        conf["tfa_pending"] = {"s": secret, "t": int(time.time())}
+        save_panel_conf(conf)
+    label = quote("NiceTunnel:%s@%s" % (conf.get("username", "admin"), host_label()))
+    return secret, "otpauth://totp/%s?secret=%s&issuer=NiceTunnel&algorithm=SHA1&digits=6&period=30" % (label, secret)
+
+
+def tfa_enable(code):
+    with conf_lock:
+        conf = load_panel_conf()
+        p = conf.get("tfa_pending") or {}
+        if not p or time.time() - p.get("t", 0) > 900:
+            return None, "the setup key expired, start again"
+        ctr = totp_match(p["s"], code)
+        if ctr is None:
+            return None, "wrong code, check the time on your phone"
+        raw = [secrets.token_hex(6) for _ in range(8)]
+        conf["tfa"] = {"on": True, "secret": p["s"], "last": ctr, "rec": [hash_tok(r) for r in raw]}
+        conf.pop("tfa_pending", None)
+        save_panel_conf(conf)
+    return ["-".join(r[i:i + 4] for i in (0, 4, 8)) for r in raw], None
+
+
+def tfa_disable():
+    with conf_lock:
+        conf = load_panel_conf()
+        conf.pop("tfa", None)
+        conf.pop("tfa_pending", None)
+        save_panel_conf(conf)
+
+
+# -- API keys (let another panel manage this server) --------------------------------
+KEY_GET = re.compile(r"/api/(ping|stats|slots|slot/\d+/(logs|detail))")
+KEY_POST = re.compile(r"/api/slot/\d+/(start|stop|restart|probe)")
+
+
+def apikey_create(name):
+    with conf_lock:
+        conf = load_panel_conf()
+        keys = conf.get("apikeys", [])
+        if len(keys) >= 10:
+            raise ValueError("too many API keys (max 10)")
+        key = "nt_" + secrets.token_urlsafe(32)
+        kid = secrets.token_hex(4)
+        keys.append({"id": kid, "name": (str(name).strip() or "key")[:40], "h": hash_tok(key), "t": int(time.time())})
+        conf["apikeys"] = keys
+        save_panel_conf(conf)
+    return kid, key
+
+
+def apikey_check(key):
+    if not key or len(key) > 200:
+        return False
+    h, ok = hash_tok(key), False
+    for k in load_panel_conf().get("apikeys", []):
+        if hmac.compare_digest(k["h"], h):
+            ok = True
+            _key_last[k["id"]] = int(time.time())
+    return ok
+
+
+def apikey_list():
+    return [{"id": k["id"], "name": k["name"], "t": k["t"], "last": _key_last.get(k["id"], 0)}
+            for k in load_panel_conf().get("apikeys", [])]
+
+
+def apikey_revoke(kid):
+    with conf_lock:
+        conf = load_panel_conf()
+        conf["apikeys"] = [k for k in conf.get("apikeys", []) if k["id"] != kid]
+        save_panel_conf(conf)
+
+
+# -- other servers ---------------------------------------------------------------------
+class RemoteError(Exception):
+    def __init__(self, msg, fp=None, untrusted=False):
+        super().__init__(msg)
+        self.fp, self.untrusted = fp, untrusted
+
+
+def cert_fp(der):
+    h = hashlib.sha256(der).hexdigest().upper()
+    return ":".join(h[i:i + 2] for i in range(0, 64, 2))
+
+
+def parse_srv_url(u):
+    p = urlparse(str(u).strip())
+    if p.scheme not in ("http", "https") or not p.hostname or p.username or p.password or p.query or p.fragment:
+        return None
+    try:
+        port = p.port or (443 if p.scheme == "https" else 80)
+    except ValueError:
+        return None
+    base = p.path.rstrip("/")
+    if not re.fullmatch(r"(/[A-Za-z0-9._~-]{1,64}){0,3}", base):
+        return None
+    return p.scheme, p.hostname, port, base
+
+
+def fetch_fp(host, port):
+    try:
+        ctx = ssl.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+        with socket.create_connection((host, port), timeout=6) as s:
+            with ctx.wrap_socket(s, server_hostname=host) as ss:
+                return cert_fp(ss.getpeercert(binary_form=True))
+    except Exception:
+        return ""
+
+
+def remote_call(srv, method, path, body=None, timeout=8):
+    """Talks to another NiceTunnel panel with its API key. Pinned certificates are compared by fingerprint."""
+    parsed = parse_srv_url(srv.get("url", ""))
+    if not parsed:
+        raise RemoteError("bad server address")
+    sch, host, port, base = parsed
+    pin = srv.get("pin") or ""
+    conn = None
+    try:
+        if sch == "https":
+            ctx = ssl.create_default_context()
+            if pin:
+                ctx.check_hostname = False
+                ctx.verify_mode = ssl.CERT_NONE
+            conn = http.client.HTTPSConnection(host, port, timeout=timeout, context=ctx)
+        else:
+            conn = http.client.HTTPConnection(host, port, timeout=timeout)
+        conn.connect()
+        if sch == "https" and pin:
+            fp = cert_fp(conn.sock.getpeercert(binary_form=True))
+            if not hmac.compare_digest(fp, pin):
+                raise RemoteError("the server's certificate changed", fp)
+        data = json.dumps(body).encode() if body is not None else None
+        hdr = {"X-API-Key": srv.get("key", ""), "Accept": "application/json"}
+        if data is not None:
+            hdr["Content-Type"] = "application/json"
+        conn.request(method, base + path, data, hdr)
+        r = conn.getresponse()
+        raw = r.read(2000000)
+        try:
+            obj = json.loads(raw)
+        except ValueError:
+            raise RemoteError("not a NiceTunnel panel (HTTP %d)" % r.status)
+        if r.status >= 400:
+            raise RemoteError(str(obj.get("error", "HTTP %d" % r.status)) if isinstance(obj, dict) else "HTTP %d" % r.status)
+        return obj
+    except RemoteError:
+        raise
+    except ssl.SSLCertVerificationError:
+        raise RemoteError("certificate not trusted", untrusted=True)
+    except (OSError, http.client.HTTPException, ssl.SSLError) as exc:
+        raise RemoteError(str(exc)[:150] or "connection failed")
+    finally:
+        if conn:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+
+def host_for_url(h):
+    return "[%s]" % h if ":" in h else h
+
+
+def server_add(name, url, key, pin=""):
+    parsed = parse_srv_url(url)
+    if not parsed:
+        raise ValueError("panel address is not valid, example: https://1.2.3.4:45152/k-abc123")
+    if not re.fullmatch(r"nt_[A-Za-z0-9_-]{20,90}", str(key or "")):
+        raise ValueError("the API key looks wrong")
+    nm = re.sub(r"[\x00-\x1f<>]", "", str(name or "")).strip()[:40] or parsed[1]
+    srv = {"id": secrets.token_hex(4), "name": nm, "key": key, "pin": str(pin or "")[:100],
+           "url": "%s://%s:%d%s" % (parsed[0], host_for_url(parsed[1]), parsed[2], parsed[3])}
+    try:
+        info = remote_call(srv, "GET", "/api/ping")
+    except RemoteError as exc:
+        if exc.untrusted:
+            exc.fp = fetch_fp(parsed[1], parsed[2])
+        raise
+    if not isinstance(info, dict) or not info.get("ok"):
+        raise ValueError("that address is not a NiceTunnel panel")
+    with conf_lock:
+        conf = load_panel_conf()
+        lst = conf.get("servers", [])
+        if len(lst) >= 20:
+            raise ValueError("too many servers (max 20)")
+        if any(s["url"] == srv["url"] for s in lst):
+            raise ValueError("this server is already added")
+        lst.append(srv)
+        conf["servers"] = lst
+        save_panel_conf(conf)
+    return srv, info
+
+
+def fleet_round():
+    servers = load_panel_conf().get("servers", [])
+    ids = {s["id"] for s in servers}
+    for k in list(fleet):
+        if k not in ids:
+            fleet.pop(k, None)
+
+    def one(s):
+        old = fleet.get(s["id"], {})
+        try:
+            st = remote_call(s, "GET", "/api/stats")
+            sl = remote_call(s, "GET", "/api/slots")
+            fleet[s["id"]] = {"ok": True, "t": int(time.time()), "stats": st, "slots": sl.get("slots", []),
+                              "err": "", "fails": 0}
+            alert_clear("srv:" + s["id"], "✅ سرور %s دوباره آنلاین شد" % s["name"], "health")
+        except RemoteError as exc:
+            nf = old.get("fails", 0) + 1
+            fleet[s["id"]] = {"ok": False, "t": old.get("t", 0), "stats": old.get("stats"),
+                              "slots": old.get("slots", []), "err": str(exc), "fails": nf}
+            if nf >= 3:
+                alert_raise("srv:" + s["id"], "🔴 سرور %s آفلاین شد: %s" % (s["name"], str(exc)[:80]), "health")
+
+    if servers:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=6) as ex:
+            list(ex.map(one, servers))
+
+
+def fleet_loop():
+    while True:
+        try:
+            fleet_round()
+        except Exception:
+            pass
+        time.sleep(10)
+
+
+def fleet_view():
+    out = []
+    for s in load_panel_conf().get("servers", []):
+        f = fleet.get(s["id"], {})
+        out.append({"id": s["id"], "name": s["name"], "url": s["url"], "ok": bool(f.get("ok")), "t": f.get("t", 0),
+                    "err": f.get("err", ""), "stats": f.get("stats"), "slots": f.get("slots", []),
+                    "pinned": bool(s.get("pin")), "checked": bool(f)})
+    return out
+
+
+def find_server(sid):
+    return next((s for s in load_panel_conf().get("servers", []) if s["id"] == sid), None)
+
+
+
 class Handler(http.server.BaseHTTPRequestHandler):
     server_version = "NiceTunnelPanel"
 
@@ -2080,7 +3132,30 @@ class Handler(http.server.BaseHTTPRequestHandler):
         m = SESSION_RE.search(self.headers.get("Cookie", ""))
         return m.group(1) if m else None
 
+    def key_gate(self, path, method):
+        ip = self.client_address[0]
+        with lock:
+            cnt, first = fails.get(ip, [0, time.time()])
+            if time.time() - first > 900:
+                cnt, first = 0, time.time()
+            if cnt >= 20:
+                self.send_json({"error": "too many attempts"}, 429)
+                return False
+        if not apikey_check(self.headers.get("X-API-Key", "")):
+            with lock:
+                fails[ip] = [cnt + 1, first]
+            time.sleep(0.5)
+            self.send_json({"error": "invalid API key"}, 401)
+            return False
+        if not (KEY_GET if method == "GET" else KEY_POST).fullmatch(path):
+            self.send_json({"error": "not allowed with an API key"}, 403)
+            return False
+        self._apikey = True
+        return True
+
     def session_ok(self):
+        if getattr(self, "_apikey", False):
+            return True
         sid = self.session_id()
         if not sid:
             return False
@@ -2118,6 +3193,52 @@ class Handler(http.server.BaseHTTPRequestHandler):
         path = route_path(urlparse(self.path).path)
         if path is None:
             return self.send_json({"error": "not found"}, 404)
+        self._apikey = False
+        if self.headers.get("X-API-Key") is not None:
+            if not self.key_gate(path, "GET"):
+                return
+        if path == "/api/ping":
+            if not self.require_login():
+                return
+            return self.send_json({"ok": True, "name": host_label(), "version": APP_VERSION})
+        if path == "/api/fleet":
+            if not self.require_login():
+                return
+            return self.send_json({"servers": fleet_view()})
+        m = re.fullmatch(r"/api/slot/(\d+)/detail", path)
+        if m:
+            if not self.require_login():
+                return
+            n = int(m.group(1))
+            d = slot_detail(n) if valid_slot(n) else None
+            if not d:
+                return self.send_json({"error": "no such tunnel"}, 404)
+            return self.send_json(d)
+        if path == "/api/2fa":
+            if not self.require_admin():
+                return
+            t = load_panel_conf().get("tfa") or {}
+            return self.send_json({"on": tfa_enabled(), "left": len(t.get("rec", []))})
+        if path == "/api/apikeys":
+            if not self.require_admin():
+                return
+            return self.send_json({"keys": apikey_list()})
+        if path == "/api/update/check":
+            if not self.require_admin():
+                return
+            return self.send_json(update_check())
+        if path == "/api/servers/logs":
+            if not self.require_admin():
+                return
+            q = parse_qs(urlparse(self.path).query)
+            srv = find_server((q.get("id") or [""])[0])
+            sn = (q.get("slot") or [""])[0]
+            if not srv or not sn.isdigit():
+                return self.send_json({"error": "unknown server or tunnel"}, 404)
+            try:
+                return self.send_json(remote_call(srv, "GET", "/api/slot/%s/logs" % sn))
+            except RemoteError as exc:
+                return self.send_json({"error": str(exc)}, 502)
         if path == "/":
             data = PAGE.encode()
             self.send_response(200)
@@ -2156,7 +3277,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             t = tg.get("token", "")
             return self.send_json({"has": bool(t), "masked": (t[:4] + "…" + t[-4:]) if t else "", "chat": tg.get("chat", ""),
                                    "api": tg.get("api", ""), "on": tg.get("on", True),
-                                   "events": tg.get("events", ["tunnel", "login", "backup"])})
+                                   "events": tg.get("events", ["tunnel", "login", "backup", "resource", "ssl", "health"]), "th": tg.get("th", 90)})
         if path == "/api/tune":
             if not self.require_login():
                 return
@@ -2192,7 +3313,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if path == "/api/slots":
             if not self.require_login():
                 return
-            return self.send_json({"slots": list_slots()})
+            return self.send_json({"slots": slots_with_stats()})
         if path == "/api/stats":
             if not self.require_login():
                 return
@@ -2222,6 +3343,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
         path = route_path(urlparse(self.path).path)
         if path is None:
             return self.send_json({"error": "not found"}, 404)
+        self._apikey = False
+        if self.headers.get("X-API-Key") is not None:
+            if not self.key_gate(path, "POST"):
+                return
         if not self.same_origin_ok():
             return self.send_json({"error": "cross-site request refused"}, 403)
         try:
@@ -2229,6 +3354,99 @@ class Handler(http.server.BaseHTTPRequestHandler):
         except (ValueError, json.JSONDecodeError):
             return self.send_json({"error": "bad request body"}, 400)
 
+        m = re.fullmatch(r"/api/slot/(\d+)/(edit|probe)", path)
+        if m:
+            if not self.require_login():
+                return
+            n = int(m.group(1))
+            if not valid_slot(n) or not os.path.exists(slot_file(n)):
+                return self.send_json({"error": "no such tunnel"}, 404)
+            if m.group(2) == "probe":
+                sl = next((x for x in list_slots() if x["slot"] == n), None)
+                ip = slot_peer(sl) if sl else ""
+                if not ip:
+                    return self.send_json({"error": "the peer address is not known yet"}, 400)
+                r = probe_host(ip)
+                return self.send_json({"ok": bool(r), "health": apply_probe(n, ip, r)})
+            res, err = slot_edit(n, body)
+            if err:
+                return self.send_json({"error": err}, 400)
+            return self.send_json(res)
+        if path == "/api/2fa/setup":
+            if not self.require_admin():
+                return
+            s, uri = tfa_setup()
+            return self.send_json({"secret": s, "uri": uri})
+        if path == "/api/2fa/enable":
+            if not self.require_admin():
+                return
+            codes, err = tfa_enable(body.get("code", ""))
+            if err:
+                return self.send_json({"error": err}, 400)
+            return self.send_json({"ok": True, "codes": codes})
+        if path == "/api/2fa/disable":
+            if not self.require_admin():
+                return
+            conf = load_panel_conf()
+            if not (conf.get("password") and check_password(str(body.get("password", "")), conf["password"])) \
+                    or not tfa_verify(body.get("code", "")):
+                return self.send_json({"error": "wrong password or code"}, 400)
+            tfa_disable()
+            return self.send_json({"ok": True})
+        if path == "/api/apikeys/create":
+            if not self.require_admin():
+                return
+            try:
+                kid, key = apikey_create(body.get("name", ""))
+            except ValueError as exc:
+                return self.send_json({"error": str(exc)}, 400)
+            return self.send_json({"ok": True, "id": kid, "key": key})
+        if path == "/api/apikeys/revoke":
+            if not self.require_admin():
+                return
+            apikey_revoke(str(body.get("id", "")))
+            return self.send_json({"ok": True})
+        if path == "/api/servers/add":
+            if not self.require_admin():
+                return
+            try:
+                srv, info = server_add(body.get("name", ""), body.get("url", ""), str(body.get("key", "")).strip(), body.get("pin", ""))
+            except RemoteError as exc:
+                if exc.untrusted:
+                    return self.send_json({"error": "untrusted certificate", "need_pin": True, "fingerprint": exc.fp or ""}, 409)
+                return self.send_json({"error": str(exc)}, 400)
+            except ValueError as exc:
+                return self.send_json({"error": str(exc)}, 400)
+            threading.Thread(target=fleet_round, daemon=True).start()
+            return self.send_json({"ok": True, "id": srv["id"], "version": info.get("version", "")})
+        if path == "/api/servers/delete":
+            if not self.require_admin():
+                return
+            sid = str(body.get("id", ""))
+            with conf_lock:
+                conf = load_panel_conf()
+                conf["servers"] = [s for s in conf.get("servers", []) if s["id"] != sid]
+                save_panel_conf(conf)
+            fleet.pop(sid, None)
+            return self.send_json({"ok": True})
+        if path == "/api/servers/act":
+            if not self.require_admin():
+                return
+            srv = find_server(str(body.get("id", "")))
+            act, sn = str(body.get("action", "")), str(body.get("slot", ""))
+            if not srv or act not in ("start", "stop", "restart") or not sn.isdigit():
+                return self.send_json({"error": "bad request"}, 400)
+            try:
+                return self.send_json(remote_call(srv, "POST", "/api/slot/%s/%s" % (sn, act), {}))
+            except RemoteError as exc:
+                return self.send_json({"error": str(exc)}, 502)
+        if path == "/api/update/apply":
+            if not self.require_admin():
+                return
+            try:
+                return self.send_json({"ok": True, "version": update_apply()})
+            except Exception as exc:
+                return self.send_json({"error": str(exc)[:200]}, 400)
         if path == "/api/setup":
             conf = load_panel_conf()
             if "password" in conf:
@@ -2259,12 +3477,19 @@ class Handler(http.server.BaseHTTPRequestHandler):
             elif conf.get("password") and hmac.compare_digest(
                     str(body.get("username", "")), conf.get("username", "admin")) and check_password(pw, conf["password"]):
                 owner = "admin"
+            bad_otp = False
+            if owner and how == "password" and tfa_enabled(conf):
+                otp = str(body.get("otp", "")).strip()
+                if not otp:
+                    return self.send_json({"need_otp": True})
+                if not tfa_verify(otp):
+                    owner, bad_otp = None, True
             if not owner:
                 with lock:
                     fails[ip] = [cnt + 1, first]
                 time.sleep(1)
                 tg_send("⚠️ تلاش ناموفق ورود به پنل %s\nIP: %s" % (host_label(), ip), "login")
-                return self.send_json({"error": "wrong username or password" if how == "password" and not body.get("link") else "link is invalid, expired or already used"}, 401)
+                return self.send_json({"error": "wrong verification code" if bad_otp else ("wrong username or password" if how == "password" and not body.get("link") else "link is invalid, expired or already used")}, 401)
             sid = secrets.token_hex(32)
             with lock:
                 fails.pop(ip, None)
@@ -2376,7 +3601,11 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 return self.send_json({"error": "bad API address"}, 400)
             tg["api"] = api
             tg["on"] = bool(body.get("on", True))
-            ev = [e for e in body.get("events", []) if e in ("tunnel", "login", "backup")]
+            ev = [e for e in body.get("events", []) if e in ("tunnel", "login", "backup", "resource", "ssl", "health")]
+            try:
+                tg["th"] = min(99, max(50, int(body.get("th", 90))))
+            except (TypeError, ValueError):
+                tg["th"] = 90
             tg["events"] = ev
             conf["tg"] = tg
             save_panel_conf(conf)
@@ -2735,7 +3964,7 @@ def cmd_uninstall(_args):
     print("Panel service removed.")
 
 
-RAW_URL = "https://raw.githubusercontent.com/arshamsmok/nicetunnel/main/nicetunnel_panel.py"
+RAW_URL = os.environ.get("NICETUNNEL_UPDATE_URL") or "https://raw.githubusercontent.com/arshamsmok/nicetunnel/main/nicetunnel_panel.py"
 
 
 def cmd_update(_args):
@@ -2773,11 +4002,18 @@ def cmd_serve(args):
         ctx.load_cert_chain(args.cert, args.key)
         srv.socket = ctx.wrap_socket(srv.socket, server_side=True)
     threading.Thread(target=background_loop, daemon=True).start()
+    for fn in (sampler_loop, health_loop, fleet_loop):
+        threading.Thread(target=fn, daemon=True).start()
     print("NiceTunnel panel on %s:%d" % (args.bind, args.port))
     try:
         srv.serve_forever()
     except KeyboardInterrupt:
         pass
+
+
+def cmd_disable_2fa(args):
+    tfa_disable()
+    print("Two-factor login is now off.")
 
 
 def main():
@@ -2786,6 +4022,7 @@ def main():
     sub.add_parser("set-password", help="set or change the panel password").set_defaults(func=cmd_set_password)
     sub.add_parser("install", help="install and start the panel service").set_defaults(func=cmd_install)
     sub.add_parser("uninstall", help="remove the panel service").set_defaults(func=cmd_uninstall)
+    sub.add_parser("disable-2fa", help="turn off two-factor login (lost phone)").set_defaults(func=cmd_disable_2fa)
     sub.add_parser("update", help="download the latest panel and restart").set_defaults(func=cmd_update)
     s = sub.add_parser("serve", help="run the web panel")
     s.add_argument("--bind", default="127.0.0.1", help="address to listen on (default 127.0.0.1)")
