@@ -1057,6 +1057,12 @@ a.sm.lnk:hover,a.dlink:hover{color:#f4d58a;border-color:rgba(233,196,106,.6)}
 .pa{padding:0 14px 14px}.pa p{font-size:12.5px;color:#8fa2bf;line-height:1.8}
 .pa .row2{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 html body .pa input{height:38px;padding:0 10px;border-radius:10px!important;background:#06101e!important;border:1px solid rgba(60,100,160,.4)!important;color:#e6ecf6!important;font-size:13px;flex:1;min-width:140px}
+/* v17: activity, switches */
+.ar{display:flex;flex-wrap:wrap;gap:4px 12px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px;direction:ltr;text-align:left}
+.ar b{color:#fff}.ar .t{color:#6f86a8}.ar .e{color:#f0707a}
+.chk,.swrow{display:flex;align-items:center;gap:8px;font-size:12.5px;color:#b9c6da;margin-top:10px;line-height:1.7}
+html body .chk input,html body .swrow input{width:auto;height:auto;min-width:0;flex:none}
+.dmsec h4 .lgd{margin-inline-start:auto;font-size:11px;color:#8fa2bf;font-weight:400}
 </style>
 <body>
 <div id="bg"></div><div id="grid"></div>
@@ -1174,10 +1180,10 @@ const LOGO = '<svg viewBox="0 0 64 64" width="34" height="34"><defs><linearGradi
 function shell(){
   const nm = state.username || 'admin';
   $('#app').innerHTML = `<div id="shell"><div id="side" class="glass">
-    <div class="brand" style="display:flex;align-items:center;gap:10px;padding:2px 6px 16px">${LOGO}<div><div style="font-size:15px;-webkit-text-fill-color:#fff;background:none;color:#fff">NiceTunnel</div><small style="-webkit-text-fill-color:#9aa6d6">v1.6.0</small></div></div>
+    <div class="brand" style="display:flex;align-items:center;gap:10px;padding:2px 6px 16px">${LOGO}<div><div style="font-size:15px;-webkit-text-fill-color:#fff;background:none;color:#fff">NiceTunnel</div><small style="-webkit-text-fill-color:#9aa6d6">v1.7.0</small></div></div>
     ${PAGES.map(p=>`<div class="nav" data-p="${p[0]}"><i>${p[1]}</i><span>${p[2]}</span></div>`).join('')}
     <div class="sp"></div><div class="nav" id="lo"><i>${IC.out}</i><span>Logout</span></div></div>
-  <div id="fly" class="fly"></div><div id="main"><div id="top" class="glass"><div class="hdr">${LOGO}<span class="nm">NiceTunnel</span><span class="vv">v1.6.0</span><h1 id="ttl" style="margin:0 0 0 6px"></h1></div>
+  <div id="fly" class="fly"></div><div id="main"><div id="top" class="glass"><div class="hdr">${LOGO}<span class="nm">NiceTunnel</span><span class="vv">v1.7.0</span><h1 id="ttl" style="margin:0 0 0 6px"></h1></div>
     <div style="display:flex;align-items:center;gap:10px"><span id="live" class="live"><i></i><b>${L("Online","آنلاین")}</b></span><span id="host" style="color:#9aa6d6;font-size:12px"></span>${themeBtn()}${langBtn()}</div></div><div id="msg"></div>
   <div class="page" id="p-dash">
     <div class="dgrid" id="dstats"></div>
@@ -1199,6 +1205,7 @@ function shell(){
       <div id="rports"><label>Ports to forward</label><input id="rport" placeholder="80,443,2000-2010"></div>
       <div id="rsip" class="hide"><label>Iran server real IP</label><input id="rserver" placeholder="203.0.113.5"></div>
       <div id="rth" class="hide"><label>Forward to HOST:PORT</label><input id="rtarget" value="127.0.0.1:80" placeholder="127.0.0.1:80"></div>
+      <div><label>${L("Create on","ساخت روی")}</label><select id="rpair"><option value="">${L("This server only","فقط این سرور")}</option></select></div>
       <div><label>Token (empty = generate)</label><input id="rtoken" placeholder="min 16 chars"></div>
     </div><p><button class="ok" id="rcreate">Create and connect</button></p><div id="rnew"></div></div>
   </div>
@@ -1219,6 +1226,7 @@ function shell(){
       <div><label>Fake source IPs (from Spoof tester)</label><input id="spoof_ips" placeholder="10.0.0.0/28 or 1.2.3.4,5.5.5.1-5.5.5.9"></div>
       <div id="lp"><label>Listen UDP port (apps send here)</label><input id="listen_port" value="51820"></div>
       <div id="fw" class="hide"><label>Forward to HOST:PORT</label><input id="forward" value="127.0.0.1:51820"></div>
+      <div><label>${L("Create on","ساخت روی")}</label><select id="spair"><option value="">${L("This server only","فقط این سرور")}</option></select></div>
       <div><label>Token (empty = generate)</label><input id="token" placeholder="min 16 chars"></div>
     </div><p><button class="ok" id="create">Create and connect</button></p><div id="newtoken"></div></div></div>
     <div class="sub" id="s-mon"><div class="cards" id="mcards"></div><div class="sec glass"><h2>Tunnel monitor <small style="color:#9aa6d6;font-weight:400">(auto refresh 3s)</small></h2><div id="mtun"></div></div></div>
@@ -1244,12 +1252,13 @@ function shell(){
     <div class="dpanel"><div class="dph"><div><h3>${L("Connect this server","اتصال این سرور")}</h3><p>${L("Let another NiceTunnel panel see and manage this server. The key allows stats, start/stop/restart and logs only.","به پنل دیگری اجازه دهید این سرور را ببیند و مدیریت کند. کلید فقط آمار، شروع/توقف/ری‌استارت و لاگ را اجازه می‌دهد.")}</p></div></div>
       <div class="pa"><p>${L("This panel's address:","آدرس این پنل:")}</p><code class="scode" id="srvaddr" style="direction:ltr;display:block;word-break:break-all"></code><div class="row2"><button class="sm" id="srvaddrcopy">${L("Copy","کپی")}</button></div>
         <div class="row2" style="margin-top:16px"><input id="keyname" placeholder="${L("Key name (e.g. main panel)","نام کلید (مثلاً پنل اصلی)")}"><button class="ok" id="keymake">${L("Create key","ساخت کلید")}</button></div>
+        <label class="chk"><input type="checkbox" id="keyfull"> ${L("Allow creating and deleting tunnels (needed for one-click pairs). Only for a panel you fully trust.","اجازه ساخت و حذف تانل (برای ساخت یک‌کلیکی روی دو سرور). فقط برای پنلی که کاملاً به آن اعتماد دارید.")}</label>
         <div id="keynew" class="keybox hide"><p class="dnote" style="margin-top:0">${L("Copy this key now. It will not be shown again.","این کلید را همین حالا کپی کنید. دیگر نمایش داده نمی‌شود.")}</p><code id="keynewv"></code><button class="sm" id="keycopy">${L("Copy key","کپی کلید")}</button></div></div>
       <div id="keylist"></div></div>
   </div>
   <div class="page" id="p-logs">
     <div class="dpanel"><div class="dph"><div><h3>${L("Logs","لاگ‌ها")}</h3><p>${L("Live service logs of your tunnels, refreshed every few seconds.","لاگ زندهٔ سرویس تونل‌ها، هر چند ثانیه به‌روز می‌شود.")}</p></div><button class="dlink" id="lgcopy">${L("Copy","کپی")}</button></div>
-    <div class="lgbar"><select id="lgsel"></select><input id="lgq" placeholder="${L("Filter…","فیلتر…")}"><div class="lgseg" id="lgl"><button data-l="all" class="on">${L("All","همه")}</button><button data-l="w">${L("Warnings","هشدار")}</button><button data-l="e">${L("Errors","خطا")}</button></div></div>
+    <div class="lgbar"><div class="lgseg" id="lgmode"><button data-m="svc" class="on">${L("Tunnel logs","لاگ تانل‌ها")}</button><button data-m="aud">${L("Activity","فعالیت‌ها")}</button></div><select id="lgsel"></select><input id="lgq" placeholder="${L("Filter…","فیلتر…")}"><div class="lgseg" id="lgl"><button data-l="all" class="on">${L("All","همه")}</button><button data-l="w">${L("Warnings","هشدار")}</button><button data-l="e">${L("Errors","خطا")}</button></div></div>
     <div class="lg" id="lgbox"></div></div>
   </div>
   <div class="page" id="p-set">
@@ -1281,7 +1290,7 @@ function shell(){
       <div id="tfadis" class="tfabox hide"><p class="dnote" style="margin-top:0">${L('Enter your password and a current code (or a recovery code) to turn it off.','برای خاموش کردن، رمز و یک کد فعلی (یا کد بازیابی) را وارد کنید.')}</p><div class="efg"><div class="ef"><label>${L('Password','رمز')}</label><input id="tfadpw" type="password"></div><div class="ef"><label>${L('Code','کد')}</label><input id="tfadcode" dir="ltr" maxlength="14"></div></div><div class="nact"><button class="ok" id="tfadisgo">${L('Turn off','خاموش کردن')}</button></div></div>
     </div>
     <div class="sec glass sset" id="sec-up"><h2>${L('About & update','درباره و به‌روزرسانی')}</h2>
-      <div class="srow"><div class="st"><b>${L('Installed','نصب‌شده')}</b><p>NiceTunnel Panel</p></div><code class="scode">v1.6.0</code></div>
+      <div class="srow"><div class="st"><b>${L('Installed','نصب‌شده')}</b><p>NiceTunnel Panel</p></div><code class="scode">v1.7.0</code></div>
       <div class="srow"><div class="st"><b>${L('Panel address','آدرس پنل')}</b><p>${L('Secret path of this panel. Keep it private.','مسیر مخفی این پنل. آن را محرمانه نگه دارید.')}</p></div><code id="sinfo" class="scode"></code></div>
       <div class="srow"><div class="st"><b>${L('Creator','سازنده')}</b><p>Arsham Smok · آرشام اسموک</p></div></div>
       <div class="srow"><div class="st"><b>${L('Updates','به‌روزرسانی')}</b><p id="updst">${L('Check if a newer version is available.','بررسی کنید نسخه جدیدتری هست یا نه.')}</p></div><div><button id="updchk">${L('Check for updates','بررسی به‌روزرسانی')}</button> <button class="ok hide" id="updgo">${L('Update now','به‌روزرسانی')}</button></div></div>
@@ -1315,6 +1324,7 @@ function shell(){
       <div class="srow"><div class="st"><b>${L('Create backup now','بکاپ فوری')}</b><p>${L('Saves all tunnels. Include panel settings (password, Telegram) for a full copy. Sent to Telegram too, so you still have it if this server dies.','همه تونل‌ها ذخیره می‌شود. «کامل» شامل تنظیمات پنل (رمز، تلگرام) هم هست. به تلگرام هم ارسال می‌شود تا با از دست رفتن سرور، بکاپ را داشته باشید.')}</p></div><div><label><input type="checkbox" id="bkfull"> ${L('Full','کامل')}</label> <label><input type="checkbox" id="bktg" checked> Telegram</label> <button class="ok" id="bknow">${L('Backup','بکاپ')}</button></div></div>
       <div class="srow"><div class="st"><b>${L('Automatic backup','بکاپ خودکار')}</b><p>${L('Keeps the last 10 copies.','۱۰ نسخه آخر نگه داشته می‌شود.')}</p></div><div><label><input type="checkbox" id="abon"> ${L('On','فعال')}</label> ${L('every','هر')} <input id="abh" type="number" min="1" max="168" style="width:70px"> ${L('hours','ساعت')} <label><input type="checkbox" id="abfull"> ${L('Full','کامل')}</label> <button id="absave">${L('Save','ذخیره')}</button></div></div>
       <div class="srow"><div class="st"><b>${L('Restore from file','بازیابی از فایل')}</b><p>${L('On a new server: install the panel, upload the backup file here. Tunnels are rebuilt and started. Then update the OTHER server of each tunnel with this server\'s new IP.','روی سرور جدید: پنل را نصب کنید و فایل بکاپ را اینجا آپلود کنید. تونل‌ها ساخته و اجرا می‌شوند. سپس در سرور مقابل هر تونل، آی‌پی جدید این سرور را جایگزین کنید.')}</p></div><div><input type="file" id="bkfile" accept=".json"> <label><input type="checkbox" id="bkpanel"> ${L('Also panel settings','تنظیمات پنل هم')}</label> <button class="ok" id="bkrest">${L('Restore','بازیابی')}</button></div></div>
+      <div class="srow"><div class="st"><b>${L('Backup passphrase','رمز بکاپ')}</b><p id="bkpst"></p></div><div style="display:flex;gap:8px;flex-wrap:wrap"><input id="bkpass" type="password" autocomplete="new-password" placeholder="${L('8+ characters','حداقل ۸ کاراکتر')}"><button class="ok" id="bkpsave">${L('Save','ذخیره')}</button><button id="bkpclear" class="hide">${L('Turn off','خاموش')}</button></div></div>
       <div id="bklist"></div>
     </div>
     <div class="sec glass sset" id="sec-app"><h2>${L('Appearance','ظاهر')}</h2>
@@ -1459,7 +1469,7 @@ function mxChips(s){
   return (s.rx_rate!=null?`<span class="mx">↓ ${rateTxt(s.rx_rate)}</span><span class="mx">↑ ${rateTxt(s.tx_rate)}</span>`:'')
    +(s.conns!=null&&s.acct?`<span class="mx">⇄ ${s.conns}</span>`:'')
    +(s.lat!=null?`<span class="mx ${latCls(s)}">⏱ ${s.lat.toFixed(0)} ms${s.loss>0?' · '+s.loss.toFixed(0)+'% '+L('loss','افت'):''}</span>`:'')
-   +(s.up24!=null?`<span class="mx">▲ ${s.up24}%</span>`:'');
+   +(s.up24!=null?`<span class="mx">▲ ${s.up24}%</span>`:'')+limChips(s);
 }
 /* ---- network nodes: this server, other panels, peers ---- */
 function fleetNodes(st, slots){
@@ -1617,13 +1627,16 @@ async function dmLoad(){
     _dm.built=true;
     $('#dmbody').innerHTML=`<div id="dmstats"></div><div class="dmsec"><h4>${L('Traffic (last ~7 min)','ترافیک (۷ دقیقه اخیر)')}<span class="lgd"><i style="background:#34d0c3"></i>↓ <i style="background:#e9c46a"></i>↑</span></h4><canvas id="dch" class="dcv"></canvas></div>
      <div class="dmsec"><h4>${L('Health','سلامت')}<button class="sm" id="dmprobe" style="margin-inline-start:auto">${L('Test now','تست همین حالا')}</button></h4><div id="dmhl"></div><canvas id="dlat" class="dcv" style="height:70px"></canvas></div>
+     <div class="dmsec"><h4>${L('Limits & auto-repair','محدودیت و ترمیم خودکار')}</h4><div id="dmlim"></div><div class="efg"><div class="ef"><label>${L('Quota (GB, 0 = none)','حجم مجاز (گیگابایت، ۰ = نامحدود)')}</label><input id="lm_q" type="number" min="0" step="any"></div><div class="ef"><label>${L('Counted','شمارش')}</label><select id="lm_p"><option value="month">${L('per month','ماهانه')}</option><option value="total">${L('in total','کل')}</option></select></div><div class="ef"><label>${L('Expires on','تاریخ انقضا')}</label><input id="lm_e" type="date"></div></div><div class="nact"><button class="ok" id="lmsave">${L('Save limits','ذخیره محدودیت')}</button> <button id="lmreset">${L('Reset usage & unblock','صفر کردن مصرف و آزادسازی')}</button> <span id="lmmsg" class="dnote"></span></div><label class="swrow"><input type="checkbox" id="dmheal"> ${L('Auto-repair: restart if broken for 2.5 minutes (max 3 times an hour)','ترمیم خودکار: ری‌استارت اگر ۲٫۵ دقیقه خراب بماند (حداکثر ۳ بار در ساعت)')}</label></div>
+     <div class="dmsec"><h4>${L('Last 30 days','۳۰ روز اخیر')}<span class="lgd"><i style="background:#34d0c3"></i>↓ <i style="background:#e9c46a"></i>↑</span></h4><canvas id="dday" class="dcv" style="height:90px"></canvas><div id="dmdays" class="dnote"></div></div>
      <div class="dmsec"><h4>${L('Events','رویدادها')}</h4><div id="dmev" class="evs"></div></div>
      <div class="dmsec"><details id="dmedit"><summary>${L('Edit tunnel','ویرایش تانل')}</summary><div class="efg">${editForm(s)}</div><p class="dnote">${L('Ports, token and spoofed IPs must match on the other server too.','پورت، توکن و آی‌پی‌های جعلی باید روی سرور مقابل هم یکی باشند.')}</p><div class="nact"><button class="ok" id="dmsave">${L('Save & restart','ذخیره و ری‌استارت')}</button> <span id="dmmsg" class="dnote"></span></div></details></div>
      <div class="tact">${slotBtns(n)}</div>`;
+    wireDetailExtras(n,d);
     $('#dmprobe').onclick=async()=>{ const b=$('#dmprobe'); b.disabled=true; const r=await apiX('/api/slot/'+n+'/probe',{}); b.disabled=false; if(r.s!==200) alert(r.j.error||'error'); dmLoad(); };
     $('#dmsave').onclick=async()=>{ const body={}; ['peer','transport','port','spoof_ips','listen_port','forward','bridge','ports','server_ip','target_host','token'].forEach(k=>{ const e=$('#ed_'+k); if(e&&e.value.trim()!=='') body[k]=e.value.trim(); }); const b=$('#dmsave'); b.disabled=true; const r=await apiX('/api/slot/'+n+'/edit',body); b.disabled=false; $('#dmmsg').style.color=r.s===200?'#34d0c3':'#f0707a'; $('#dmmsg').textContent=r.s===200?(L('Saved','ذخیره شد')+(r.j.restarted?' · '+L('restarted','ری‌استارت شد'):'')+(r.j.token_changed?' · '+L('token changed','توکن عوض شد'):'')):(r.j.error||'error'); if(r.s===200) refresh(); };
   }
-  $('#dmstats').innerHTML=stats; $('#dmhl').innerHTML=hl; $('#dmev').innerHTML=evs;
+  $('#dmstats').innerHTML=stats; $('#dmhl').innerHTML=hl; $('#dmev').innerHTML=evs; $('#dmlim').innerHTML=limHtml(d.limits); drawBars($('#dday'),d.days||[]); $('#dmdays').innerHTML=L('Last 30 days','۳۰ روز اخیر')+': <bdi dir="ltr">↓ '+fmtB((d.days||[]).reduce((a,x)=>a+x.rx,0))+' · ↑ '+fmtB((d.days||[]).reduce((a,x)=>a+x.tx,0))+'</bdi>';
   drawLines($('#dch'),[{data:d.hist.rx,color:'#34d0c3'},{data:d.hist.tx,color:'#e9c46a'}],v=>rateTxt(v));
   drawLines($('#dlat'),[{data:d.hist.lat,color:'#8ab4ff'}],v=>v.toFixed(0)+' ms');
 }
@@ -1660,7 +1673,7 @@ async function srvSave(pin){
 }
 async function keysRender(){
   const r=await apiX('/api/apikeys'); const el=$('#keylist'); if(!el) return;
-  el.innerHTML=(r.j.keys||[]).map(k=>`<div class="wr"><span><b>${esc(k.name)}</b> <small>· ${new Date(k.t*1000).toLocaleDateString()} · ${k.last?L('used','استفاده')+' '+ago(k.last):L('never used','استفاده نشده')}</small></span><button class="dlink" onclick="keyRevoke('${k.id}')">${L('Revoke','ابطال')}</button></div>`).join('')||`<div class="dempty">${L('No API keys.','کلیدی نیست.')}</div>`;
+  el.innerHTML=(r.j.keys||[]).map(k=>`<div class="wr"><span><b>${esc(k.name)}</b> ${k.perm==='full'?`<span class="mx warn">${L('can create tunnels','می‌تواند تانل بسازد')}</span>`:''} <small>· ${new Date(k.t*1000).toLocaleDateString()} · ${k.last?L('used','استفاده')+' '+ago(k.last):L('never used','استفاده نشده')}</small></span><button class="dlink" onclick="keyRevoke('${k.id}')">${L('Revoke','ابطال')}</button></div>`).join('')||`<div class="dempty">${L('No API keys.','کلیدی نیست.')}</div>`;
 }
 async function keyRevoke(id){ if(!confirm(L('Revoke this key? Panels using it lose access.','این کلید باطل شود؟ پنل‌هایی که از آن استفاده می‌کنند دسترسی را از دست می‌دهند.'))) return; await apiX('/api/apikeys/revoke',{id}); keysRender(); }
 function srvInit(){
@@ -1668,7 +1681,7 @@ function srvInit(){
   $('#srvadd').onclick=()=>$('#srvform').classList.toggle('hide');
   $('#srvsave').onclick=()=>srvSave();
   $('#srvaddrcopy').onclick=()=>{ try{ navigator.clipboard.writeText(location.origin+BASE); }catch(e){} };
-  $('#keymake').onclick=async()=>{ const r=await apiX('/api/apikeys/create',{name:$('#keyname').value}); if(r.s!==200){ alert(r.j.error||'error'); return; } $('#keyname').value=''; $('#keynew').classList.remove('hide'); $('#keynewv').textContent=r.j.key; keysRender(); };
+  $('#keymake').onclick=async()=>{ const r=await apiX('/api/apikeys/create',{name:$('#keyname').value,full:$('#keyfull').checked}); if(r.s!==200){ alert(r.j.error||'error'); return; } $('#keyname').value=''; $('#keynew').classList.remove('hide'); $('#keynewv').textContent=r.j.key; keysRender(); };
   $('#keycopy').onclick=()=>{ try{ navigator.clipboard.writeText($('#keynewv').textContent); }catch(e){} };
   refreshFleet(); keysRender();
 }
@@ -1681,13 +1694,36 @@ async function setExtras(){
   $('#tfaconfirm').onclick=async()=>{ const r=await apiX('/api/2fa/enable',{code:$('#tfacode').value}); if(r.s!==200){ alert(r.j.error||'error'); return; } $('#tfasetup').classList.add('hide'); const b=$('#tfacodes'); b.classList.remove('hide'); b.innerHTML=`<p class="dnote">${L('Save these recovery codes now. Each works once if you lose your phone. They will not be shown again.','این کدهای بازیابی را همین حالا ذخیره کنید. هر کدام یک بار کار می‌کند و دیگر نمایش داده نمی‌شوند.')}</p><div class="rcodes">${r.j.codes.map(c=>`<code>${c}</code>`).join('')}</div><button class="sm" id="rccopy">${L('Copy all','کپی همه')}</button>`; $('#rccopy').onclick=()=>{ try{ navigator.clipboard.writeText(r.j.codes.join('\n')); }catch(e){} }; const s=await apiX('/api/2fa'); tfaRender(s.j); };
   $('#tfaoff').onclick=()=>{ $('#tfadis').classList.toggle('hide'); };
   $('#tfadisgo').onclick=async()=>{ const r=await apiX('/api/2fa/disable',{password:$('#tfadpw').value,code:$('#tfadcode').value}); if(r.s!==200){ alert(r.j.error||'error'); return; } $('#tfadis').classList.add('hide'); $('#tfadpw').value=''; $('#tfadcode').value=''; const s=await apiX('/api/2fa'); tfaRender(s.j); };
-  $('#updchk').onclick=async()=>{ const st=$('#updst'); st.textContent=L('Checking…','در حال بررسی…'); const r=await apiX('/api/update/check'); if(r.j.error){ st.textContent=L('Could not check: ','بررسی نشد: ')+r.j.error; return; } if(r.j.newer){ st.textContent=L('New version v','نسخه جدید v')+r.j.latest+L(' is available',' موجود است'); $('#updgo').classList.remove('hide'); } else { st.textContent=L('You have the latest version (v','آخرین نسخه را دارید (v')+r.j.current+')'; $('#updgo').classList.add('hide'); } };
+  $('#updchk').onclick=async()=>{ const st=$('#updst'); st.textContent=L('Checking…','در حال بررسی…'); const r=await apiX('/api/update/check'); if(r.j.error){ st.textContent=L('Could not check: ','بررسی نشد: ')+r.j.error; return; } if(r.j.newer){ st.textContent=L('New version v','نسخه جدید v')+r.j.latest+L(' is available',' موجود است')+(r.j.verified?' · ✓ '+L('checksum verified','هش تأیید شد'):' · ⚠ '+L('no checksum published, so the update is blocked','هش منتشر نشده، پس به‌روزرسانی مسدود است')); $('#updgo').classList.toggle('hide',!r.j.verified); } else { st.textContent=L('You have the latest version (v','آخرین نسخه را دارید (v')+r.j.current+')'+(r.j.verified?' · ✓':''); $('#updgo').classList.add('hide'); } };
   $('#updgo').onclick=async()=>{ if(!confirm(L('Update the panel now? It restarts for a few seconds and your tunnels keep running.','پنل الان به‌روز شود؟ چند ثانیه راه‌اندازی مجدد می‌شود و تانل‌ها به کار خود ادامه می‌دهند.'))) return; const st=$('#updst'); st.textContent=L('Updating…','در حال به‌روزرسانی…'); const r=await apiX('/api/update/apply',{}); if(r.s!==200){ st.textContent=r.j.error||'error'; return; } st.textContent=L('Updated to v','به‌روز شد به v')+r.j.version+L(' — restarting…',' — در حال راه‌اندازی مجدد…'); setTimeout(()=>location.reload(),6000); };
 }
+let _lgsig='', _lgl='all', _lgsel='all', _lgbusy=false;
+async function logsPage(){
+  if(!$('#lgbox')||_lgbusy) return; if(_lgmode==='aud'){ _lgbusy=true; try{ await auditPage(); } finally{ _lgbusy=false; } return; } _lgbusy=true;
+  try{
+    const slots=window._slots||[], sel=$('#lgsel');
+    const opts='<option value="all">'+L('All tunnels','همه تونل‌ها')+'</option>'+slots.map(x=>`<option value="${x.slot}">#${x.slot} · ${esc(peerOf(x))} · ${x.kind}</option>`).join('');
+    if(sel.dataset.o!==opts){ sel.innerHTML=opts; sel.dataset.o=opts; sel.value=slots.some(x=>String(x.slot)===_lgsel)?_lgsel:'all'; }
+    _lgsel=sel.value;
+    const ids=_lgsel==='all'?slots.map(x=>x.slot):[+_lgsel];
+    const res=await Promise.all(ids.map(n=>api('/api/slot/'+n+'/logs').then(r=>({n,t:r.logs||''})).catch(e=>({n,t:'error: '+e.message}))));
+    let lines=[]; res.forEach(r=>r.t.split('\n').forEach(l=>{ if(l.trim()) lines.push({n:r.n,l}); }));
+    const q=($('#lgq').value||'').trim().toLowerCase();
+    const isE=t=>/error|fail|panic|fatal|traceback|refused|denied/i.test(t), isW=t=>/warn|retry|reconnect|timeout|timed out|lost|closed/i.test(t);
+    lines=lines.filter(x=>(!q||x.l.toLowerCase().includes(q)) && (_lgl==='all'||(_lgl==='e'?isE(x.l):(isE(x.l)||isW(x.l)))));
+    const html=lines.length ? lines.slice(-400).map(x=>{ const m=x.l.match(/^([A-Z][a-z]{2} +\d+ [\d:]{8}) (\S+) (.*)$/), c=isE(x.l)?'e':isW(x.l)?'w':/start|connect|listen|active|ready|established/i.test(x.l)?'o':'';
+      return `<div class="${c}">${ids.length>1?'<span class="t">#'+x.n+'</span> ':''}${m?'<span class="t">'+esc(m[1])+'</span> '+esc(m[3]):esc(x.l)}</div>`; }).join('') : `<div class="t">${L('No log lines.','لاگی نیست.')}</div>`;
+    if(html!==_lgsig){ const b=$('#lgbox'), near=b.scrollHeight-b.scrollTop-b.clientHeight<60; _lgsig=html; b.innerHTML=html; if(near) b.scrollTop=b.scrollHeight; }
+  } finally { _lgbusy=false; }
+}
+document.addEventListener('input',e=>{ if(e.target.id==='lgq'){ _lgsig=''; logsPage(); } });
+document.addEventListener('change',e=>{ if(e.target.id==='lgsel'){ _lgsel=e.target.value; _lgsig=''; logsPage(); } });
+document.addEventListener('click',e=>{ const b=e.target.closest&&e.target.closest('#lgl button'); if(b){ _lgl=b.dataset.l; document.querySelectorAll('#lgl button').forEach(x=>x.classList.toggle('on',x===b)); _lgsig=''; logsPage(); return; }
+  if(e.target.id==='lgcopy'){ const t=$('#lgbox').innerText; try{ navigator.clipboard.writeText(t).then(()=>msg(L('Copied','کپی شد'),true)); }catch(_){} } });
 function rowBtns(n){ return `<td><button class="sm ok" onclick="act(${n},'start')">Connect</button><button class="sm" onclick="act(${n},'restart')">Restart</button><button class="sm" onclick="act(${n},'stop')">Stop</button><button class="sm" onclick="logs(${n})">Logs</button><button class="sm danger" onclick="del(${n})">Delete</button></td>`; }
 async function refresh(){
   try {
-    const [st, sl, fl] = await Promise.all([api('/api/stats'), api('/api/slots'), api('/api/fleet').catch(()=>({servers:[]}))]); window._fleet=fl.servers||[]; window._st=st;
+    const [st, sl, fl] = await Promise.all([api('/api/stats'), api('/api/slots'), api('/api/fleet').catch(()=>({servers:[]}))]); window._fleet=fl.servers||[]; window._st=st; pairFill();
     push(hist.cpu, st.cpu); push(hist.rx, st.rx_rate); push(hist.tx, st.tx_rate);
     const lv=$('#live'); if(lv){lv.classList.remove('off'); lv.querySelector('b').textContent=L('Online','آنلاین');}
     $('#host').textContent = st.hostname + ' · ' + st.ip;
@@ -1737,20 +1773,88 @@ async function load(){
 async function act(n, a){ try { const r = await api(`/api/slot/${n}/${a}`, {}); msg(`Tunnel ${n}: ${r.state}`, true); refresh(); } catch(e){ msg(e.message,false);} }
 async function del(n){ if(!confirm('Delete tunnel '+n+'?')) return; try { await api(`/api/slot/${n}/delete`, {}); refresh(); } catch(e){ msg(e.message,false);} }
 async function logs(n){ try { const r = await api(`/api/slot/${n}/logs`); logSlot = n; go('spoof'); sub('logs'); $('#logbox').textContent = r.logs || '(no logs)'; } catch(e){ msg(e.message,false);} }
+/* ===== v7 frontend: pairs, limits, auto-repair, activity, encrypted backups ===== */
+function pairFill(){
+  const fl=(window._fleet||[]).filter(f=>f.ok&&f.perm==='full');
+  const opts='<option value="">'+L('This server only','فقط این سرور')+'</option>'+fl.map(f=>`<option value="${f.id}">${L('This server + ','این سرور + ')}${esc(f.name)}</option>`).join('');
+  ['rpair','spair'].forEach(id=>{ const e=$('#'+id); if(e&&e.dataset.o!==opts){ const v=e.value; e.innerHTML=opts; e.dataset.o=opts; e.value=[...e.options].some(o=>o.value===v)?v:''; } });
+  pairLayout();
+}
+function pairLayout(){
+  const hide=(sel,on)=>{ const e=$(sel); if(e) e.classList.toggle('hide',on); };
+  if($('#rpair')){ const on=!!$('#rpair').value, srv=$('#rrole').value==='server';
+    hide('#rports',on?false:!srv); hide('#rth',on?false:srv); hide('#rsip',on?true:srv); }
+  if($('#spair')){ const on=!!$('#spair').value, srv=$('#role').value==='server', pr=$('#peer')&&$('#peer').parentElement;
+    hide('#lp',on?false:!srv); hide('#fw',on?false:srv); if(pr) pr.classList.toggle('hide',on); }
+}
+document.addEventListener('change',e=>{ if(['rpair','spair','rrole','role'].includes(e.target.id)) setTimeout(pairLayout,0); });
 async function create(){
-  const body = {role:$('#role').value, peer:$('#peer').value.trim(), transport:$('#transport').value,
-    port:$('#port').value, spoof_ips:$('#spoof_ips').value, listen_port:$('#listen_port').value,
-    forward:$('#forward').value, token:$('#token').value.trim()};
-  try { const r = await api('/api/spoof', body);
-    $('#newtoken').innerHTML = `<div class="msg good">Tunnel ${r.slot} created. Token (copy it to the other server):<br><code>${esc(r.token)}</code></div>`;
-    refresh(); } catch(e){ msg(e.message,false); } }
+  const body={role:$('#role').value, peer:$('#peer').value.trim(), transport:$('#transport').value, port:$('#port').value, spoof_ips:$('#spoof_ips').value, listen_port:$('#listen_port').value, forward:$('#forward').value, token:$('#token').value.trim()}, pair=$('#spair').value;
+  try{
+    if(pair){ const r=await api('/api/pair/create',Object.assign({kind:'spoof',server_id:pair},body)); $('#newtoken').innerHTML=`<div class="msg good">${L('Created on both servers','روی هر دو سرور ساخته شد')}: #${r.local_slot} ⇄ ${esc(r.server)} #${r.remote_slot}</div>`; }
+    else { const r=await api('/api/spoof',body); $('#newtoken').innerHTML=`<div class="msg good">Tunnel ${r.slot} created. Token (copy it to the other server):<br><code>${esc(r.token)}</code></div>`; }
+    refresh(); _dsig=''; } catch(e){ msg(e.message,false); } }
 async function createRev(){
-  const body = {role:$('#rrole').value, bridge:$('#rbridge').value, ports:$('#rport').value,
-    server_ip:$('#rserver').value.trim(), target_host:$('#rtarget').value.trim(), token:$('#rtoken').value.trim()};
-  try { const r = await api('/api/reverse', body);
-    $('#rnew').innerHTML = `<div class="msg good">Tunnel ${r.slot} created. Token (copy it to the other server):<br><code>${esc(r.token)}</code></div>`;
-    refresh(); } catch(e){ msg(e.message,false); } }
-
+  const body={role:$('#rrole').value, bridge:$('#rbridge').value, ports:$('#rport').value, server_ip:$('#rserver').value.trim(), target_host:$('#rtarget').value.trim(), token:$('#rtoken').value.trim()}, pair=$('#rpair').value;
+  try{
+    if(pair){ const r=await api('/api/pair/create',Object.assign({kind:'reverse',server_id:pair},body)); $('#rnew').innerHTML=`<div class="msg good">${L('Created on both servers','روی هر دو سرور ساخته شد')}: #${r.local_slot} ⇄ ${esc(r.server)} #${r.remote_slot}</div>`; }
+    else { const r=await api('/api/reverse',body); $('#rnew').innerHTML=`<div class="msg good">Tunnel ${r.slot} created. Token (copy it to the other server):<br><code>${esc(r.token)}</code></div>`; }
+    refresh(); _dsig=''; } catch(e){ msg(e.message,false); } }
+/* limits & history in the details modal */
+function limChips(s){
+  const l=s.lim; if(!l) return '';
+  let o='';
+  if(l.blocked) o+=`<span class="mx bad">⛔ ${l.blocked==='quota'?L('quota reached','حجم تمام شد'):L('expired','منقضی شد')}</span>`;
+  if(l.quota){ const p=l.used/l.quota; o+=`<span class="mx ${p>=1?'bad':p>.8?'warn':''}">▤ ${fmtB(l.used)} / ${fmtB(l.quota)}</span>`; }
+  if(l.days_left!=null&&!l.blocked) o+=`<span class="mx ${l.days_left<=3?'warn':''}">⏳ ${l.days_left} ${L('days','روز')}</span>`;
+  return o;
+}
+function drawBars(cv, days){
+  if(!cv) return; const dpr=window.devicePixelRatio||1, w=cv.clientWidth||300, h=cv.clientHeight||90; cv.width=w*dpr; cv.height=h*dpr;
+  const c=cv.getContext('2d'); c.scale(dpr,dpr); c.clearRect(0,0,w,h);
+  const tot=days.map(d=>d.rx+d.tx), top=Math.max(1,...tot)*1.15, bw=w/days.length;
+  c.strokeStyle='rgba(255,255,255,.06)'; for(let i=1;i<4;i++){ c.beginPath(); c.moveTo(0,h*i/4); c.lineTo(w,h*i/4); c.stroke(); }
+  days.forEach((d,i)=>{ const x=i*bw+bw*.18, ww=bw*.64, hr=d.rx/top*(h-14), ht=d.tx/top*(h-14); c.fillStyle='#34d0c3'; c.fillRect(x,h-2-hr,ww,hr); c.fillStyle='#e9c46a'; c.fillRect(x,h-2-hr-ht,ww,ht); });
+  c.fillStyle='#8fa2bf'; c.font='11px sans-serif'; c.fillText(fmtB(top/1.15),6,12);
+}
+function limHtml(l){
+  if(!l) return `<p class="dnote" style="margin-top:0">${L('No limit set.','محدودیتی تنظیم نشده.')}</p>`;
+  const p=l.quota?Math.min(100,l.used/l.quota*100):0;
+  return (l.quota?`<div class="dm"><span>${L('Used','مصرف')}</span><em><b style="width:${p}%;${p>=100?'background:#f0707a':''}"></b></em><span style="width:auto;direction:ltr">${fmtB(l.used)} / ${fmtB(l.quota)}</span></div>`:'')
+   +`<div class="mxs">${limChips({lim:l})||`<span class="mx">${L('active','فعال')}</span>`}</div>`;
+}
+function wireDetailExtras(n,d){
+  $('#lm_q').value=d.limits&&d.limits.quota?(d.limits.quota/1073741824).toFixed(2).replace(/\.?0+$/,''):'';
+  $('#lm_p').value=(d.limits&&d.limits.period)||'month'; $('#lm_e').value=(d.limits&&d.limits.expires)||''; $('#dmheal').checked=!!d.heal;
+  const send=async(reset)=>{ const r=await apiX('/api/slot/'+n+'/limits',{quota_gb:$('#lm_q').value||0,period:$('#lm_p').value,expires:$('#lm_e').value,reset:!!reset}); $('#lmmsg').style.color=r.s===200?'#34d0c3':'#f0707a'; $('#lmmsg').textContent=r.s===200?L('Saved','ذخیره شد'):(r.j.error||'error'); if(r.s===200){ refresh(); dmLoad(); } };
+  $('#lmsave').onclick=()=>send(false); $('#lmreset').onclick=()=>{ if(confirm(L('Reset the usage counter and unblock this tunnel?','شمارنده مصرف صفر و تانل آزاد شود؟'))) send(true); };
+  $('#dmheal').onchange=async()=>{ const r=await apiX('/api/slot/'+n+'/heal',{on:$('#dmheal').checked}); if(r.s!==200){ alert(r.j.error||'error'); $('#dmheal').checked=!$('#dmheal').checked; } };
+}
+/* panel activity */
+let _lgmode='svc', _lgasig='';
+const AUD={login:['Signed in','ورود به پنل'],login_failed:['Failed sign-in','ورود ناموفق'],reverse:['Created reverse tunnel','ساخت تانل معکوس'],spoof:['Created spoof tunnel','ساخت تانل اسپوف'],'pair/create':['Created a tunnel on two servers','ساخت تانل روی دو سرور'],'servers/add':['Added a server','افزودن سرور'],'servers/delete':['Removed a server','حذف سرور'],'servers/act':['Acted on a remote tunnel','عملیات روی تانل سرور دیگر'],'apikeys/create':['Created an API key','ساخت کلید API'],'apikeys/revoke':['Revoked an API key','ابطال کلید API'],'2fa/enable':['Enabled two-factor login','فعال‌سازی ورود دومرحله‌ای'],'2fa/disable':['Disabled two-factor login','غیرفعال‌سازی ورود دومرحله‌ای'],'update/apply':['Updated the panel','به‌روزرسانی پنل'],'backup/create':['Created a backup','ساخت بکاپ'],'backup/restore':['Restored a backup','بازیابی بکاپ'],'backup/pass':['Changed the backup passphrase','تغییر رمز بکاپ'],'backup/delete':['Deleted a backup','حذف بکاپ']};
+function audTxt(e){
+  let m=AUD[e.a]; if(m) return L(m[0],m[1])+(e.d?' · '+esc(e.d):'');
+  const r=e.a.match(/^slot\/(\d+)\/(start|stop|restart|delete|edit|limits|heal)$/);
+  if(r){ const v={start:['Started','شروع'],stop:['Stopped','توقف'],restart:['Restarted','ری‌استارت'],delete:['Deleted','حذف'],edit:['Edited','ویرایش'],limits:['Changed limits of','تغییر محدودیت'],heal:['Changed auto-repair of','تغییر ترمیم خودکار']}[r[2]]; return L(v[0]+' tunnel '+r[1],v[1]+' تانل '+r[1])+(e.d?' · '+esc(e.d):''); }
+  return esc(e.a)+(e.d?' · '+esc(e.d):'');
+}
+async function auditPage(){
+  const r=await apiX('/api/audit'), q=($('#lgq').value||'').toLowerCase(), box=$('#lgbox'); if(!box) return;
+  const rows=(r.j.list||[]).filter(e=>!q||(e.who+' '+e.ip+' '+e.a+' '+e.d).toLowerCase().includes(q));
+  const html=rows.map(e=>`<div class="ar"><span class="t">${new Date(e.t*1000).toLocaleString()}</span><b>${esc(e.who)}</b><span class="t">${esc(e.ip)}</span><span class="${/failed/.test(e.a)?'e':''}">${audTxt(e)}</span></div>`).join('')||`<div class="t">${L('No activity yet.','فعالیتی ثبت نشده.')}</div>`;
+  if(html!==_lgasig){ _lgasig=html; box.innerHTML=html; }
+}
+document.addEventListener('click',e=>{ const b=e.target.closest&&e.target.closest('#lgmode button'); if(!b) return; _lgmode=b.dataset.m; document.querySelectorAll('#lgmode button').forEach(x=>x.classList.toggle('on',x===b)); ['#lgsel','#lgl'].forEach(s=>{ const el=$(s); if(el) el.classList.toggle('hide',_lgmode==='aud'); }); _lgsig=''; _lgasig=''; logsPage(); });
+/* encrypted backups */
+async function bkPassInit(){
+  const st=$('#bkpst'); if(!st) return;
+  $('#bkpsave').onclick=async()=>{ const r=await apiX('/api/backup/pass',{pass:$('#bkpass').value}); if(r.s!==200){ alert(r.j.error||'error'); return; } $('#bkpass').value=''; alert(L('Saved. New backups are encrypted. Remember this passphrase: without it a backup cannot be restored.','ذخیره شد. بکاپ‌های جدید رمزنگاری می‌شوند. این رمز را به خاطر بسپارید؛ بدون آن بکاپ قابل بازیابی نیست.')); loadBkPass(); };
+  $('#bkpclear').onclick=async()=>{ if(!confirm(L('Stop encrypting new backups? Old encrypted backups still need the passphrase.','رمزنگاری بکاپ‌های جدید متوقف شود؟ بکاپ‌های رمزنگاری‌شده قبلی همچنان رمز می‌خواهند.'))) return; await apiX('/api/backup/pass',{clear:true}); loadBkPass(); };
+  loadBkPass();
+}
+async function loadBkPass(){ const r=await apiX('/api/backups'); window._bkenc=!!(r.j&&r.j.enc); const st=$('#bkpst'); if(st) st.textContent=window._bkenc?L('On: new backups (including Telegram copies) are encrypted.','روشن: بکاپ‌های جدید (و نسخه تلگرام) رمزنگاری می‌شوند.'):L('Off: backups are plain files. They contain your tokens and settings.','خاموش: بکاپ‌ها فایل ساده‌اند و توکن‌ها و تنظیمات را دارند.'); $('#bkpclear').classList.toggle('hide',!window._bkenc); }
+function askBkPass(){ const p=prompt(L('This backup is encrypted. Passphrase (leave empty to use this panel\'s saved one):','این بکاپ رمزنگاری شده است. رمز را وارد کنید (خالی = رمز ذخیره‌شده همین پنل):')); return p===null?null:p; }
 async function tfaExtras(){
   const sv=(k,d)=>localStorage.getItem(k)||d;
   const clk=()=>{ const c=$('#clock'); if(c) c.textContent=nowStr(); }; clk(); if(window._ck) clearInterval(window._ck); window._ck=setInterval(clk,1000);
@@ -1770,14 +1874,15 @@ async function tfaExtras(){
   $('#tgdel').onclick=async()=>{ if(confirm(L('Remove Telegram settings?','تنظیمات تلگرام حذف شود؟'))){ await api('/api/tg/clear',{}); $('#tgchat').value='';$('#tgapi').value='';$('#tgcur').textContent=''; } };
   // backups
   const loadBk=async()=>{ try{ const r=await api('/api/backups'); $('#abon').checked=!!r.auto.on; $('#abh').value=r.auto.hours||24; $('#abfull').checked=!!r.auto.full;
-    $('#bklist').innerHTML=r.list.map(b=>`<div class="srow"><div class="st"><b dir="ltr">${esc(b.name)}</b><p>${fdate(b.time)} · ${fmtB(b.size)}</p></div><div><a class="sbtn" href="${BASE}/api/backup/get?name=${encodeURIComponent(b.name)}" download>${L('Download','دانلود')}</a> <button class="br" data-n="${esc(b.name)}">${L('Restore','بازیابی')}</button> <button class="bd" data-n="${esc(b.name)}">${L('Delete','حذف')}</button></div></div>`).join('');
-    document.querySelectorAll('#bklist .br').forEach(b=>b.onclick=()=>restore({name:b.dataset.n}));
+    $('#bklist').innerHTML=r.list.map(b=>`<div class="srow"><div class="st"><b dir="ltr">${b.enc?'🔒 ':''}${esc(b.name)}</b><p>${fdate(b.time)} · ${fmtB(b.size)}</p></div><div><a class="sbtn" href="${BASE}/api/backup/get?name=${encodeURIComponent(b.name)}" download>${L('Download','دانلود')}</a> <button class="br" data-n="${esc(b.name)}" data-e="${b.enc?1:0}">${L('Restore','بازیابی')}</button> <button class="bd" data-n="${esc(b.name)}">${L('Delete','حذف')}</button></div></div>`).join('');
+    document.querySelectorAll('#bklist .br').forEach(b=>b.onclick=()=>{ const pw=b.dataset.e==='1'?askBkPass():''; if(pw===null) return; restore(pw?{name:b.dataset.n,pass:pw}:{name:b.dataset.n}); });
     document.querySelectorAll('#bklist .bd').forEach(b=>b.onclick=async()=>{ if(confirm(L('Delete this backup?','این بکاپ حذف شود؟'))){await api('/api/backup/delete',{name:b.dataset.n});loadBk();} }); }catch(e){} };
   const restore=async(body)=>{ body.panel=$('#bkpanel').checked; try{ let r; try{ r=await api('/api/backup/restore',body); }catch(e){ if(e.message==='exists' && confirm(L('Some tunnels already exist and will be overwritten. Continue?','برخی تونل‌ها از قبل وجود دارند و بازنویسی می‌شوند. ادامه؟'))){ body.overwrite=true; r=await api('/api/backup/restore',body); } else if(e.message!=='exists') throw e; else return; }
     alert(L(r.restored+' tunnel(s) restored. Now set this server\'s new IP on the other side of each tunnel.',r.restored+' تونل بازیابی شد. حالا آی‌پی جدید این سرور را در سرور مقابل هر تونل وارد کنید.')); }catch(e){alert(e.message);} };
   $('#bknow').onclick=async()=>{ try{ const r=await api('/api/backup/create',{full:$('#bkfull').checked,telegram:$('#bktg').checked}); alert(L('Done: ','انجام شد: ')+r.slots+L(' tunnels',' تونل')+(r.sent?' · Telegram ✓':'')); loadBk(); }catch(e){alert(e.message);} };
+  bkPassInit();
   $('#absave').onclick=async()=>{ try{ await api('/api/backup/auto',{on:$('#abon').checked,hours:+$('#abh').value||24,full:$('#abfull').checked}); alert(L('Saved','ذخیره شد')); }catch(e){alert(e.message);} };
-  $('#bkrest').onclick=()=>{ const f=$('#bkfile').files[0]; if(!f) return alert(L('Choose a file','فایل را انتخاب کنید')); const rd=new FileReader(); rd.onload=()=>{ let d; try{d=JSON.parse(rd.result);}catch(e){return alert('Invalid JSON');} restore({data:d}); }; rd.readAsText(f); };
+  $('#bkrest').onclick=()=>{ const f=$('#bkfile').files[0]; if(!f) return alert(L('Choose a file','فایل را انتخاب کنید')); const rd=new FileReader(); rd.onload=()=>{ const t=String(rd.result); if(t.startsWith('NTBK1:')){ const pw=askBkPass(); if(pw===null) return; restore(pw?{data:t.trim(),pass:pw}:{data:t.trim()}); return; } let d; try{d=JSON.parse(t);}catch(e){return alert('Invalid JSON');} restore({data:d}); }; rd.readAsText(f); };
   loadBk();
 }
 async function saveAccount(){
@@ -1870,7 +1975,7 @@ def collect_stats():
 OTL_TTL = 40 * 60
 BACKUP_DIR = os.path.join(CONF_DIR, "backups")
 sess_info = {}   # session id -> {"ip","ua","t","how"}
-APP_VERSION = "1.6.0"
+APP_VERSION = "1.7.0"
 
 
 def hash_tok(t):
@@ -2001,7 +2106,8 @@ def save_backup_file(data, keep=10):
     p = os.path.join(BACKUP_DIR, name)
     fd = os.open(p, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
     with os.fdopen(fd, "w") as fh:
-        json.dump(data, fh)
+        pw = bk_pass()
+        fh.write(bk_encrypt(json.dumps(data), pw) if pw else json.dumps(data))
     files = sorted(f for f in os.listdir(BACKUP_DIR) if f.endswith(".json"))
     for old in files[:-keep]:
         try:
@@ -2017,7 +2123,7 @@ def list_backups():
         for f in sorted(os.listdir(BACKUP_DIR), reverse=True):
             if f.endswith(".json"):
                 st = os.stat(os.path.join(BACKUP_DIR, f))
-                out.append({"name": f, "size": st.st_size, "time": int(st.st_mtime)})
+                out.append({"name": f, "size": st.st_size, "time": int(st.st_mtime), "enc": read_backup_text(f)[:6] == BK_MAGIC})
     except OSError:
         pass
     return out
@@ -2194,7 +2300,7 @@ def background_loop():
                 tg = conf.get("tg", {})
                 if tg.get("token") and tg.get("chat") and "backup" in tg.get("events", ["backup"]):
                     tg_call("sendDocument", {"chat_id": tg["chat"], "caption": "💾 بکاپ خودکار %s" % host_label()},
-                            {"document": (name, json.dumps(data).encode())})
+                            {"document": (name, read_backup_text(name).encode())})
         except Exception:
             pass
         time.sleep(15)
@@ -2409,7 +2515,8 @@ def sample_slots():
     slots = list_slots()
     conns = tcp_conn_counts()
     now = time.time()
-    today = time.strftime("%Y-%m-%d")
+    today, mon = time.strftime("%Y-%m-%d"), time.strftime("%Y-%m")
+    conf = load_panel_conf()
     seen = set()
     ncpu = os.cpu_count() or 1
     for sl in slots:
@@ -2432,6 +2539,15 @@ def sample_slots():
             u["lo"] = o_b
         u["rx"], u["tx"] = u.get("rx", 0) + d_in, u.get("tx", 0) + d_out
         u["drx"], u["dtx"] = u.get("drx", 0) + d_in, u.get("dtx", 0) + d_out
+        if u.get("mon") != mon:
+            u.update(mon=mon, mrx=0, mtx=0)
+        u["mrx"], u["mtx"] = u.get("mrx", 0) + d_in, u.get("mtx", 0) + d_out
+        dd = u.setdefault("days", {}).setdefault(today, [0, 0])
+        dd[0] += d_in
+        dd[1] += d_out
+        if len(u["days"]) > 95:
+            for k in sorted(u["days"])[:-90]:
+                u["days"].pop(k, None)
         pv = _prev.get(n)
         rx = tx = cpu = None
         if pv and now > pv["t"] + 0.5:
@@ -2460,6 +2576,8 @@ def sample_slots():
         if _last_state.get(n) != state:
             record_event(n, "seen" if n not in _last_state else "state", state=state)
             _last_state[n] = state
+        limits_tick(n, conf)
+        heal_tick(n, state, slot_health.get(n, {}), conf)
     for n in list(slot_stats):
         if n not in seen:
             for d in (slot_stats, slot_hist, slot_health, _prev):
@@ -2662,6 +2780,7 @@ def ssl_alert():
 
 def sampler_loop():
     load_state()
+    audit_load()
     try:
         ensure_accounting()
     except Exception:
@@ -2683,13 +2802,14 @@ def sampler_loop():
 
 def slots_with_stats():
     out = list_slots()
+    conf = load_panel_conf()
     for sl in out:
         n = sl["slot"]
         st, h = slot_stats.get(n, {}), slot_health.get(n, {})
         sl.update(rx_rate=st.get("rx_rate"), tx_rate=st.get("tx_rate"), rx_total=st.get("rx_total"),
                   tx_total=st.get("tx_total"), conns=st.get("conns"), acct=st.get("acct", False),
                   lat=h.get("lat"), loss=h.get("loss"), peer_ip=h.get("peer", "") or slot_peer_cached(sl),
-                  up24=uptime_pct(n))
+                  up24=uptime_pct(n), lim=limit_state(n, conf), heal=heal_on(n, conf))
     return out
 
 
@@ -2705,7 +2825,8 @@ def slot_detail(n):
     return {"slot": sl, "stats": slot_stats.get(n, {}), "health": slot_health.get(n, {}),
             "hist": slot_hist.get(n, {"rx": [], "tx": [], "lat": []}),
             "events": [e for e in events_log if e.get("slot") == n][-30:][::-1],
-            "up24": uptime_pct(n), "up7": uptime_pct(n, 7 * 86400)}
+            "up24": uptime_pct(n), "up7": uptime_pct(n, 7 * 86400),
+            "limits": limit_state(n), "heal": heal_on(n), "days": last_days(n)}
 
 
 # -- edit a tunnel -------------------------------------------------------------
@@ -2749,33 +2870,60 @@ def slot_edit(n, d):
     return {"ok": True, "restarted": restarted, "token_changed": clean["token"] != env.get("NICETUNNEL_TOKEN", "")}, None
 
 
-# -- update ----------------------------------------------------------------------
+# -- update (verified against a SHA-256 published beside the file) -------------------
+def fetch_url(url, limit=4000000):
+    import urllib.request
+    req = urllib.request.Request(url, headers={"User-Agent": "NiceTunnelPanel/" + APP_VERSION, "Cache-Control": "no-cache"})
+    with urllib.request.urlopen(req, timeout=25) as r:
+        return r.read(limit)
+
+
 def version_tuple(v):
     return tuple(int(x) for x in re.findall(r"\d+", v)[:4])
 
 
 def update_fetch():
-    import urllib.request
-    req = urllib.request.Request(RAW_URL, headers={"User-Agent": "NiceTunnelPanel/" + APP_VERSION,
-                                                    "Cache-Control": "no-cache"})
-    with urllib.request.urlopen(req, timeout=25) as r:
-        data = r.read(4000000)
+    """Returns (data, version, verified, note). `verified` means it matches NAME.sha256 from the same place."""
+    import urllib.error
+    data = fetch_url(RAW_URL)
     m = re.search(rb'^APP_VERSION = "([0-9][0-9.]*)"', data, re.M)
-    return data, (m.group(1).decode() if m else None)
+    ver = m.group(1).decode() if m else None
+    verified, note = False, ""
+    try:
+        txt = fetch_url(os.environ.get("NICETUNNEL_CHECKSUM_URL") or RAW_URL + ".sha256", 4096).decode("ascii", "ignore")
+        mm = re.match(r"\s*([0-9a-fA-F]{64})\b", txt)
+        if not mm:
+            raise ValueError("the checksum file is malformed")
+        if not hmac.compare_digest(mm.group(1).lower(), hashlib.sha256(data).hexdigest()):
+            raise ValueError("checksum mismatch: the download does not match its published SHA-256, try again later")
+        verified = True
+    except urllib.error.HTTPError as exc:
+        if exc.code != 404:
+            raise
+        note = "no checksum published"
+    except urllib.error.URLError as exc:
+        if not isinstance(exc.reason, FileNotFoundError):
+            raise
+        note = "no checksum published"
+    return data, ver, verified, note
 
 
 def update_check():
     try:
-        _, ver = update_fetch()
+        _, ver, verified, note = update_fetch()
     except Exception as exc:
         return {"current": APP_VERSION, "error": str(exc)[:160]}
     if not ver:
         return {"current": APP_VERSION, "error": "remote file has no version"}
-    return {"current": APP_VERSION, "latest": ver, "newer": version_tuple(ver) > version_tuple(APP_VERSION)}
+    return {"current": APP_VERSION, "latest": ver, "newer": version_tuple(ver) > version_tuple(APP_VERSION),
+            "verified": verified, "note": note}
 
 
-def update_apply():
-    data, ver = update_fetch()
+def update_apply(restart_delay=1.5):
+    data, ver, verified, _ = update_fetch()
+    if not verified and os.environ.get("NICETUNNEL_ALLOW_UNVERIFIED") != "1":
+        raise ValueError("update blocked: no SHA-256 checksum is published next to the file (%s.sha256). "
+                         "Publish one (see the README), or set NICETUNNEL_ALLOW_UNVERIFIED=1 to accept the risk." % os.path.basename(RAW_URL))
     if not ver or len(data) < 50000 or b"def main" not in data or b"class Handler" not in data:
         raise ValueError("downloaded file looks wrong")
     compile(data, "nicetunnel_panel.py", "exec")   # never replace a working panel with a broken file
@@ -2788,7 +2936,10 @@ def update_apply():
         fh.write(data)
     os.chmod(target + ".new", 0o755)
     os.replace(target + ".new", target)
-    threading.Timer(1.5, lambda: run(["systemctl", "restart", "nicetunnel-panel"])).start()
+    if restart_delay <= 0:
+        run(["systemctl", "restart", "nicetunnel-panel"])
+    else:
+        threading.Timer(restart_delay, lambda: run(["systemctl", "restart", "nicetunnel-panel"])).start()
     return ver
 
 
@@ -2887,9 +3038,10 @@ def tfa_disable():
 # -- API keys (let another panel manage this server) --------------------------------
 KEY_GET = re.compile(r"/api/(ping|stats|slots|slot/\d+/(logs|detail))")
 KEY_POST = re.compile(r"/api/slot/\d+/(start|stop|restart|probe)")
+KEY_FULL_POST = re.compile(r"/api/(reverse|spoof|slot/\d+/(edit|delete))")
 
 
-def apikey_create(name):
+def apikey_create(name, full=False):
     with conf_lock:
         conf = load_panel_conf()
         keys = conf.get("apikeys", [])
@@ -2897,25 +3049,27 @@ def apikey_create(name):
             raise ValueError("too many API keys (max 10)")
         key = "nt_" + secrets.token_urlsafe(32)
         kid = secrets.token_hex(4)
-        keys.append({"id": kid, "name": (str(name).strip() or "key")[:40], "h": hash_tok(key), "t": int(time.time())})
+        keys.append({"id": kid, "name": (str(name).strip() or "key")[:40], "h": hash_tok(key), "t": int(time.time()),
+                     "perm": "full" if full else "manage"})
         conf["apikeys"] = keys
         save_panel_conf(conf)
     return kid, key
 
 
 def apikey_check(key):
+    """Returns the key's permission level ("manage" or "full"), or "" if the key is not valid."""
     if not key or len(key) > 200:
-        return False
-    h, ok = hash_tok(key), False
+        return ""
+    h, perm = hash_tok(key), ""
     for k in load_panel_conf().get("apikeys", []):
         if hmac.compare_digest(k["h"], h):
-            ok = True
+            perm = k.get("perm", "manage")
             _key_last[k["id"]] = int(time.time())
-    return ok
+    return perm
 
 
 def apikey_list():
-    return [{"id": k["id"], "name": k["name"], "t": k["t"], "last": _key_last.get(k["id"], 0)}
+    return [{"id": k["id"], "name": k["name"], "t": k["t"], "last": _key_last.get(k["id"], 0), "perm": k.get("perm", "manage")}
             for k in load_panel_conf().get("apikeys", [])]
 
 
@@ -3035,6 +3189,7 @@ def server_add(name, url, key, pin=""):
         raise
     if not isinstance(info, dict) or not info.get("ok"):
         raise ValueError("that address is not a NiceTunnel panel")
+    srv["perm"] = info.get("perm", "manage")
     with conf_lock:
         conf = load_panel_conf()
         lst = conf.get("servers", [])
@@ -3058,10 +3213,11 @@ def fleet_round():
     def one(s):
         old = fleet.get(s["id"], {})
         try:
+            pg = remote_call(s, "GET", "/api/ping")
             st = remote_call(s, "GET", "/api/stats")
             sl = remote_call(s, "GET", "/api/slots")
             fleet[s["id"]] = {"ok": True, "t": int(time.time()), "stats": st, "slots": sl.get("slots", []),
-                              "err": "", "fails": 0}
+                              "err": "", "fails": 0, "perm": pg.get("perm", "manage")}
             alert_clear("srv:" + s["id"], "✅ سرور %s دوباره آنلاین شد" % s["name"], "health")
         except RemoteError as exc:
             nf = old.get("fails", 0) + 1
@@ -3090,13 +3246,333 @@ def fleet_view():
         f = fleet.get(s["id"], {})
         out.append({"id": s["id"], "name": s["name"], "url": s["url"], "ok": bool(f.get("ok")), "t": f.get("t", 0),
                     "err": f.get("err", ""), "stats": f.get("stats"), "slots": f.get("slots", []),
-                    "pinned": bool(s.get("pin")), "checked": bool(f)})
+                    "pinned": bool(s.get("pin")), "checked": bool(f), "perm": f.get("perm") or s.get("perm", "manage")})
     return out
 
 
 def find_server(sid):
     return next((s for s in load_panel_conf().get("servers", []) if s["id"] == sid), None)
 
+
+
+# --------------------------------------------------------------------------
+# v7: one-click pairs, auto-repair, limits, audit log, encrypted backups
+# --------------------------------------------------------------------------
+AUDIT_FILE = os.path.join(CONF_DIR, "audit.json")
+audit_log = []
+_heal = {}
+_audit_lock = threading.Lock()
+
+
+# -- create a tunnel on this server and on another one --------------------------
+def create_local(kind, clean):
+    n = first_free_slot()
+    if n is None:
+        return None, "no free slot (max %d)" % MAX_SLOT
+    (write_spoof_slot if kind == "spoof" else write_reverse_slot)(n, clean)
+    run(["systemctl", "daemon-reload"])
+    run(["systemctl", "enable", "nicetunnel@%d" % n])
+    code, out = run(["systemctl", "restart", "nicetunnel@%d" % n])
+    if code != 0:
+        return n, "saved but could not start: " + out.strip()[-300:]
+    return n, None
+
+
+def pair_create(d):
+    """Builds both ends of a tunnel with the same token and ports. Rolls back the far end if this end fails."""
+    srv = find_server(str(d.get("server_id", "")))
+    if not srv:
+        raise ValueError("unknown server")
+    f = fleet.get(srv["id"], {})
+    if not f.get("ok"):
+        raise ValueError("that server is offline right now")
+    if (f.get("perm") or srv.get("perm") or "manage") != "full":
+        raise ValueError("the API key for that server cannot create tunnels. Make a key with that option on the other panel and add the server again.")
+    remote_ip = str((f.get("stats") or {}).get("ip") or "")
+    local_ip = public_ip_guess()
+    if not valid_ipv4(remote_ip) or not valid_ipv4(local_ip):
+        raise ValueError("could not work out the public IP of both servers")
+    kind, role = d.get("kind"), d.get("role")
+    if kind not in ("spoof", "reverse") or role not in ("server", "client"):
+        raise ValueError("bad request")
+    other = "client" if role == "server" else "server"
+    if kind == "spoof":
+        base = {"transport": d.get("transport", "udp"), "spoof_ips": d.get("spoof_ips", ""), "port": d.get("port", 4500),
+                "listen_port": d.get("listen_port", 0), "forward": d.get("forward") or "127.0.0.1:51820",
+                "token": str(d.get("token", "")).strip()}
+        loc, rem = dict(base, role=role, peer=remote_ip), dict(base, role=other, peer=local_ip)
+        check, route = validate_spoof, "/api/spoof"
+    else:
+        srv_ip = local_ip if role == "server" else remote_ip
+        base = {"bridge": d.get("bridge", 7000), "token": str(d.get("token", "")).strip()}
+        side = {"server": {"role": "server", "ports": d.get("ports", "")},
+                "client": {"role": "client", "server_ip": srv_ip, "target_host": d.get("target_host") or "127.0.0.1"}}
+        loc, rem = dict(base, **side[role]), dict(base, **side[other])
+        check, route = validate_reverse, "/api/reverse"
+    c_loc, err = check(loc)
+    if err:
+        raise ValueError(err)
+    rem["token"] = c_loc["token"]
+    c_rem, err = check(rem)
+    if err:
+        raise ValueError(err)
+    r = remote_call(srv, "POST", route, c_rem, timeout=25)
+    rslot = r.get("slot")
+    n, err = create_local(kind, c_loc)
+    if err:
+        if isinstance(rslot, int):
+            try:
+                remote_call(srv, "POST", "/api/slot/%d/delete" % rslot, {}, timeout=15)
+            except RemoteError:
+                pass
+        raise ValueError(err + " (the other server's copy was removed)")
+    return {"ok": True, "local_slot": n, "remote_slot": rslot, "token": c_loc["token"], "server": srv["name"]}
+
+
+# -- auto-repair -------------------------------------------------------------------
+def heal_on(n, conf=None):
+    return bool(((conf if conf is not None else load_panel_conf()).get("heal") or {}).get(str(n)))
+
+
+def heal_set(n, on):
+    with conf_lock:
+        conf = load_panel_conf()
+        h = conf.get("heal") or {}
+        h[str(n)] = bool(on)
+        conf["heal"] = h
+        save_panel_conf(conf)
+
+
+def heal_tick(n, state, h, conf):
+    """Restarts a tunnel that stays broken for 2.5 minutes (failed, or no ping reply). At most 3 times an hour."""
+    if not heal_on(n, conf) or limit_blocked(n, conf):
+        _heal.pop(n, None)
+        return
+    s = _heal.setdefault(n, {"bad": 0, "t": []})
+    broken = state == "failed" or (state == "active" and h.get("loss") == 100)
+    s["bad"] = s["bad"] + 1 if broken else 0
+    if s["bad"] < 30:
+        return
+    s["bad"] = 0
+    now = time.time()
+    s["t"] = [t for t in s["t"] if now - t < 3600]
+    if len(s["t"]) >= 3:
+        alert_raise("heal:%d" % n, "🛠 تانل %d (%s): ری‌استارت خودکار نتیجه نداد، بررسی دستی لازم است" % (n, host_label()), "tunnel", cooldown=3600)
+        return
+    s["t"].append(now)
+    run(["systemctl", "restart", "nicetunnel@%d" % n])
+    record_event(n, "heal")
+    tg_send("🛠 تانل %d (%s) به‌صورت خودکار ری‌استارت شد" % (n, host_label()), "tunnel")
+
+
+# -- traffic and time limits ---------------------------------------------------------
+def limit_state(n, conf=None):
+    lim = ((conf if conf is not None else load_panel_conf()).get("limits") or {}).get(str(n))
+    if not lim:
+        return None
+    u = usage.get(str(n), {})
+    quota = int(float(lim.get("quota_gb") or 0) * 1024 ** 3)
+    period = lim.get("period", "month")
+    used = max(0, u.get("rx", 0) + u.get("tx", 0) - u.get("qbase", 0)) if period == "total" else u.get("mrx", 0) + u.get("mtx", 0)
+    exp, days_left = lim.get("expires") or "", None
+    if exp:
+        try:
+            import datetime
+            days_left = (datetime.date.fromisoformat(exp) - datetime.date.today()).days
+        except ValueError:
+            days_left = None
+    return {"quota": quota, "used": used, "period": period, "expires": exp, "days_left": days_left, "blocked": lim.get("blocked", "")}
+
+
+def limit_blocked(n, conf=None):
+    s = limit_state(n, conf)
+    return s["blocked"] if s else ""
+
+
+def limit_write(n, **changes):
+    with conf_lock:
+        conf = load_panel_conf()
+        lim = conf.get("limits") or {}
+        cur = lim.get(str(n)) or {}
+        cur.update(changes)
+        if not cur.get("quota_gb") and not cur.get("expires"):
+            lim.pop(str(n), None)
+        else:
+            lim[str(n)] = cur
+        conf["limits"] = lim
+        save_panel_conf(conf)
+
+
+def limits_tick(n, conf):
+    s = limit_state(n, conf)
+    if not s:
+        return
+    reason = ""
+    if s["quota"] and s["used"] >= s["quota"]:
+        reason = "quota"
+    if s["days_left"] is not None and s["days_left"] < 0:
+        reason = "expired"
+    cur, unit = s["blocked"], "nicetunnel@%d" % n
+    if reason and cur != reason:
+        limit_write(n, blocked=reason)
+        run(["systemctl", "stop", unit])
+        record_event(n, "blocked", value=reason)
+        tg_send("⛔ تانل %d (%s) متوقف شد: %s" % (n, host_label(), "حجم مجاز تمام شد" if reason == "quota" else "مهلت تمام شد"), "tunnel")
+    elif not reason and cur:
+        limit_write(n, blocked="")
+        run(["systemctl", "start", unit])
+        record_event(n, "unblocked")
+        tg_send("✅ تانل %d (%s) دوباره فعال شد" % (n, host_label()), "tunnel")
+
+
+def limit_apply(n, d):
+    import datetime
+    try:
+        quota = float(d.get("quota_gb") or 0)
+    except (TypeError, ValueError):
+        raise ValueError("quota must be a number of GB")
+    if not (0 <= quota <= 1000000):
+        raise ValueError("quota must be between 0 and 1,000,000 GB")
+    period = d.get("period", "month")
+    if period not in ("month", "total"):
+        raise ValueError("period must be month or total")
+    exp = str(d.get("expires") or "").strip()
+    if exp:
+        try:
+            datetime.date.fromisoformat(exp)
+        except ValueError:
+            raise ValueError("expiry must look like 2026-12-31")
+    u = usage.setdefault(str(n), {})
+    if d.get("reset"):
+        u["mrx"] = u["mtx"] = 0
+        u["qbase"] = u.get("rx", 0) + u.get("tx", 0)
+        _state["dirty"] = True
+    limit_write(n, quota_gb=quota, period=period, expires=exp, **({"blocked": ""} if d.get("reset") else {}))
+    limits_tick(n, load_panel_conf())
+    return limit_state(n)
+
+
+def last_days(n, count=30):
+    import datetime
+    days = (usage.get(str(n)) or {}).get("days", {})
+    out, today = [], datetime.date.today()
+    for i in range(count - 1, -1, -1):
+        k = (today - datetime.timedelta(days=i)).isoformat()
+        rx, tx = days.get(k, [0, 0])
+        out.append({"d": k, "rx": rx, "tx": tx})
+    return out
+
+
+# -- audit log ------------------------------------------------------------------------
+def audit_load():
+    global audit_log
+    try:
+        with open(AUDIT_FILE) as fh:
+            a = json.load(fh)
+        audit_log = [e for e in a if isinstance(e, dict)][-500:] if isinstance(a, list) else []
+    except Exception:
+        audit_log = []
+
+
+def audit_add(who, ip, action, detail=""):
+    with _audit_lock:
+        audit_log.append({"t": int(time.time()), "who": str(who)[:40], "ip": str(ip)[:45], "a": str(action)[:60], "d": str(detail)[:120]})
+        del audit_log[:-500]
+        try:
+            _atomic_write(AUDIT_FILE, json.dumps(audit_log))
+        except OSError:
+            pass
+
+
+AUDIT_SKIP = re.compile(r"/api/(slot/\d+/probe|logout|tester/.*|spoof-test.*)")
+
+
+def audit_http(h, code, obj):
+    """Called for every JSON reply. Logs changes (POST) and failed logins, never request values."""
+    if h.command != "POST":
+        return
+    path = getattr(h, "_path", "") or ""
+    body = getattr(h, "_body", None) or {}
+    ip = h.client_address[0]
+    if path == "/api/login":
+        user = str(body.get("username", "") or ("link" if body.get("link") else ""))
+        if code == 200 and not (isinstance(obj, dict) and obj.get("need_otp")):
+            audit_add(user or "admin", ip, "login")
+        elif code in (401, 429):
+            audit_add(user or "?", ip, "login_failed")
+        return
+    if code >= 400 or AUDIT_SKIP.fullmatch(path) or not path.startswith("/api/"):
+        return
+    who = "api-key" if getattr(h, "_apikey", False) else (sess_owner.get(h.session_id()) or "?")
+    detail = ""
+    if isinstance(body, dict) and re.search(r"/(edit|limits|heal)$", path):
+        detail = ", ".join(sorted(k for k in body if k != "token"))[:100]
+    elif isinstance(obj, dict) and obj.get("slot"):
+        detail = "slot %s" % obj["slot"]
+    elif isinstance(obj, dict) and obj.get("local_slot"):
+        detail = "slot %s + %s#%s" % (obj["local_slot"], obj.get("server", "remote"), obj.get("remote_slot"))
+    audit_add(who, ip, path[5:], detail)
+
+
+# -- encrypted backups (scrypt + HMAC-SHA256 stream, encrypt-then-MAC) ---------------------
+BK_MAGIC = "NTBK1:"
+
+
+def _bk_keys(passphrase, salt):
+    k = hashlib.scrypt(passphrase.encode("utf-8"), salt=salt, n=2 ** 14, r=8, p=1, dklen=64)
+    return k[:32], k[32:]
+
+
+def _bk_stream(key, nonce, length):
+    out, i = bytearray(), 0
+    while len(out) < length:
+        out += hmac.new(key, nonce + struct.pack(">Q", i), hashlib.sha256).digest()
+        i += 1
+    return bytes(out[:length])
+
+
+def bk_encrypt(text, passphrase):
+    salt, nonce = os.urandom(16), os.urandom(16)
+    ek, mk = _bk_keys(passphrase, salt)
+    raw = text.encode("utf-8") if isinstance(text, str) else text
+    ct = bytes(a ^ b for a, b in zip(raw, _bk_stream(ek, nonce, len(raw))))
+    tag = hmac.new(mk, b"NTBK1" + salt + nonce + ct, hashlib.sha256).digest()
+    return BK_MAGIC + base64.b64encode(salt + nonce + ct + tag).decode("ascii")
+
+
+def bk_decrypt(text, passphrase):
+    if not str(text).startswith(BK_MAGIC):
+        raise ValueError("not an encrypted backup")
+    try:
+        blob = base64.b64decode(str(text)[len(BK_MAGIC):].strip(), validate=True)
+    except Exception:
+        raise ValueError("the backup file is damaged")
+    if len(blob) < 64 + 1:
+        raise ValueError("the backup file is damaged")
+    salt, nonce, ct, tag = blob[:16], blob[16:32], blob[32:-32], blob[-32:]
+    ek, mk = _bk_keys(passphrase, salt)
+    if not hmac.compare_digest(hmac.new(mk, b"NTBK1" + salt + nonce + ct, hashlib.sha256).digest(), tag):
+        raise ValueError("wrong passphrase (or the file was changed)")
+    return bytes(a ^ b for a, b in zip(ct, _bk_stream(ek, nonce, len(ct)))).decode("utf-8")
+
+
+def bk_pass():
+    return str(load_panel_conf().get("bk_pass") or "")
+
+
+def bk_load_text(text, passphrase=""):
+    """Plain or encrypted backup text -> dict."""
+    if str(text).startswith(BK_MAGIC):
+        pw = passphrase or bk_pass()
+        if not pw:
+            raise ValueError("this backup is encrypted, a passphrase is required")
+        text = bk_decrypt(text, pw)
+    return json.loads(text)
+
+
+def read_backup_text(name):
+    with open(os.path.join(BACKUP_DIR, name), "r") as fh:
+        return fh.read()
 
 
 class Handler(http.server.BaseHTTPRequestHandler):
@@ -3106,6 +3582,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
         pass
 
     def send_json(self, obj, code=200, headers=None):
+        try:
+            audit_http(self, code, obj)
+        except Exception:
+            pass
         data = json.dumps(obj).encode()
         self.send_response(code)
         self.send_header("Content-Type", "application/json")
@@ -3141,13 +3621,16 @@ class Handler(http.server.BaseHTTPRequestHandler):
             if cnt >= 20:
                 self.send_json({"error": "too many attempts"}, 429)
                 return False
-        if not apikey_check(self.headers.get("X-API-Key", "")):
+        perm = apikey_check(self.headers.get("X-API-Key", ""))
+        if not perm:
             with lock:
                 fails[ip] = [cnt + 1, first]
             time.sleep(0.5)
             self.send_json({"error": "invalid API key"}, 401)
             return False
-        if not (KEY_GET if method == "GET" else KEY_POST).fullmatch(path):
+        self._perm = perm
+        if not ((KEY_GET if method == "GET" else KEY_POST).fullmatch(path)
+                or (perm == "full" and method == "POST" and KEY_FULL_POST.fullmatch(path))):
             self.send_json({"error": "not allowed with an API key"}, 403)
             return False
         self._apikey = True
@@ -3197,10 +3680,14 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if self.headers.get("X-API-Key") is not None:
             if not self.key_gate(path, "GET"):
                 return
+        if path == "/api/audit":
+            if not self.require_admin():
+                return
+            return self.send_json({"list": audit_log[-300:][::-1]})
         if path == "/api/ping":
             if not self.require_login():
                 return
-            return self.send_json({"ok": True, "name": host_label(), "version": APP_VERSION})
+            return self.send_json({"ok": True, "name": host_label(), "version": APP_VERSION, "perm": getattr(self, "_perm", "admin")})
         if path == "/api/fleet":
             if not self.require_login():
                 return
@@ -3291,7 +3778,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 return
             conf = load_panel_conf()
             return self.send_json({"list": list_backups(), "auto": conf.get("autobackup", {"on": False, "hours": 24, "full": False}),
-                                   "last": conf.get("ab_last", 0)})
+                                   "last": conf.get("ab_last", 0), "enc": bool(conf.get("bk_pass"))})
         if path == "/api/backup/get":
             if not self.require_login():
                 return
@@ -3344,6 +3831,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if path is None:
             return self.send_json({"error": "not found"}, 404)
         self._apikey = False
+        self._path = path
         if self.headers.get("X-API-Key") is not None:
             if not self.key_gate(path, "POST"):
                 return
@@ -3354,6 +3842,44 @@ class Handler(http.server.BaseHTTPRequestHandler):
         except (ValueError, json.JSONDecodeError):
             return self.send_json({"error": "bad request body"}, 400)
 
+        self._body = body
+        m = re.fullmatch(r"/api/slot/(\d+)/(limits|heal)", path)
+        if m:
+            if not self.require_admin():
+                return
+            n = int(m.group(1))
+            if not valid_slot(n) or not os.path.exists(slot_file(n)):
+                return self.send_json({"error": "no such tunnel"}, 404)
+            if m.group(2) == "heal":
+                heal_set(n, bool(body.get("on")))
+                return self.send_json({"ok": True, "heal": heal_on(n)})
+            try:
+                st = limit_apply(n, body)
+            except ValueError as exc:
+                return self.send_json({"error": str(exc)}, 400)
+            return self.send_json({"ok": True, "limits": st})
+        if path == "/api/pair/create":
+            if not self.require_admin():
+                return
+            try:
+                return self.send_json(pair_create(body))
+            except RemoteError as exc:
+                return self.send_json({"error": str(exc)}, 502)
+            except ValueError as exc:
+                return self.send_json({"error": str(exc)}, 400)
+        if path == "/api/backup/pass":
+            if not self.require_admin():
+                return
+            conf = load_panel_conf()
+            if body.get("clear"):
+                conf.pop("bk_pass", None)
+            else:
+                pw = str(body.get("pass", ""))
+                if not (8 <= len(pw) <= 200):
+                    return self.send_json({"error": "the passphrase must be 8 to 200 characters"}, 400)
+                conf["bk_pass"] = pw
+            save_panel_conf(conf)
+            return self.send_json({"ok": True, "enc": bool(conf.get("bk_pass"))})
         m = re.fullmatch(r"/api/slot/(\d+)/(edit|probe)", path)
         if m:
             if not self.require_login():
@@ -3397,7 +3923,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             if not self.require_admin():
                 return
             try:
-                kid, key = apikey_create(body.get("name", ""))
+                kid, key = apikey_create(body.get("name", ""), bool(body.get("full")))
             except ValueError as exc:
                 return self.send_json({"error": str(exc)}, 400)
             return self.send_json({"ok": True, "id": kid, "key": key})
@@ -3639,7 +4165,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             sent = False
             if body.get("telegram") and tg.get("token") and tg.get("chat"):
                 sent, _ = tg_call("sendDocument", {"chat_id": tg["chat"], "caption": "💾 بکاپ %s" % host_label()},
-                                  {"document": (name, json.dumps(data).encode())})
+                                  {"document": (name, read_backup_text(name).encode())})
             return self.send_json({"ok": True, "name": name, "sent": sent, "slots": len(data["slots"])})
 
         if path == "/api/backup/auto":
@@ -3663,15 +4189,19 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
         if path == "/api/backup/restore":
             d = body.get("data")
-            if d is None:
-                name = str(body.get("name", ""))
-                if not re.fullmatch(r"darkcore-[0-9-]+-(full|tunnels)\.json", name):
-                    return self.send_json({"error": "bad name"}, 400)
-                try:
-                    with open(os.path.join(BACKUP_DIR, name)) as fh:
-                        d = json.load(fh)
-                except Exception:
-                    return self.send_json({"error": "backup not found"}, 404)
+            try:
+                if d is None:
+                    name = str(body.get("name", ""))
+                    if not re.fullmatch(r"darkcore-[0-9-]+-(full|tunnels)\.json", name):
+                        return self.send_json({"error": "bad name"}, 400)
+                    try:
+                        d = bk_load_text(read_backup_text(name), str(body.get("pass", "")))
+                    except OSError:
+                        return self.send_json({"error": "backup not found"}, 404)
+                elif isinstance(d, str):
+                    d = bk_load_text(d, str(body.get("pass", "")))
+            except ValueError as exc:
+                return self.send_json({"error": str(exc)}, 400)
             err = check_backup(d)
             if err:
                 return self.send_json({"error": err}, 400)
@@ -3726,6 +4256,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 except OSError:
                     pass
                 return self.send_json({"ok": True, "state": "deleted"})
+            if action in ("start", "restart") and limit_blocked(n):
+                return self.send_json({"error": "blocked by the %s limit: open the tunnel details and raise or reset it" % limit_blocked(n)}, 403)
             run(["systemctl", action, unit])
             time.sleep(1)
             _, st = run(["systemctl", "is-active", unit])
@@ -3968,20 +4500,14 @@ RAW_URL = os.environ.get("NICETUNNEL_UPDATE_URL") or "https://raw.githubusercont
 
 
 def cmd_update(_args):
-    """Download the newest panel file from GitHub and restart the service."""
-    import urllib.request
+    """Download the newest panel from GitHub (checked against its SHA-256) and restart the service."""
     if os.geteuid() != 0:
         sys.exit("error: run as root")
-    data = urllib.request.urlopen(RAW_URL, timeout=30).read()
-    if b"def main" not in data:
-        sys.exit("error: downloaded file looks wrong")
-    target = os.path.join(APP_DIR, "nicetunnel_panel.py")
-    with open(target + ".new", "wb") as f:
-        f.write(data)
-    os.chmod(target + ".new", 0o755)
-    os.replace(target + ".new", target)
-    subprocess.run(["systemctl", "restart", "nicetunnel-panel"])
-    print("Panel updated and restarted.")
+    try:
+        ver = update_apply(restart_delay=0)
+    except Exception as exc:
+        sys.exit("error: %s" % exc)
+    print("Panel updated to v%s and restarted." % ver)
 
 
 def cmd_serve(args):
