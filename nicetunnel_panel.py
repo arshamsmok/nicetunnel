@@ -18,7 +18,9 @@ Scope: reverse TCP tunnels, SPOOF tunnels and the spoof tester of THIS server.
 Standard library only. Python 3.8+.
 """
 import argparse
+import smtplib
 import base64
+from email.message import EmailMessage
 import concurrent.futures
 import http.client
 import ssl
@@ -165,7 +167,7 @@ def list_slots(spoof_only=False):
     Older slot files with no TYPE are treated as reverse tunnels.
     """
     out = []
-    for n in range(1, MAX_SLOT + 1):
+    for n in range(1, max_slots() + 1):
         if not os.path.exists(slot_file(n)):
             continue
         try:
@@ -209,14 +211,14 @@ def list_spoof_slots():
 
 
 def first_free_slot():
-    for n in range(1, MAX_SLOT + 1):
+    for n in range(1, max_slots() + 1):
         if not os.path.exists(slot_file(n)):
             return n
     return None
 
 
 def valid_slot(n):
-    return isinstance(n, int) and 1 <= n <= MAX_SLOT and os.path.exists(slot_file(n))
+    return isinstance(n, int) and 1 <= n <= max_slots() and os.path.exists(slot_file(n))
 
 
 def write_spoof_slot(n, p):
@@ -1063,6 +1065,14 @@ html body .pa input{height:38px;padding:0 10px;border-radius:10px!important;back
 .chk,.swrow{display:flex;align-items:center;gap:8px;font-size:12.5px;color:#b9c6da;margin-top:10px;line-height:1.7}
 html body .chk input,html body .swrow input{width:auto;height:auto;min-width:0;flex:none}
 .dmsec h4 .lgd{margin-inline-start:auto;font-size:11px;color:#8fa2bf;font-weight:400}
+/* v18: alerts, access, viewer mode */
+.alf{display:flex;gap:8px;flex-wrap:wrap;align-items:center;min-width:0;flex:1}
+.alf input,.alf select{flex:1 1 130px;min-width:0}
+.alevs{display:flex;gap:8px 16px;flex-wrap:wrap}
+.alevs label{display:flex;align-items:center;gap:6px;font-size:12.5px;color:#b9c6da}
+html body .alevs input,html body .alf .chk input{width:auto;height:auto;min-width:0;flex:none}
+.vwr{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:13px}
+.viewer .nav[data-p="set"],.viewer .nav[data-p="srv"],.viewer .tact,.viewer .adm,.viewer #lgmode,.viewer .seg-bar,.viewer #p-tun .tabs [data-t="new"],.viewer #p-tun .tabs [data-t="test"],.viewer .dlink[onclick*="srv"],.viewer #fly{display:none!important}
 </style>
 <body>
 <div id="bg"></div><div id="grid"></div>
@@ -1180,10 +1190,10 @@ const LOGO = '<svg viewBox="0 0 64 64" width="34" height="34"><defs><linearGradi
 function shell(){
   const nm = state.username || 'admin';
   $('#app').innerHTML = `<div id="shell"><div id="side" class="glass">
-    <div class="brand" style="display:flex;align-items:center;gap:10px;padding:2px 6px 16px">${LOGO}<div><div style="font-size:15px;-webkit-text-fill-color:#fff;background:none;color:#fff">NiceTunnel</div><small style="-webkit-text-fill-color:#9aa6d6">v1.7.0</small></div></div>
+    <div class="brand" style="display:flex;align-items:center;gap:10px;padding:2px 6px 16px">${LOGO}<div><div style="font-size:15px;-webkit-text-fill-color:#fff;background:none;color:#fff">NiceTunnel</div><small style="-webkit-text-fill-color:#9aa6d6">v1.8.0</small></div></div>
     ${PAGES.map(p=>`<div class="nav" data-p="${p[0]}"><i>${p[1]}</i><span>${p[2]}</span></div>`).join('')}
     <div class="sp"></div><div class="nav" id="lo"><i>${IC.out}</i><span>Logout</span></div></div>
-  <div id="fly" class="fly"></div><div id="main"><div id="top" class="glass"><div class="hdr">${LOGO}<span class="nm">NiceTunnel</span><span class="vv">v1.7.0</span><h1 id="ttl" style="margin:0 0 0 6px"></h1></div>
+  <div id="fly" class="fly"></div><div id="main"><div id="top" class="glass"><div class="hdr">${LOGO}<span class="nm">NiceTunnel</span><span class="vv">v1.8.0</span><h1 id="ttl" style="margin:0 0 0 6px"></h1></div>
     <div style="display:flex;align-items:center;gap:10px"><span id="live" class="live"><i></i><b>${L("Online","آنلاین")}</b></span><span id="host" style="color:#9aa6d6;font-size:12px"></span>${themeBtn()}${langBtn()}</div></div><div id="msg"></div>
   <div class="page" id="p-dash">
     <div class="dgrid" id="dstats"></div>
@@ -1252,6 +1262,7 @@ function shell(){
     <div class="dpanel"><div class="dph"><div><h3>${L("Connect this server","اتصال این سرور")}</h3><p>${L("Let another NiceTunnel panel see and manage this server. The key allows stats, start/stop/restart and logs only.","به پنل دیگری اجازه دهید این سرور را ببیند و مدیریت کند. کلید فقط آمار، شروع/توقف/ری‌استارت و لاگ را اجازه می‌دهد.")}</p></div></div>
       <div class="pa"><p>${L("This panel's address:","آدرس این پنل:")}</p><code class="scode" id="srvaddr" style="direction:ltr;display:block;word-break:break-all"></code><div class="row2"><button class="sm" id="srvaddrcopy">${L("Copy","کپی")}</button></div>
         <div class="row2" style="margin-top:16px"><input id="keyname" placeholder="${L("Key name (e.g. main panel)","نام کلید (مثلاً پنل اصلی)")}"><button class="ok" id="keymake">${L("Create key","ساخت کلید")}</button></div>
+        <div class="row2" style="margin-top:8px"><input id="keyips" dir="ltr" placeholder="${L("Allowed addresses (optional), e.g. 1.2.3.4","آدرس‌های مجاز (اختیاری)، مثلاً 1.2.3.4")}"></div>
         <label class="chk"><input type="checkbox" id="keyfull"> ${L("Allow creating and deleting tunnels (needed for one-click pairs). Only for a panel you fully trust.","اجازه ساخت و حذف تانل (برای ساخت یک‌کلیکی روی دو سرور). فقط برای پنلی که کاملاً به آن اعتماد دارید.")}</label>
         <div id="keynew" class="keybox hide"><p class="dnote" style="margin-top:0">${L("Copy this key now. It will not be shown again.","این کلید را همین حالا کپی کنید. دیگر نمایش داده نمی‌شود.")}</p><code id="keynewv"></code><button class="sm" id="keycopy">${L("Copy key","کپی کلید")}</button></div></div>
       <div id="keylist"></div></div>
@@ -1290,7 +1301,7 @@ function shell(){
       <div id="tfadis" class="tfabox hide"><p class="dnote" style="margin-top:0">${L('Enter your password and a current code (or a recovery code) to turn it off.','برای خاموش کردن، رمز و یک کد فعلی (یا کد بازیابی) را وارد کنید.')}</p><div class="efg"><div class="ef"><label>${L('Password','رمز')}</label><input id="tfadpw" type="password"></div><div class="ef"><label>${L('Code','کد')}</label><input id="tfadcode" dir="ltr" maxlength="14"></div></div><div class="nact"><button class="ok" id="tfadisgo">${L('Turn off','خاموش کردن')}</button></div></div>
     </div>
     <div class="sec glass sset" id="sec-up"><h2>${L('About & update','درباره و به‌روزرسانی')}</h2>
-      <div class="srow"><div class="st"><b>${L('Installed','نصب‌شده')}</b><p>NiceTunnel Panel</p></div><code class="scode">v1.7.0</code></div>
+      <div class="srow"><div class="st"><b>${L('Installed','نصب‌شده')}</b><p>NiceTunnel Panel</p></div><code class="scode">v1.8.0</code></div>
       <div class="srow"><div class="st"><b>${L('Panel address','آدرس پنل')}</b><p>${L('Secret path of this panel. Keep it private.','مسیر مخفی این پنل. آن را محرمانه نگه دارید.')}</p></div><code id="sinfo" class="scode"></code></div>
       <div class="srow"><div class="st"><b>${L('Creator','سازنده')}</b><p>Arsham Smok · آرشام اسموک</p></div></div>
       <div class="srow"><div class="st"><b>${L('Updates','به‌روزرسانی')}</b><p id="updst">${L('Check if a newer version is available.','بررسی کنید نسخه جدیدتری هست یا نه.')}</p></div><div><button id="updchk">${L('Check for updates','بررسی به‌روزرسانی')}</button> <button class="ok hide" id="updgo">${L('Update now','به‌روزرسانی')}</button></div></div>
@@ -1311,9 +1322,25 @@ function shell(){
       <div class="srow"><div class="st"><b>${L('Bot token','توکن ربات')}</b><p id="tgcur">${L('Get it from @BotFather.','از @BotFather بگیرید.')}</p></div><input id="tgtok" dir="ltr" placeholder="123456:ABC..." autocomplete="off"></div>
       <div class="srow"><div class="st"><b>Chat ID</b><p>${L('Your numeric ID (from @userinfobot) or a group ID.','آیدی عددی شما (از @userinfobot) یا گروه.')}</p></div><input id="tgchat" dir="ltr"></div>
       <div class="srow"><div class="st"><b>${L('API address (optional)','آدرس API (اختیاری)')}</b><p>${L('Mirror/proxy for Telegram if blocked. Default: api.telegram.org','اگر تلگرام فیلتر است، آدرس پروکسی/میرور. پیش‌فرض: api.telegram.org')}</p></div><input id="tgapi" dir="ltr" placeholder="https://api.telegram.org"></div>
-      <div class="srow"><div class="st"><b>${L('Notify about','اعلان برای')}</b></div><div style="display:flex;gap:14px;flex-wrap:wrap"><label><input type="checkbox" class="tgev" value="tunnel"> ${L('Tunnel up/down/created/deleted','وصل/قطع/ساخت/حذف تونل')}</label><label><input type="checkbox" class="tgev" value="login"> ${L('Logins & failed logins','ورودها و ورود ناموفق')}</label><label><input type="checkbox" class="tgev" value="backup"> ${L('Backups','بکاپ‌ها')}</label><label><input type="checkbox" class="tgev" value="resource"> ${L('High CPU / RAM / disk','پر شدن CPU / رم / دیسک')}</label><label><input type="checkbox" class="tgev" value="health"> ${L('Latency, packet loss, server offline','تأخیر، افت بسته، آفلاین شدن سرور')}</label><label><input type="checkbox" class="tgev" value="ssl"> ${L('SSL certificate expiring','نزدیک انقضای گواهی SSL')}</label></div></div>
-      <div class="srow"><div class="st"><b>${L('Alert threshold','حد هشدار')}</b><p>${L('CPU, RAM and disk usage in percent.','مصرف CPU، رم و دیسک به درصد.')}</p></div><input id="tgth" type="number" min="50" max="99" value="90"></div>
+      <div class="srow"><div class="st"><b>${L('Proxy (optional)','پراکسی (اختیاری)')}</b><p>${L('If Telegram is blocked on this server: socks5://host:1080 or http://host:8080 (add user:pass@ if needed).','اگر تلگرام روی این سرور فیلتر است: socks5://host:1080 یا http://host:8080 (در صورت نیاز user:pass@ را اضافه کنید).')}</p></div><input id="tgproxy" dir="ltr" placeholder="socks5://host:1080" autocomplete="off"></div>
       <div class="srow"><div></div><div><button class="ok" id="tgsave">${L('Save','ذخیره')}</button> <button id="tgtest">${L('Send test','ارسال تست')}</button> <button id="tgdel">${L('Remove','حذف')}</button></div></div>
+    </div>
+    <div class="sec glass sset" id="sec-alerts"><h2>${L('Alerts','هشدارها')}</h2>
+      <div class="srow"><div class="st"><b>${L('Notify about','اعلان برای')}</b><p>${L('Applies to Telegram, webhook and email.','برای تلگرام، وب‌هوک و ایمیل.')}</p></div><div class="alevs" id="alevs"></div></div>
+      <div class="srow"><div class="st"><b>${L('Alert threshold','حد هشدار')}</b><p>${L('CPU, RAM and disk usage in percent.','مصرف CPU، رم و دیسک به درصد.')}</p></div><input id="alth" type="number" min="50" max="99" value="90"></div>
+      <div class="srow"><div class="st"><b>Webhook</b><p>${L('Discord, Slack, or any address that accepts JSON.','دیسکورد، اسلک یا هر آدرسی که JSON می‌پذیرد.')}</p></div><div class="alf"><input id="whurl" dir="ltr" placeholder="https://..."><select id="whfmt"><option value="generic">JSON</option><option value="discord">Discord</option><option value="slack">Slack</option></select><label class="chk" style="margin:0"><input type="checkbox" id="whon"> ${L('On','فعال')}</label><button id="whtest">${L('Send test','ارسال تست')}</button></div></div>
+      <div class="srow"><div class="st"><b>${L('Email','ایمیل')}</b><p>${L('Any SMTP server. Port 587 with STARTTLS or 465 with SSL.','هر سرور SMTP. پورت ۵۸۷ با STARTTLS یا ۴۶۵ با SSL.')}</p></div><div class="alf"><input id="emhost" dir="ltr" placeholder="smtp.example.com"><input id="emport" type="number" placeholder="587" style="max-width:90px"><select id="emsec"><option value="starttls">STARTTLS</option><option value="ssl">SSL</option><option value="none">${L('None','بدون')}</option></select><input id="emuser" dir="ltr" placeholder="${L('user','کاربر')}" autocomplete="off"><input id="empass" type="password" placeholder="${L('password','رمز')}" autocomplete="new-password"><input id="emfrom" dir="ltr" placeholder="from@example.com"><input id="emto" dir="ltr" placeholder="you@example.com"><label class="chk" style="margin:0"><input type="checkbox" id="emon"> ${L('On','فعال')}</label><button id="emtest">${L('Send test','ارسال تست')}</button></div></div>
+      <div class="srow"><div></div><div><button class="ok" id="alsave">${L('Save','ذخیره')}</button> <span id="almsg" class="dnote"></span></div></div>
+    </div>
+    <div class="sec glass sset" id="sec-access"><h2>${L('Access','دسترسی')}</h2>
+      <div class="srow"><div class="st"><b>${L('Allowed IP addresses','آی‌پی‌های مجاز')}</b><p>${L('Only these addresses can open the panel. Leave empty to allow everyone. Your address: ','فقط این آدرس‌ها می‌توانند پنل را باز کنند. خالی = همه. آدرس شما: ')}<code id="myip"></code></p></div><div class="alf"><input id="allowips" dir="ltr" placeholder="1.2.3.4, 10.0.0.0/8, fd00::/8"><button class="ok" id="allowsave">${L('Save','ذخیره')}</button></div></div>
+      <div class="srow"><div class="st"><b>${L('Viewer accounts','حساب‌های بیننده')}</b><p>${L('See everything, change nothing. Good for teammates and checking from a phone.','همه‌چیز را می‌بینند ولی چیزی را تغییر نمی‌دهند. مناسب همکار یا مشاهده با گوشی.')}</p></div><div class="alf"><input id="vwname" placeholder="${L('name','نام')}" autocomplete="off"><input id="vwpass" type="password" placeholder="${L('password (8+)','رمز (حداقل ۸)')}" autocomplete="new-password"><button class="ok" id="vwadd">${L('Add','افزودن')}</button></div></div>
+      <div id="vwlist"></div>
+    </div>
+    <div class="sec glass sset" id="sec-adv"><h2>${L('Advanced','پیشرفته')}</h2>
+      <div class="srow"><div class="st"><b>${L('Tunnels on this server','تعداد تانل‌های این سرور')}</b><p>${L('Highest number of tunnels (1 to 100). Make sure the core supports it.','حداکثر تعداد تانل (۱ تا ۱۰۰). مطمئن شوید هسته آن را پشتیبانی می‌کند.')}</p></div><div class="alf"><input id="advmax" type="number" min="1" max="100" style="max-width:110px"><button class="ok" id="advsave">${L('Save','ذخیره')}</button></div></div>
+      <div class="srow"><div class="st"><b>Prometheus</b><p>${L('Metrics for Grafana. Use an API key as the Bearer token.','آمار برای گرافانا. کلید API را به‌عنوان توکن Bearer بگذارید.')}</p></div><code class="scode" id="metricsurl" style="direction:ltr;word-break:break-all"></code></div>
+      <div class="srow"><div class="st"><b>${L('Speed caps','سقف سرعت')}</b><p id="nftst"></p></div></div>
     </div>
     <div class="sec glass sset" id="sec-time"><h2>${L('Date & time','تاریخ و ساعت')}</h2>
       <div class="srow"><div class="st"><b>${L('Now','اکنون')}</b></div><code class="scode" id="clock"></code></div>
@@ -1546,7 +1573,7 @@ function dashMap(st, slots){
 window._sp = true;
 const ICRV='<svg viewBox="0 0 24 24"><path d="M4 8h14m0 0l-3-3m3 3l-3 3M20 16H6m0 0l3-3m-3 3l3 3"/></svg>', ICSF='<svg viewBox="0 0 24 24"><path d="M12 3l8 4v5c0 4.5-3.2 7.8-8 9-4.8-1.2-8-4.5-8-9V7z"/></svg>',
   ICNT='<svg viewBox="0 0 24 24"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>', ICDM='<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg>', ICIN='<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>';
-const SETSECS=[['sec-sec',ICSH,'Security','امنیت'],['sec-2fa',ICSH,'Two-factor login','ورود دو مرحله‌ای'],['sec-up',ICIN,'About & update','درباره و به‌روزرسانی'],['sec-net',ICNT,'Network & speed','شبکه و سرعت'],['sec-dom',ICDM,'Domain & SSL','دامنه و SSL'],['sec-tg',ICTG,'Telegram','تلگرام'],['sec-time',ICUS,'Date & time','تاریخ و ساعت'],['sec-backup',ICBK,'Backup','پشتیبان'],['sec-app',ICAP,'Appearance','ظاهر']];
+const SETSECS=[['sec-sec',ICSH,'Security','امنیت'],['sec-2fa',ICSH,'Two-factor login','ورود دو مرحله‌ای'],['sec-up',ICIN,'About & update','درباره و به‌روزرسانی'],['sec-net',ICNT,'Network & speed','شبکه و سرعت'],['sec-dom',ICDM,'Domain & SSL','دامنه و SSL'],['sec-tg',ICTG,'Telegram','تلگرام'],['sec-alerts',ICNT,'Alerts','هشدارها'],['sec-access',ICSH,'Access','دسترسی'],['sec-adv',ICIN,'Advanced','پیشرفته'],['sec-time',ICUS,'Date & time','تاریخ و ساعت'],['sec-backup',ICBK,'Backup','پشتیبان'],['sec-app',ICAP,'Appearance','ظاهر']];
 function flyItems(p){
   if(p==='tun') return [['rev',ICRV,L('Reverse tunnel','تونل معکوس'),tsel==='rev'],['spoof',ICSF,L('Spoof tunnel','تونل اسپوف'),tsel==='spoof']];
   const a=((document.querySelector('#setnav .nav.on')||{}).dataset||{}).anchor||'sec-sec';
@@ -1627,10 +1654,11 @@ async function dmLoad(){
     _dm.built=true;
     $('#dmbody').innerHTML=`<div id="dmstats"></div><div class="dmsec"><h4>${L('Traffic (last ~7 min)','ترافیک (۷ دقیقه اخیر)')}<span class="lgd"><i style="background:#34d0c3"></i>↓ <i style="background:#e9c46a"></i>↑</span></h4><canvas id="dch" class="dcv"></canvas></div>
      <div class="dmsec"><h4>${L('Health','سلامت')}<button class="sm" id="dmprobe" style="margin-inline-start:auto">${L('Test now','تست همین حالا')}</button></h4><div id="dmhl"></div><canvas id="dlat" class="dcv" style="height:70px"></canvas></div>
-     <div class="dmsec"><h4>${L('Limits & auto-repair','محدودیت و ترمیم خودکار')}</h4><div id="dmlim"></div><div class="efg"><div class="ef"><label>${L('Quota (GB, 0 = none)','حجم مجاز (گیگابایت، ۰ = نامحدود)')}</label><input id="lm_q" type="number" min="0" step="any"></div><div class="ef"><label>${L('Counted','شمارش')}</label><select id="lm_p"><option value="month">${L('per month','ماهانه')}</option><option value="total">${L('in total','کل')}</option></select></div><div class="ef"><label>${L('Expires on','تاریخ انقضا')}</label><input id="lm_e" type="date"></div></div><div class="nact"><button class="ok" id="lmsave">${L('Save limits','ذخیره محدودیت')}</button> <button id="lmreset">${L('Reset usage & unblock','صفر کردن مصرف و آزادسازی')}</button> <span id="lmmsg" class="dnote"></span></div><label class="swrow"><input type="checkbox" id="dmheal"> ${L('Auto-repair: restart if broken for 2.5 minutes (max 3 times an hour)','ترمیم خودکار: ری‌استارت اگر ۲٫۵ دقیقه خراب بماند (حداکثر ۳ بار در ساعت)')}</label></div>
+     <div class="dmsec adm"><h4>${L('Limits & auto-repair','محدودیت و ترمیم خودکار')}</h4><div id="dmlim"></div><div class="efg"><div class="ef"><label>${L('Quota (GB, 0 = none)','حجم مجاز (گیگابایت، ۰ = نامحدود)')}</label><input id="lm_q" type="number" min="0" step="any"></div><div class="ef"><label>${L('Counted','شمارش')}</label><select id="lm_p"><option value="month">${L('per month','ماهانه')}</option><option value="total">${L('in total','کل')}</option></select></div><div class="ef"><label>${L('Expires on','تاریخ انقضا')}</label><input id="lm_e" type="date"></div><div class="ef"><label>${L('Speed cap (Mbit/s, 0 = none)','سقف سرعت (مگابیت بر ثانیه، ۰ = بدون سقف)')}</label><input id="lm_m" type="number" min="0" step="any"></div></div><div class="nact"><button class="ok" id="lmsave">${L('Save limits','ذخیره محدودیت')}</button> <button id="lmreset">${L('Reset usage & unblock','صفر کردن مصرف و آزادسازی')}</button> <span id="lmmsg" class="dnote"></span></div><label class="swrow"><input type="checkbox" id="dmheal"> ${L('Auto-repair: restart if broken for 2.5 minutes (max 3 times an hour)','ترمیم خودکار: ری‌استارت اگر ۲٫۵ دقیقه خراب بماند (حداکثر ۳ بار در ساعت)')}</label></div>
      <div class="dmsec"><h4>${L('Last 30 days','۳۰ روز اخیر')}<span class="lgd"><i style="background:#34d0c3"></i>↓ <i style="background:#e9c46a"></i>↑</span></h4><canvas id="dday" class="dcv" style="height:90px"></canvas><div id="dmdays" class="dnote"></div></div>
+     <div class="dmsec adm"><h4>${L('Customer link','لینک مشتری')}</h4><p class="dnote" style="margin-top:0">${L('A page without login that shows only usage, expiry and status of this tunnel.','صفحه‌ای بدون ورود که فقط مصرف، انقضا و وضعیت همین تانل را نشان می‌دهد.')}</p><div class="efg"><div class="ef"><label>${L('Name shown to the customer','نام نمایشی برای مشتری')}</label><input id="shlabel" maxlength="60"></div></div><div class="nact"><button class="ok" id="shon">${L('Create link','ساخت لینک')}</button> <button id="shregen" class="hide">${L('New link','لینک جدید')}</button> <button id="shoff" class="hide">${L('Disable','غیرفعال')}</button></div><div id="shbox" class="hide"><code id="shlink" style="direction:ltr;display:block;word-break:break-all;color:#f4d58a;margin:8px 0"></code><button class="sm" id="shcopy">${L('Copy link','کپی لینک')}</button></div></div>
      <div class="dmsec"><h4>${L('Events','رویدادها')}</h4><div id="dmev" class="evs"></div></div>
-     <div class="dmsec"><details id="dmedit"><summary>${L('Edit tunnel','ویرایش تانل')}</summary><div class="efg">${editForm(s)}</div><p class="dnote">${L('Ports, token and spoofed IPs must match on the other server too.','پورت، توکن و آی‌پی‌های جعلی باید روی سرور مقابل هم یکی باشند.')}</p><div class="nact"><button class="ok" id="dmsave">${L('Save & restart','ذخیره و ری‌استارت')}</button> <span id="dmmsg" class="dnote"></span></div></details></div>
+     <div class="dmsec adm"><details id="dmedit"><summary>${L('Edit tunnel','ویرایش تانل')}</summary><div class="efg">${editForm(s)}</div><p class="dnote">${L('Ports, token and spoofed IPs must match on the other server too.','پورت، توکن و آی‌پی‌های جعلی باید روی سرور مقابل هم یکی باشند.')}</p><div class="nact"><button class="ok" id="dmsave">${L('Save & restart','ذخیره و ری‌استارت')}</button> <span id="dmmsg" class="dnote"></span></div></details></div>
      <div class="tact">${slotBtns(n)}</div>`;
     wireDetailExtras(n,d);
     $('#dmprobe').onclick=async()=>{ const b=$('#dmprobe'); b.disabled=true; const r=await apiX('/api/slot/'+n+'/probe',{}); b.disabled=false; if(r.s!==200) alert(r.j.error||'error'); dmLoad(); };
@@ -1673,7 +1701,7 @@ async function srvSave(pin){
 }
 async function keysRender(){
   const r=await apiX('/api/apikeys'); const el=$('#keylist'); if(!el) return;
-  el.innerHTML=(r.j.keys||[]).map(k=>`<div class="wr"><span><b>${esc(k.name)}</b> ${k.perm==='full'?`<span class="mx warn">${L('can create tunnels','می‌تواند تانل بسازد')}</span>`:''} <small>· ${new Date(k.t*1000).toLocaleDateString()} · ${k.last?L('used','استفاده')+' '+ago(k.last):L('never used','استفاده نشده')}</small></span><button class="dlink" onclick="keyRevoke('${k.id}')">${L('Revoke','ابطال')}</button></div>`).join('')||`<div class="dempty">${L('No API keys.','کلیدی نیست.')}</div>`;
+  el.innerHTML=(r.j.keys||[]).map(k=>`<div class="wr"><span><b>${esc(k.name)}</b> ${k.perm==='full'?`<span class="mx warn">${L('can create tunnels','می‌تواند تانل بسازد')}</span>`:''} <small>${(k.ips&&k.ips.length)?'· '+esc(k.ips.join(', ')):''} · ${new Date(k.t*1000).toLocaleDateString()} · ${k.last?L('used','استفاده')+' '+ago(k.last):L('never used','استفاده نشده')}</small></span><button class="dlink" onclick="keyRevoke('${k.id}')">${L('Revoke','ابطال')}</button></div>`).join('')||`<div class="dempty">${L('No API keys.','کلیدی نیست.')}</div>`;
 }
 async function keyRevoke(id){ if(!confirm(L('Revoke this key? Panels using it lose access.','این کلید باطل شود؟ پنل‌هایی که از آن استفاده می‌کنند دسترسی را از دست می‌دهند.'))) return; await apiX('/api/apikeys/revoke',{id}); keysRender(); }
 function srvInit(){
@@ -1681,7 +1709,7 @@ function srvInit(){
   $('#srvadd').onclick=()=>$('#srvform').classList.toggle('hide');
   $('#srvsave').onclick=()=>srvSave();
   $('#srvaddrcopy').onclick=()=>{ try{ navigator.clipboard.writeText(location.origin+BASE); }catch(e){} };
-  $('#keymake').onclick=async()=>{ const r=await apiX('/api/apikeys/create',{name:$('#keyname').value,full:$('#keyfull').checked}); if(r.s!==200){ alert(r.j.error||'error'); return; } $('#keyname').value=''; $('#keynew').classList.remove('hide'); $('#keynewv').textContent=r.j.key; keysRender(); };
+  $('#keymake').onclick=async()=>{ const r=await apiX('/api/apikeys/create',{name:$('#keyname').value,full:$('#keyfull').checked,ips:$('#keyips').value}); if(r.s!==200){ alert(r.j.error||'error'); return; } $('#keyname').value=''; $('#keynew').classList.remove('hide'); $('#keynewv').textContent=r.j.key; keysRender(); };
   $('#keycopy').onclick=()=>{ try{ navigator.clipboard.writeText($('#keynewv').textContent); }catch(e){} };
   refreshFleet(); keysRender();
 }
@@ -1767,7 +1795,7 @@ async function load(){
   clearInterval(timer);
   try { state = await api('/api/state');
     if(!state.logged){ loginView(); return; }
-    shell(); go(page); if(window._sp){ window._sp=false; splash(); } timer = setInterval(()=>{ refresh(); if(page==='tun' && tsel==='spoof' && cur==='mon') monitor(); }, 3000);
+    document.body.classList.toggle('viewer',state.role==='viewer'); shell(); go(page); if(window._sp){ window._sp=false; splash(); } timer = setInterval(()=>{ refresh(); if(page==='tun' && tsel==='spoof' && cur==='mon') monitor(); }, 3000);
   } catch(e){ loginView(); msg(e.message,false); }
 }
 async function act(n, a){ try { const r = await api(`/api/slot/${n}/${a}`, {}); msg(`Tunnel ${n}: ${r.state}`, true); refresh(); } catch(e){ msg(e.message,false);} }
@@ -1825,8 +1853,8 @@ function limHtml(l){
 }
 function wireDetailExtras(n,d){
   $('#lm_q').value=d.limits&&d.limits.quota?(d.limits.quota/1073741824).toFixed(2).replace(/\.?0+$/,''):'';
-  $('#lm_p').value=(d.limits&&d.limits.period)||'month'; $('#lm_e').value=(d.limits&&d.limits.expires)||''; $('#dmheal').checked=!!d.heal;
-  const send=async(reset)=>{ const r=await apiX('/api/slot/'+n+'/limits',{quota_gb:$('#lm_q').value||0,period:$('#lm_p').value,expires:$('#lm_e').value,reset:!!reset}); $('#lmmsg').style.color=r.s===200?'#34d0c3':'#f0707a'; $('#lmmsg').textContent=r.s===200?L('Saved','ذخیره شد'):(r.j.error||'error'); if(r.s===200){ refresh(); dmLoad(); } };
+  $('#lm_p').value=(d.limits&&d.limits.period)||'month'; $('#lm_e').value=(d.limits&&d.limits.expires)||''; $('#lm_m').value=(d.limits&&d.limits.mbit)||''; $('#lm_m').disabled=!d.nft; $('#lm_m').title=d.nft?'':'nftables is not installed'; $('#dmheal').checked=!!d.heal; shareRender(d.share||{on:false}); wireShare(n);
+  const send=async(reset)=>{ const r=await apiX('/api/slot/'+n+'/limits',{quota_gb:$('#lm_q').value||0,period:$('#lm_p').value,expires:$('#lm_e').value,mbit:$('#lm_m').value||0,reset:!!reset}); $('#lmmsg').style.color=r.s===200?'#34d0c3':'#f0707a'; $('#lmmsg').textContent=r.s===200?L('Saved','ذخیره شد'):(r.j.error||'error'); if(r.s===200){ refresh(); dmLoad(); } };
   $('#lmsave').onclick=()=>send(false); $('#lmreset').onclick=()=>{ if(confirm(L('Reset the usage counter and unblock this tunnel?','شمارنده مصرف صفر و تانل آزاد شود؟'))) send(true); };
   $('#dmheal').onchange=async()=>{ const r=await apiX('/api/slot/'+n+'/heal',{on:$('#dmheal').checked}); if(r.s!==200){ alert(r.j.error||'error'); $('#dmheal').checked=!$('#dmheal').checked; } };
 }
@@ -1855,6 +1883,47 @@ async function bkPassInit(){
 }
 async function loadBkPass(){ const r=await apiX('/api/backups'); window._bkenc=!!(r.j&&r.j.enc); const st=$('#bkpst'); if(st) st.textContent=window._bkenc?L('On: new backups (including Telegram copies) are encrypted.','روشن: بکاپ‌های جدید (و نسخه تلگرام) رمزنگاری می‌شوند.'):L('Off: backups are plain files. They contain your tokens and settings.','خاموش: بکاپ‌ها فایل ساده‌اند و توکن‌ها و تنظیمات را دارند.'); $('#bkpclear').classList.toggle('hide',!window._bkenc); }
 function askBkPass(){ const p=prompt(L('This backup is encrypted. Passphrase (leave empty to use this panel\'s saved one):','این بکاپ رمزنگاری شده است. رمز را وارد کنید (خالی = رمز ذخیره‌شده همین پنل):')); return p===null?null:p; }
+/* ===== v8 frontend: alerts, access, advanced, customer link ===== */
+const ALEV=[['tunnel','Tunnel up/down/created/deleted','وصل/قطع/ساخت/حذف تانل'],['login','Logins','ورودها'],['backup','Backups','بکاپ‌ها'],['resource','High CPU / RAM / disk','پر شدن CPU / رم / دیسک'],['health','Latency, packet loss, server offline','تأخیر، افت بسته، آفلاین شدن سرور'],['ssl','SSL certificate expiring','نزدیک انقضای گواهی SSL']];
+async function alSave(){
+  const body={events:[...document.querySelectorAll('.alev')].filter(c=>c.checked).map(c=>c.value),th:+($('#alth').value||90),
+    webhook:{on:$('#whon').checked,url:$('#whurl').value.trim(),fmt:$('#whfmt').value},
+    email:{on:$('#emon').checked,host:$('#emhost').value.trim(),port:$('#emport').value||587,sec:$('#emsec').value,user:$('#emuser').value.trim(),pass:$('#empass').value,from:$('#emfrom').value.trim(),to:$('#emto').value.trim()}};
+  const r=await apiX('/api/alerts',body); const m=$('#almsg'); m.style.color=r.s===200?'#34d0c3':'#f0707a'; m.textContent=r.s===200?L('Saved','ذخیره شد'):(r.j.error||'error');
+  if(r.s===200){ $('#empass').value=''; $('#empass').placeholder=r.j.email.has_pass?'••••••••':''; }
+  return r.s===200;
+}
+async function alTest(ch){ if(ch!=='tg'&&!(await alSave())) return; const r=await apiX('/api/alerts/test',{channel:ch}); alert((r.j.ok?'✓ ':'✗ ')+(r.j.msg||(r.j.error||''))); }
+async function vwRender(){ const r=await apiX('/api/viewers'); const el=$('#vwlist'); if(!el) return; el.innerHTML=(r.j.list||[]).map(v=>`<div class="vwr"><span><b>${esc(v.name)}</b> <small style="color:#6f86a8">· ${new Date(v.t*1000).toLocaleDateString()}</small></span><button class="dlink" onclick="vwDel('${esc(v.name)}')">${L('Remove','حذف')}</button></div>`).join('')||`<div class="dempty">${L('No viewer accounts.','حساب بینندهای نیست.')}</div>`; }
+async function vwDel(n){ if(!confirm(L('Remove this viewer? They are signed out now.','این بیننده حذف شود؟ همین حالا خارج می‌شود.'))) return; await apiX('/api/viewers/delete',{name:n}); vwRender(); }
+async function v8Init(){
+  if(!$('#alsave')) return;
+  $('#alevs').innerHTML=ALEV.map(e=>`<label><input type="checkbox" class="alev" value="${e[0]}"> ${L(e[1],e[2])}</label>`).join('');
+  const a=(await apiX('/api/alerts')).j;
+  document.querySelectorAll('.alev').forEach(c=>c.checked=(a.events||[]).includes(c.value)); $('#alth').value=a.th||90;
+  const w=a.webhook||{}; $('#whon').checked=w.on!==false; $('#whurl').value=w.url||''; $('#whfmt').value=w.fmt||'generic';
+  const m=a.email||{}; $('#emon').checked=m.on!==false; $('#emhost').value=m.host||''; $('#emport').value=m.port||587; $('#emsec').value=m.sec||'starttls'; $('#emuser').value=m.user||''; $('#emfrom').value=m.from||''; $('#emto').value=m.to||''; $('#empass').placeholder=m.has_pass?'••••••••':L('password','رمز');
+  $('#alsave').onclick=alSave; $('#whtest').onclick=()=>alTest('webhook'); $('#emtest').onclick=()=>alTest('email');
+  const ip=(await apiX('/api/allowips')).j; $('#allowips').value=(ip.list||[]).join(', '); $('#myip').textContent=ip.you||'';
+  $('#allowsave').onclick=async()=>{ const r=await apiX('/api/allowips',{list:$('#allowips').value}); if(r.s!==200){ alert(r.j.error||'error'); return; } $('#allowips').value=(r.j.list||[]).join(', '); alert(r.j.list.length?L('Saved. Only these addresses can open the panel now.','ذخیره شد. از این به بعد فقط این آدرس‌ها پنل را باز می‌کنند.'):L('Saved. Everyone can open the panel.','ذخیره شد. همه می‌توانند پنل را باز کنند.')); };
+  $('#vwadd').onclick=async()=>{ const r=await apiX('/api/viewers/add',{name:$('#vwname').value.trim(),password:$('#vwpass').value}); if(r.s!==200){ alert(r.j.error||'error'); return; } $('#vwname').value=''; $('#vwpass').value=''; vwRender(); };
+  vwRender();
+  const ad=(await apiX('/api/advanced')).j; $('#advmax').value=ad.max_slots; $('#metricsurl').textContent=location.origin+BASE+'/metrics';
+  $('#nftst').textContent=ad.nft?L('nftables is installed: speed caps are available in each tunnel\'s details (outgoing traffic only, experimental).','nftables نصب است: سقف سرعت در جزئیات هر تانل در دسترس است (فقط ترافیک خروجی، آزمایشی).'):L('nftables is not installed, so speed caps are unavailable (apt install nftables).','nftables نصب نیست، پس سقف سرعت در دسترس نیست (apt install nftables).');
+  $('#advsave').onclick=async()=>{ const r=await apiX('/api/advanced',{max_slots:$('#advmax').value}); alert(r.s===200?L('Saved','ذخیره شد'):(r.j.error||'error')); };
+}
+function shareRender(sh){
+  const on=!!(sh&&sh.on); $('#shbox').classList.toggle('hide',!on); $('#shoff').classList.toggle('hide',!on); $('#shregen').classList.toggle('hide',!on);
+  $('#shlink').textContent=on?location.origin+'/s/'+sh.token:''; if(on&&sh.label!==undefined) $('#shlabel').value=sh.label;
+  $('#shon').textContent=on?L('Save name','ذخیره نام'):L('Create link','ساخت لینک');
+}
+function wireShare(n){
+  const go2=async(body)=>{ const r=await apiX('/api/slot/'+n+'/share',body); if(r.s!==200){ alert(r.j.error||'error'); return; } shareRender(r.j.share); };
+  $('#shon').onclick=()=>go2({on:true,label:$('#shlabel').value});
+  $('#shregen').onclick=()=>{ if(confirm(L('The old link stops working. Continue?','لینک قبلی از کار می‌افتد. ادامه می‌دهید؟'))) go2({on:true,regen:true}); };
+  $('#shoff').onclick=()=>{ if(confirm(L('Disable the customer link?','لینک مشتری غیرفعال شود؟'))) go2({on:false}); };
+  $('#shcopy').onclick=()=>{ try{ navigator.clipboard.writeText($('#shlink').textContent); }catch(e){} };
+}
 async function tfaExtras(){
   const sv=(k,d)=>localStorage.getItem(k)||d;
   const clk=()=>{ const c=$('#clock'); if(c) c.textContent=nowStr(); }; clk(); if(window._ck) clearInterval(window._ck); window._ck=setInterval(clk,1000);
@@ -1868,8 +1937,8 @@ async function tfaExtras(){
   $('#devout').onclick=async()=>{ await api('/api/device/revoke-others',{}); loadDevs(); }; loadDevs();
   // telegram
   try{ const t=await api('/api/tg'); $('#tgchat').value=t.chat; $('#tgapi').value=t.api; if(t.has) $('#tgcur').textContent=L('Saved: ','ذخیره‌شده: ')+t.masked+L(' (leave empty to keep)',' (خالی = بدون تغییر)');
-    document.querySelectorAll('.tgev').forEach(c=>c.checked=t.events.includes(c.value)); if($('#tgth')) $('#tgth').value=t.th||90; }catch(e){}
-  $('#tgsave').onclick=async()=>{ try{ await api('/api/tg/save',{token:$('#tgtok').value,chat:$('#tgchat').value,api:$('#tgapi').value,on:true,events:[...document.querySelectorAll('.tgev')].filter(c=>c.checked).map(c=>c.value),th:+($('#tgth').value||90)}); $('#tgtok').value=''; alert(L('Saved','ذخیره شد')); }catch(e){alert(e.message);} };
+    $('#tgproxy').value=t.proxy||''; }catch(e){}
+  $('#tgsave').onclick=async()=>{ try{ await api('/api/tg/save',{token:$('#tgtok').value,chat:$('#tgchat').value,api:$('#tgapi').value,on:true,proxy:$('#tgproxy').value}); $('#tgtok').value=''; alert(L('Saved','ذخیره شد')); }catch(e){alert(e.message);} };
   $('#tgtest').onclick=async()=>{ try{ await api('/api/tg/test',{}); alert(L('Sent. Check Telegram.','ارسال شد. تلگرام را ببینید.')); }catch(e){alert(e.message);} };
   $('#tgdel').onclick=async()=>{ if(confirm(L('Remove Telegram settings?','تنظیمات تلگرام حذف شود؟'))){ await api('/api/tg/clear',{}); $('#tgchat').value='';$('#tgapi').value='';$('#tgcur').textContent=''; } };
   // backups
@@ -1881,6 +1950,7 @@ async function tfaExtras(){
     alert(L(r.restored+' tunnel(s) restored. Now set this server\'s new IP on the other side of each tunnel.',r.restored+' تونل بازیابی شد. حالا آی‌پی جدید این سرور را در سرور مقابل هر تونل وارد کنید.')); }catch(e){alert(e.message);} };
   $('#bknow').onclick=async()=>{ try{ const r=await api('/api/backup/create',{full:$('#bkfull').checked,telegram:$('#bktg').checked}); alert(L('Done: ','انجام شد: ')+r.slots+L(' tunnels',' تونل')+(r.sent?' · Telegram ✓':'')); loadBk(); }catch(e){alert(e.message);} };
   bkPassInit();
+  v8Init();
   $('#absave').onclick=async()=>{ try{ await api('/api/backup/auto',{on:$('#abon').checked,hours:+$('#abh').value||24,full:$('#abfull').checked}); alert(L('Saved','ذخیره شد')); }catch(e){alert(e.message);} };
   $('#bkrest').onclick=()=>{ const f=$('#bkfile').files[0]; if(!f) return alert(L('Choose a file','فایل را انتخاب کنید')); const rd=new FileReader(); rd.onload=()=>{ const t=String(rd.result); if(t.startsWith('NTBK1:')){ const pw=askBkPass(); if(pw===null) return; restore(pw?{data:t.trim(),pass:pw}:{data:t.trim()}); return; } let d; try{d=JSON.parse(t);}catch(e){return alert('Invalid JSON');} restore({data:d}); }; rd.readAsText(f); };
   loadBk();
@@ -1975,7 +2045,7 @@ def collect_stats():
 OTL_TTL = 40 * 60
 BACKUP_DIR = os.path.join(CONF_DIR, "backups")
 sess_info = {}   # session id -> {"ip","ua","t","how"}
-APP_VERSION = "1.7.0"
+APP_VERSION = "1.8.0"
 
 
 def hash_tok(t):
@@ -2029,48 +2099,10 @@ def host_label():
         return "server"
 
 
-def tg_call(method, fields=None, files=None):
-    """Calls the Telegram Bot API. Returns (ok, text). Never raises."""
-    import urllib.request
-    import uuid
-    tg = load_panel_conf().get("tg", {})
-    token = tg.get("token", "")
-    if not token:
-        return False, "no token"
-    base = (tg.get("api") or "https://api.telegram.org").rstrip("/")
-    url = "%s/bot%s/%s" % (base, token, method)
-    try:
-        if files:
-            bd = uuid.uuid4().hex
-            parts = []
-            for k, v in (fields or {}).items():
-                parts.append(("--%s\r\nContent-Disposition: form-data; name=\"%s\"\r\n\r\n%s\r\n" % (bd, k, v)).encode())
-            for k, (fn, data) in files.items():
-                parts.append(("--%s\r\nContent-Disposition: form-data; name=\"%s\"; filename=\"%s\"\r\n"
-                              "Content-Type: application/json\r\n\r\n" % (bd, k, fn)).encode() + data + b"\r\n")
-            parts.append(("--%s--\r\n" % bd).encode())
-            req = urllib.request.Request(url, b"".join(parts), {"Content-Type": "multipart/form-data; boundary=" + bd})
-        else:
-            req = urllib.request.Request(url, json.dumps(fields or {}).encode(), {"Content-Type": "application/json"})
-        with urllib.request.urlopen(req, timeout=15) as r:
-            return True, r.read().decode()[:300]
-    except Exception as exc:
-        return False, str(exc).replace(token, "***")[:200]
-
-
-def tg_send(text, event=None):
-    tg = load_panel_conf().get("tg", {})
-    if not tg.get("token") or not tg.get("chat") or not tg.get("on", True):
-        return
-    if event and event not in tg.get("events", ["tunnel", "login", "backup", "resource", "ssl", "health"]):
-        return
-    threading.Thread(target=tg_call, args=("sendMessage", {"chat_id": tg["chat"], "text": text}), daemon=True).start()
-
-
 def make_backup(full=False):
     """Backup = every tunnel slot file (+ tokens) and, if full, the panel settings."""
     slots = {}
-    for n in range(1, MAX_SLOT + 1):
+    for n in range(1, max_slots() + 1):
         if os.path.exists(slot_file(n)):
             try:
                 with open(slot_file(n)) as fh:
@@ -2091,7 +2123,7 @@ def check_backup(d):
     if not isinstance(d, dict) or d.get("magic") != "darkcore-backup" or not isinstance(d.get("slots"), dict):
         return "not a NiceTunnel backup file"
     for k, v in d["slots"].items():
-        if not (k.isdigit() and 1 <= int(k) <= MAX_SLOT) or not isinstance(v, str) or len(v) > 8192:
+        if not (k.isdigit() and 1 <= int(k) <= max_slots()) or not isinstance(v, str) or len(v) > 8192:
             return "bad slot entry"
         for line in v.splitlines():
             line = line.strip()
@@ -2333,6 +2365,8 @@ def route_path(raw):
         return "/"
     if raw.startswith(base + "/api/"):
         return raw[len(base):]
+    if raw == base + "/metrics":
+        return "/metrics"
     return None
 
 
@@ -2565,7 +2599,7 @@ def sample_slots():
             "state": state, "acct": i_b is not None, "rx_rate": rx, "tx_rate": tx,
             "rx_total": u["rx"], "tx_total": u["tx"], "day_rx": u["drx"], "day_tx": u["dtx"],
             "conns": sum(conns.get(x, 0) for x in cgroup_pids(p.get("ControlGroup", ""))),
-            "cpu": cpu, "mem": mem or 0, "uptime": up_s,
+            "cpu": cpu, "mem": mem or 0, "uptime": up_s, "cg": p.get("ControlGroup", ""),
             "restarts": int(p["NRestarts"]) if p.get("NRestarts", "").isdigit() else 0,
         }
         if rx is not None:
@@ -2578,6 +2612,7 @@ def sample_slots():
             _last_state[n] = state
         limits_tick(n, conf)
         heal_tick(n, state, slot_health.get(n, {}), conf)
+    cleanup_orphans(seen)
     for n in list(slot_stats):
         if n not in seen:
             for d in (slot_stats, slot_hist, slot_health, _prev):
@@ -2610,9 +2645,12 @@ def slot_peer(sl):
 
 
 def probe_host(ip, count=3):
-    if not valid_ipv4(ip):
+    if not valid_ip(ip):
         return None
-    _, out = run(["ping", "-n", "-c", str(count), "-i", "0.3", "-W", "1", ip], timeout=count * 2 + 5)
+    cmd = ["ping", "-n", "-c", str(count), "-i", "0.3", "-W", "1", ip]
+    if ":" in ip:
+        cmd.insert(1, "-6")
+    _, out = run(cmd, timeout=count * 2 + 5)
     m = re.search(r"([\d.]+)% packet loss", out)
     if not m:
         return None
@@ -2728,8 +2766,10 @@ _cpu_samples = []
 
 
 def resource_alerts():
-    th = int((load_panel_conf().get("tg") or {}).get("th", 90) or 90)
+    th = alert_th(load_panel_conf())
     c = cpu_percent()
+    if c is not None:
+        _res["cpu"] = c
     if c is not None:
         _cpu_samples.append(c)
         del _cpu_samples[:-6]
@@ -2741,6 +2781,7 @@ def resource_alerts():
     for key, val, label in (("mem", mem_percent(), "حافظه (RAM)"), ("disk", disk_percent(), "دیسک")):
         if val is None:
             continue
+        _res[key] = val
         if val >= th:
             alert_raise(key, "⚠️ %s سرور %s پر شده: %d٪" % (label, host_label(), val), "resource")
         elif val < th - 5:
@@ -2790,6 +2831,10 @@ def sampler_loop():
         try:
             sample_slots()
             resource_alerts()
+            if tick == 3:
+                err = caps_apply()
+                if err:
+                    record_event(0, "cap_error", value=err)
             if tick % 720 == 0:
                 ssl_alert()
             if tick % 12 == 0 or _state["dirty"]:
@@ -2826,7 +2871,8 @@ def slot_detail(n):
             "hist": slot_hist.get(n, {"rx": [], "tx": [], "lat": []}),
             "events": [e for e in events_log if e.get("slot") == n][-30:][::-1],
             "up24": uptime_pct(n), "up7": uptime_pct(n, 7 * 86400),
-            "limits": limit_state(n), "heal": heal_on(n), "days": last_days(n)}
+            "limits": limit_state(n), "heal": heal_on(n), "days": last_days(n),
+            "share": share_view(n), "nft": nft_available()}
 
 
 # -- edit a tunnel -------------------------------------------------------------
@@ -3036,12 +3082,13 @@ def tfa_disable():
 
 
 # -- API keys (let another panel manage this server) --------------------------------
-KEY_GET = re.compile(r"/api/(ping|stats|slots|slot/\d+/(logs|detail))")
+KEY_GET = re.compile(r"/(api/(ping|stats|slots|slot/\d+/(logs|detail))|metrics)")
 KEY_POST = re.compile(r"/api/slot/\d+/(start|stop|restart|probe)")
 KEY_FULL_POST = re.compile(r"/api/(reverse|spoof|slot/\d+/(edit|delete))")
 
 
-def apikey_create(name, full=False):
+def apikey_create(name, full=False, ips=""):
+    ip_list = parse_ip_list(ips)
     with conf_lock:
         conf = load_panel_conf()
         keys = conf.get("apikeys", [])
@@ -3050,7 +3097,7 @@ def apikey_create(name, full=False):
         key = "nt_" + secrets.token_urlsafe(32)
         kid = secrets.token_hex(4)
         keys.append({"id": kid, "name": (str(name).strip() or "key")[:40], "h": hash_tok(key), "t": int(time.time()),
-                     "perm": "full" if full else "manage"})
+                     "perm": "full" if full else "manage", "ips": ip_list})
         conf["apikeys"] = keys
         save_panel_conf(conf)
     return kid, key
@@ -3069,7 +3116,8 @@ def apikey_check(key):
 
 
 def apikey_list():
-    return [{"id": k["id"], "name": k["name"], "t": k["t"], "last": _key_last.get(k["id"], 0), "perm": k.get("perm", "manage")}
+    return [{"id": k["id"], "name": k["name"], "t": k["t"], "last": _key_last.get(k["id"], 0), "perm": k.get("perm", "manage"),
+             "ips": k.get("ips", [])}
             for k in load_panel_conf().get("apikeys", [])]
 
 
@@ -3268,7 +3316,7 @@ _audit_lock = threading.Lock()
 def create_local(kind, clean):
     n = first_free_slot()
     if n is None:
-        return None, "no free slot (max %d)" % MAX_SLOT
+        return None, "no free slot (max %d)" % max_slots()
     (write_spoof_slot if kind == "spoof" else write_reverse_slot)(n, clean)
     run(["systemctl", "daemon-reload"])
     run(["systemctl", "enable", "nicetunnel@%d" % n])
@@ -3381,7 +3429,7 @@ def limit_state(n, conf=None):
             days_left = (datetime.date.fromisoformat(exp) - datetime.date.today()).days
         except ValueError:
             days_left = None
-    return {"quota": quota, "used": used, "period": period, "expires": exp, "days_left": days_left, "blocked": lim.get("blocked", "")}
+    return {"quota": quota, "used": used, "period": period, "expires": exp, "days_left": days_left, "blocked": lim.get("blocked", ""), "mbit": lim.get("mbit", 0)}
 
 
 def limit_blocked(n, conf=None):
@@ -3395,7 +3443,7 @@ def limit_write(n, **changes):
         lim = conf.get("limits") or {}
         cur = lim.get(str(n)) or {}
         cur.update(changes)
-        if not cur.get("quota_gb") and not cur.get("expires"):
+        if not cur.get("quota_gb") and not cur.get("expires") and not cur.get("mbit"):
             lim.pop(str(n), None)
         else:
             lim[str(n)] = cur
@@ -3447,6 +3495,21 @@ def limit_apply(n, d):
         u["mrx"] = u["mtx"] = 0
         u["qbase"] = u.get("rx", 0) + u.get("tx", 0)
         _state["dirty"] = True
+    if "mbit" in d:
+        try:
+            mbit = float(d.get("mbit") or 0)
+        except (TypeError, ValueError):
+            raise ValueError("the speed cap must be a number of Mbit/s")
+        if not (0 <= mbit <= 100000):
+            raise ValueError("the speed cap must be between 0 and 100000 Mbit/s")
+        prev = float(((load_panel_conf().get("limits") or {}).get(str(n)) or {}).get("mbit", 0) or 0)
+        if mbit != prev:
+            limit_write(n, mbit=mbit)
+            err = caps_apply()
+            if err:
+                limit_write(n, mbit=prev)
+                caps_apply()
+                raise ValueError(err)
     limit_write(n, quota_gb=quota, period=period, expires=exp, **({"blocked": ""} if d.get("reset") else {}))
     limits_tick(n, load_panel_conf())
     return limit_state(n)
@@ -3575,6 +3638,690 @@ def read_backup_text(name):
         return fh.read()
 
 
+# --------------------------------------------------------------------------
+# v8: proxy for Telegram, webhook + email alerts, IP allowlists, customer links,
+#     viewer accounts, Prometheus metrics, speed caps, IPv6 access, tunnel limit
+# --------------------------------------------------------------------------
+share_fails = {}
+key_fails = {}
+_res = {"cpu": None, "mem": None, "disk": None}
+_max_slots = {"v": None}
+DEFAULT_EVENTS = ["tunnel", "login", "backup", "resource", "ssl", "health"]
+NFT_TABLE = "nicetunnel_cap"
+SHARE_RE = re.compile(r"/s/([A-Za-z0-9_-]{16,64})(\.json)?")
+VIEWER_GET = re.compile(r"/api/(state|stats|slots|fleet|ping|slot/\d+/(logs|detail))")
+
+
+def valid_ip(text):
+    try:
+        ipaddress.ip_address(text)
+        return True
+    except ValueError:
+        return False
+
+
+# -- outgoing HTTP with optional proxy (HTTP CONNECT or SOCKS5) -------------------------
+def _recv_exact(s, n):
+    buf = b""
+    while len(buf) < n:
+        chunk = s.recv(n - len(buf))
+        if not chunk:
+            raise OSError("the proxy closed the connection")
+        buf += chunk
+    return buf
+
+
+def socks5_connect(proxy_url, host, port, timeout):
+    pp = urlparse(proxy_url)
+    s = socket.create_connection((pp.hostname, pp.port or 1080), timeout=timeout)
+    try:
+        s.settimeout(timeout)
+        want_auth = pp.username is not None
+        s.sendall(b"\x05\x02\x00\x02" if want_auth else b"\x05\x01\x00")
+        r = _recv_exact(s, 2)
+        if r[0] != 5 or r[1] == 0xFF:
+            raise OSError("the SOCKS5 proxy refused the login method")
+        if r[1] == 2:
+            from urllib.parse import unquote
+            u, p = unquote(pp.username or "").encode(), unquote(pp.password or "").encode()
+            s.sendall(b"\x01" + bytes([len(u)]) + u + bytes([len(p)]) + p)
+            if _recv_exact(s, 2)[1] != 0:
+                raise OSError("the SOCKS5 proxy rejected the username or password")
+        try:
+            ip = ipaddress.ip_address(host)
+            addr = (b"\x01" + ip.packed) if ip.version == 4 else (b"\x04" + ip.packed)
+        except ValueError:
+            h = host.encode("idna")
+            addr = b"\x03" + bytes([len(h)]) + h     # the proxy resolves the name (socks5h behaviour)
+        s.sendall(b"\x05\x01\x00" + addr + struct.pack(">H", port))
+        resp = _recv_exact(s, 4)
+        if resp[1] != 0:
+            raise OSError("the SOCKS5 proxy could not connect (code %d)" % resp[1])
+        if resp[3] == 1:
+            _recv_exact(s, 6)
+        elif resp[3] == 4:
+            _recv_exact(s, 18)
+        elif resp[3] == 3:
+            _recv_exact(s, _recv_exact(s, 1)[0] + 2)
+        return s
+    except Exception:
+        s.close()
+        raise
+
+
+class _Socks5HTTPConnection(http.client.HTTPConnection):
+    def __init__(self, host, port, proxy, timeout):
+        super().__init__(host, port, timeout=timeout)
+        self._proxy = proxy
+
+    def connect(self):
+        self.sock = socks5_connect(self._proxy, self.host, self.port, self.timeout)
+
+
+class _Socks5HTTPSConnection(http.client.HTTPSConnection):
+    def __init__(self, host, port, proxy, timeout):
+        super().__init__(host, port, timeout=timeout)
+        self._proxy = proxy
+
+    def connect(self):
+        raw = socks5_connect(self._proxy, self.host, self.port, self.timeout)
+        self.sock = self._context.wrap_socket(raw, server_hostname=self.host)
+
+
+def valid_proxy(p):
+    u = urlparse(str(p))
+    if u.scheme not in ("http", "socks5", "socks5h") or not u.hostname or u.path not in ("", "/") or u.query:
+        return False
+    try:
+        u.port
+    except ValueError:
+        return False
+    return len(str(p)) <= 200
+
+
+def mask_proxy(p):
+    u = urlparse(str(p or ""))
+    if not u.hostname:
+        return ""
+    auth = (u.username + ":***@") if u.username else ""
+    return "%s://%s%s%s" % (u.scheme, auth, host_for_url(u.hostname), (":%d" % u.port) if u.port else "")
+
+
+def http_request(method, url, data=None, headers=None, timeout=15, proxy=""):
+    """One HTTP request, directly or through an HTTP (CONNECT) or SOCKS5 proxy. Returns (status, body)."""
+    from urllib.parse import unquote
+    u = urlparse(url)
+    if u.scheme not in ("http", "https") or not u.hostname:
+        raise ValueError("bad address")
+    https = u.scheme == "https"
+    host, port = u.hostname, u.port or (443 if https else 80)
+    target = (u.path or "/") + (("?" + u.query) if u.query else "")
+    hdrs = dict(headers or {})
+    conn = None
+    try:
+        if proxy:
+            pp = urlparse(proxy)
+            if pp.scheme in ("socks5", "socks5h"):
+                conn = (_Socks5HTTPSConnection if https else _Socks5HTTPConnection)(host, port, proxy, timeout)
+            elif pp.scheme == "http":
+                pauth = None
+                if pp.username:
+                    tok = base64.b64encode(("%s:%s" % (unquote(pp.username), unquote(pp.password or ""))).encode()).decode()
+                    pauth = {"Proxy-Authorization": "Basic " + tok}
+                if https:
+                    conn = http.client.HTTPSConnection(pp.hostname, pp.port or 8080, timeout=timeout)
+                    conn.set_tunnel(host, port, headers=pauth)
+                else:
+                    conn = http.client.HTTPConnection(pp.hostname, pp.port or 8080, timeout=timeout)
+                    target = url
+                    hdrs.update(pauth or {})
+            else:
+                raise ValueError("unsupported proxy type")
+        else:
+            conn = (http.client.HTTPSConnection if https else http.client.HTTPConnection)(host, port, timeout=timeout)
+        conn.request(method, target, body=data, headers=hdrs)
+        r = conn.getresponse()
+        return r.status, r.read(1000000)
+    finally:
+        if conn:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+
+def tg_call(method, fields=None, files=None):
+    """Calls the Telegram Bot API (through the saved proxy, if any). Returns (ok, text). Never raises."""
+    import uuid
+    tg = load_panel_conf().get("tg", {})
+    token = tg.get("token", "")
+    if not token:
+        return False, "no token"
+    base = (tg.get("api") or "https://api.telegram.org").rstrip("/")
+    url = "%s/bot%s/%s" % (base, token, method)
+    try:
+        if files:
+            bd = uuid.uuid4().hex
+            parts = []
+            for k, v in (fields or {}).items():
+                parts.append(("--%s\r\nContent-Disposition: form-data; name=\"%s\"\r\n\r\n%s\r\n" % (bd, k, v)).encode())
+            for k, (fn, data) in files.items():
+                parts.append(("--%s\r\nContent-Disposition: form-data; name=\"%s\"; filename=\"%s\"\r\n"
+                              "Content-Type: application/json\r\n\r\n" % (bd, k, fn)).encode() + data + b"\r\n")
+            parts.append(("--%s--\r\n" % bd).encode())
+            body, ctype = b"".join(parts), "multipart/form-data; boundary=" + bd
+        else:
+            body, ctype = json.dumps(fields or {}).encode(), "application/json"
+        status, raw = http_request("POST", url, body, {"Content-Type": ctype}, 15, tg.get("proxy", ""))
+        text = raw.decode("utf-8", "replace")[:300]
+        if status >= 400:
+            return False, ("HTTP %d: %s" % (status, text)).replace(token, "***")[:200]
+        return True, text
+    except Exception as exc:
+        return False, str(exc).replace(token, "***")[:200]
+
+
+# -- alert channels: Telegram, webhook, email ------------------------------------------------
+def alert_conf(conf):
+    return (conf or {}).get("alerts") or {}
+
+
+def alert_events(conf):
+    a = alert_conf(conf)
+    if "events" in a:
+        return a["events"]
+    return (conf.get("tg") or {}).get("events", DEFAULT_EVENTS)
+
+
+def alert_th(conf):
+    try:
+        return min(99, max(50, int(alert_conf(conf).get("th") or (conf.get("tg") or {}).get("th") or 90)))
+    except (TypeError, ValueError):
+        return 90
+
+
+def webhook_send(wh, text, event):
+    fmt = wh.get("fmt", "generic")
+    if fmt == "discord":
+        payload = {"content": text[:1900]}
+    elif fmt == "slack":
+        payload = {"text": text[:3000]}
+    else:
+        payload = {"text": text, "event": event or "alert", "host": host_label(), "time": int(time.time()), "version": APP_VERSION}
+    try:
+        status, raw = http_request("POST", wh["url"], json.dumps(payload).encode(), {"Content-Type": "application/json"}, 12)
+    except Exception as exc:
+        return False, str(exc)[:160]
+    return (200 <= status < 300), ("HTTP %d" % status)
+
+
+def email_send(em, text, event):
+    msg = EmailMessage()
+    clean = lambda v: re.sub(r"[\r\n\x00-\x1f]", " ", str(v))[:120]
+    msg["Subject"] = "NiceTunnel %s: %s" % (clean(host_label()), clean(event or "alert"))
+    msg["From"], msg["To"] = clean(em["from"]), clean(em["to"])
+    msg.set_content(text)
+    try:
+        if em.get("sec") == "ssl":
+            s = smtplib.SMTP_SSL(em["host"], int(em["port"]), timeout=15, context=ssl.create_default_context())
+        else:
+            s = smtplib.SMTP(em["host"], int(em["port"]), timeout=15)
+        with s:
+            s.ehlo()
+            if em.get("sec") == "starttls":
+                s.starttls(context=ssl.create_default_context())
+                s.ehlo()
+            if em.get("user"):
+                s.login(em["user"], em.get("pass", ""))
+            s.send_message(msg)
+    except Exception as exc:
+        return False, str(exc).replace(em.get("pass", "\0"), "***")[:160]
+    return True, "sent"
+
+
+def tg_send(text, event=None):
+    """Sends an alert to every channel that is switched on (name kept for the existing callers)."""
+    conf = load_panel_conf()
+    if event and event not in alert_events(conf):
+        return
+    tg, a = conf.get("tg", {}), alert_conf(conf)
+    if tg.get("token") and tg.get("chat") and tg.get("on", True):
+        threading.Thread(target=tg_call, args=("sendMessage", {"chat_id": tg["chat"], "text": text}), daemon=True).start()
+    wh = a.get("webhook") or {}
+    if wh.get("url") and wh.get("on", True):
+        threading.Thread(target=webhook_send, args=(wh, text, event), daemon=True).start()
+    em = a.get("email") or {}
+    if em.get("host") and em.get("to") and em.get("on", True):
+        threading.Thread(target=email_send, args=(em, text, event), daemon=True).start()
+
+
+def alerts_view(conf=None):
+    conf = conf if conf is not None else load_panel_conf()
+    a, tg = alert_conf(conf), conf.get("tg", {})
+    wh, em = a.get("webhook") or {}, a.get("email") or {}
+    return {"events": alert_events(conf), "th": alert_th(conf),
+            "webhook": {"on": wh.get("on", True), "url": wh.get("url", ""), "fmt": wh.get("fmt", "generic")},
+            "email": {"on": em.get("on", True), "host": em.get("host", ""), "port": em.get("port", 587), "sec": em.get("sec", "starttls"),
+                      "user": em.get("user", ""), "from": em.get("from", ""), "to": em.get("to", ""), "has_pass": bool(em.get("pass"))},
+            "proxy": mask_proxy(tg.get("proxy", ""))}
+
+
+def alerts_save(d):
+    with conf_lock:
+        conf = load_panel_conf()
+        a = conf.get("alerts") or {}
+        if "events" in d:
+            a["events"] = [e for e in (d["events"] or []) if e in DEFAULT_EVENTS]
+        if "th" in d:
+            try:
+                a["th"] = min(99, max(50, int(d["th"])))
+            except (TypeError, ValueError):
+                a["th"] = 90
+        if "webhook" in d:
+            w = d["webhook"] or {}
+            url = str(w.get("url", "")).strip()
+            if url and not re.fullmatch(r"https?://[^\s]{4,480}", url):
+                raise ValueError("the webhook address must start with http:// or https://")
+            fmt = w.get("fmt", "generic")
+            if fmt not in ("generic", "discord", "slack"):
+                raise ValueError("unknown webhook format")
+            a["webhook"] = {"on": bool(w.get("on", True)), "url": url, "fmt": fmt}
+        if "email" in d:
+            e = d["email"] or {}
+            old = a.get("email") or {}
+            host, to, frm = str(e.get("host", "")).strip(), str(e.get("to", "")).strip(), str(e.get("from", "")).strip()
+            if host:
+                if not re.fullmatch(r"[A-Za-z0-9.-]{1,200}", host):
+                    raise ValueError("the mail server name looks wrong")
+                try:
+                    port = int(e.get("port") or 587)
+                except (TypeError, ValueError):
+                    raise ValueError("the mail port must be a number")
+                if not 1 <= port <= 65535:
+                    raise ValueError("the mail port must be between 1 and 65535")
+                sec = e.get("sec", "starttls")
+                if sec not in ("starttls", "ssl", "none"):
+                    raise ValueError("unknown mail security mode")
+                mail = r"[^@\s<>,;]{1,64}@[A-Za-z0-9.-]{1,200}"
+                if not re.fullmatch(mail, to) or not re.fullmatch(mail, frm or to):
+                    raise ValueError("the email addresses look wrong")
+                pw = str(e.get("pass", ""))
+                a["email"] = {"on": bool(e.get("on", True)), "host": host, "port": port, "sec": sec, "user": str(e.get("user", "")).strip()[:120],
+                              "from": frm or to, "to": to, "pass": pw if pw else ("" if e.get("clear_pass") else old.get("pass", ""))}
+            else:
+                a["email"] = {}
+        conf["alerts"] = a
+        if "proxy" in d:
+            p = str(d["proxy"] or "").strip()
+            tg = conf.get("tg", {})
+            if not p:
+                tg.pop("proxy", None)
+            elif p != mask_proxy(tg.get("proxy", "")):     # unchanged masked value keeps the saved one
+                if not valid_proxy(p):
+                    raise ValueError("the proxy must look like socks5://host:1080 or http://host:8080")
+                tg["proxy"] = p
+            conf["tg"] = tg
+        save_panel_conf(conf)
+    return alerts_view()
+
+
+def alert_test(channel):
+    conf = load_panel_conf()
+    text = "✅ NiceTunnel test message from %s" % host_label()
+    if channel == "tg":
+        tg = conf.get("tg", {})
+        if not tg.get("chat"):
+            return False, "set the chat ID first"
+        return tg_call("sendMessage", {"chat_id": tg["chat"], "text": text})
+    if channel == "webhook":
+        wh = alert_conf(conf).get("webhook") or {}
+        return webhook_send(wh, text, "test") if wh.get("url") else (False, "set the webhook address first")
+    if channel == "email":
+        em = alert_conf(conf).get("email") or {}
+        return email_send(em, text, "test") if em.get("host") else (False, "set the mail server first")
+    return False, "unknown channel"
+
+
+# -- who may reach the panel -------------------------------------------------------------------
+def norm_ip(s):
+    try:
+        ip = ipaddress.ip_address(str(s).split("%")[0])
+    except ValueError:
+        return None
+    if ip.version == 6 and ip.ipv4_mapped:
+        return ip.ipv4_mapped
+    return ip
+
+
+def parse_ip_list(v):
+    items = [x.strip() for x in (re.split(r"[,\s]+", v) if isinstance(v, str) else (v or [])) if str(x).strip()]
+    if len(items) > 50:
+        raise ValueError("too many entries (max 50)")
+    out = []
+    for x in items:
+        try:
+            out.append(str(ipaddress.ip_network(x, strict=False)))
+        except ValueError:
+            raise ValueError("not a valid IP address or network: %s" % str(x)[:40])
+    return out
+
+
+def ip_allowed(ip, nets):
+    a = norm_ip(ip)
+    if a is None:
+        return False
+    for n in nets:
+        try:
+            if a in ipaddress.ip_network(n, strict=False):
+                return True
+        except ValueError:
+            continue
+    return False
+
+
+def apikey_match(key):
+    if not key or len(key) > 200:
+        return None
+    h, found = hash_tok(key), None
+    for k in load_panel_conf().get("apikeys", []):
+        if hmac.compare_digest(k["h"], h):
+            found = k
+            _key_last[k["id"]] = int(time.time())
+    return found
+
+
+def key_ip_ok(k, ip):
+    ips = k.get("ips") or []
+    return (not ips) or ip_allowed(ip, ips)
+
+
+# -- viewer accounts (read only) ---------------------------------------------------------------
+def viewer_add(name, pw):
+    if not re.fullmatch(r"[A-Za-z0-9_.-]{3,32}", str(name)):
+        raise ValueError("the name must be 3 to 32 letters, digits, dots, dashes or underscores")
+    if not (8 <= len(str(pw)) <= 200):
+        raise ValueError("the password must be 8 to 200 characters")
+    with conf_lock:
+        conf = load_panel_conf()
+        lst = conf.get("viewers", [])
+        if name == conf.get("username", "admin") or any(v["name"] == name for v in lst):
+            raise ValueError("that name is already taken")
+        if len(lst) >= 10:
+            raise ValueError("too many viewer accounts (max 10)")
+        lst.append({"name": name, "hash": hash_password(str(pw)), "t": int(time.time())})
+        conf["viewers"] = lst
+        save_panel_conf(conf)
+
+
+def viewer_delete(name):
+    with conf_lock:
+        conf = load_panel_conf()
+        conf["viewers"] = [v for v in conf.get("viewers", []) if v["name"] != name]
+        save_panel_conf(conf)
+    with lock:
+        for sid, own in list(sess_owner.items()):
+            if own == "viewer:" + name:
+                sessions.pop(sid, None)
+                sess_owner.pop(sid, None)
+                sess_info.pop(sid, None)
+
+
+# -- customer links (public, read only) --------------------------------------------------------------
+def share_set(n, on=True, label=None, regen=False):
+    with conf_lock:
+        conf = load_panel_conf()
+        sh = conf.get("shares") or {}
+        cur = sh.get(str(n))
+        if not on:
+            sh.pop(str(n), None)
+        else:
+            if not cur or regen:
+                cur = {"tok": secrets.token_urlsafe(18), "t": int(time.time()), "label": (cur or {}).get("label", "")}
+            if label is not None:
+                cur["label"] = re.sub(r"[\x00-\x1f<>]", "", re.sub(r"<[^>]*>", "", str(label))).strip()[:60]
+            sh[str(n)] = cur
+        conf["shares"] = sh
+        save_panel_conf(conf)
+    return share_view(n)
+
+
+def share_view(n, conf=None):
+    e = ((conf if conf is not None else load_panel_conf()).get("shares") or {}).get(str(n))
+    return {"on": True, "token": e["tok"], "label": e.get("label", "")} if e else {"on": False}
+
+
+def share_find(tok):
+    found = None
+    for k, v in (load_panel_conf().get("shares") or {}).items():
+        if hmac.compare_digest(str(v.get("tok", "")), tok):
+            found = (int(k), v)
+    return found
+
+
+def share_data(n, ent):
+    st, lim, u = slot_stats.get(n, {}), limit_state(n) or {}, usage.get(str(n), {})
+    state = lim.get("blocked") or ("active" if st.get("state") == "active" else "failed" if st.get("state") == "failed" else "off")
+    return {"label": ent.get("label", ""), "state": state, "quota": lim.get("quota", 0), "used": lim.get("used", 0),
+            "period": lim.get("period", "month"), "days_left": lim.get("days_left"), "expires": lim.get("expires", ""),
+            "today": [u.get("drx", 0), u.get("dtx", 0)], "month": [u.get("mrx", 0), u.get("mtx", 0)],
+            "days": last_days(n), "t": int(time.time())}
+
+
+SHARE_HTML = r"""<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>NiceTunnel</title>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;min-height:100vh;background:linear-gradient(180deg,#040a16,#08172b 60%,#071426);color:#e6ecf6;font:15px/1.6 system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif;display:flex;justify-content:center;padding:24px 14px}
+.c{width:100%;max-width:460px}.logo{text-align:center;margin:6px 0 18px;font-weight:700;letter-spacing:.4px;font-size:18px;background:linear-gradient(90deg,#fff3c9,#e9c46a);-webkit-background-clip:text;background-clip:text;color:transparent}
+.card{background:linear-gradient(160deg,rgba(14,30,54,.94),rgba(8,18,34,.94));border:1px solid rgba(233,196,106,.16);border-radius:18px;padding:18px;box-shadow:0 20px 60px rgba(0,0,0,.45)}
+h1{margin:0 0 8px;font-size:20px;color:#fff;word-break:break-word}.pill{display:inline-block;padding:3px 12px;border-radius:999px;font-size:12px;border:1px solid #2a3b57;color:#8fa2bf}.pill.ok{color:#34d0c3;border-color:rgba(52,208,195,.4);background:rgba(52,208,195,.08)}.pill.bad{color:#f0707a;border-color:rgba(240,112,122,.4);background:rgba(240,112,122,.08)}
+.row{display:flex;justify-content:space-between;gap:10px;margin:16px 0 6px;font-size:13px;color:#8fa2bf}.row b{color:#fff;direction:ltr;unicode-bidi:isolate}
+.bar{height:8px;border-radius:6px;background:#0e2038;overflow:hidden}.bar i{display:block;height:100%;background:linear-gradient(90deg,#34d0c3,#e9c46a);border-radius:6px}.bar.full i{background:#f0707a}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}.cell{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:10px 12px}.cell span{display:block;font-size:11.5px;color:#8fa2bf}.cell b{display:block;margin-top:2px;font-size:14px;direction:ltr;text-align:start;unicode-bidi:isolate}
+h2{font-size:13px;margin:18px 0 0;color:#fff}canvas{width:100%;height:90px;display:block;margin-top:8px;border:1px solid rgba(255,255,255,.05);border-radius:12px;background:#050d18}.note{margin-top:12px;font-size:12px;color:#6f86a8;text-align:center}
+</style></head><body><div class="c"><div class="logo">NiceTunnel</div><div class="card" id="card"><div class="note">&hellip;</div></div><div class="note" id="upd"></div></div>
+<script>
+(function(){
+var fa=(navigator.language||'').toLowerCase().indexOf('fa')===0;
+var T=fa?{active:'فعال',off:'متوقف',failed:'قطع',quota:'حجم تمام شد',expired:'منقضی شده',used:'مصرف',left:'باقی‌مانده',days:'روز',exp:'انقضا',today:'امروز',month:'این ماه',last30:'۳۰ روز اخیر',nolim:'بدون سقف حجم',updated:'به‌روزرسانی',nf:'این لینک معتبر نیست.',total:'کل'}
+:{active:'Active',off:'Stopped',failed:'Not connected',quota:'Data limit reached',expired:'Expired',used:'Used',left:'Left',days:'days',exp:'Expires',today:'Today',month:'This month',last30:'Last 30 days',nolim:'No data limit',updated:'Updated',nf:'This link is not valid.',total:'Total'};
+if(fa){document.documentElement.lang='fa';document.documentElement.dir='rtl';}
+function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function fmt(b){var u=['B','KB','MB','GB','TB'],i=0;b=+b||0;while(b>=1024&&i<4){b/=1024;i++;}return (b>=100||i===0?b.toFixed(0):b.toFixed(1))+' '+u[i];}
+var tok=location.pathname.split('/').pop().replace(/\.json$/,'');
+function draw(days){var cv=document.getElementById('cv');if(!cv)return;var dpr=window.devicePixelRatio||1,w=cv.clientWidth||300,h=cv.clientHeight||90;cv.width=w*dpr;cv.height=h*dpr;var c=cv.getContext('2d');c.scale(dpr,dpr);
+ var top=Math.max.apply(null,days.map(function(d){return d.rx+d.tx;}).concat([1]))*1.15,bw=w/days.length;
+ days.forEach(function(d,i){var x=i*bw+bw*.18,ww=bw*.64,a=d.rx/top*(h-14),b=d.tx/top*(h-14);c.fillStyle='#34d0c3';c.fillRect(x,h-2-a,ww,a);c.fillStyle='#e9c46a';c.fillRect(x,h-2-a-b,ww,b);});}
+function render(d){
+ var ok=d.state==='active',cls=ok?'ok':(d.state==='off'?'':'bad'),h='<h1>'+esc(d.label||'NiceTunnel')+'</h1><span class="pill '+cls+'">'+esc(T[d.state]||d.state)+'</span>';
+ if(d.quota){var p=Math.min(100,d.used/d.quota*100);h+='<div class="row"><span>'+T.used+'</span><b>'+fmt(d.used)+' / '+fmt(d.quota)+'</b></div><div class="bar'+(p>=100?' full':'')+'"><i style="width:'+p+'%"></i></div><div class="row"><span>'+T.left+'</span><b>'+fmt(Math.max(0,d.quota-d.used))+'</b></div>';}
+ else h+='<div class="row"><span>'+T.nolim+'</span><b></b></div>';
+ h+='<div class="grid">';
+ if(d.days_left!==null&&d.days_left!==undefined)h+='<div class="cell"><span>'+T.exp+'</span><b>'+(d.days_left<0?T.expired:d.days_left+' '+T.days)+'</b></div>';
+ h+='<div class="cell"><span>'+T.today+'</span><b>'+fmt(d.today[0]+d.today[1])+'</b></div><div class="cell"><span>'+T.month+'</span><b>'+fmt(d.month[0]+d.month[1])+'</b></div></div>';
+ h+='<h2>'+T.last30+'</h2><canvas id="cv"></canvas>';
+ document.getElementById('card').innerHTML=h;draw(d.days);
+ document.getElementById('upd').textContent=T.updated+': '+new Date(d.t*1000).toLocaleTimeString();}
+function load(){fetch('/s/'+tok+'.json',{cache:'no-store'}).then(function(r){if(!r.ok)throw 0;return r.json();}).then(render).catch(function(){document.getElementById('card').innerHTML='<div class="note">'+T.nf+'</div>';});}
+load();setInterval(load,30000);
+})();
+</script></body></html>"""
+
+
+# -- Prometheus metrics ----------------------------------------------------------------------------
+def _mesc(v):
+    return str(v).replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n")
+
+
+def _net_totals():
+    rx = tx = 0
+    try:
+        with open("/proc/net/dev") as fh:
+            for line in fh.readlines()[2:]:
+                name, _, rest = line.partition(":")
+                if name.strip() == "lo":
+                    continue
+                f = rest.split()
+                rx, tx = rx + int(f[0]), tx + int(f[8])
+    except (OSError, ValueError, IndexError):
+        return None, None
+    return rx, tx
+
+
+def metrics_text():
+    out = []
+
+    def put(name, typ, help_, rows):
+        rows = [(l, v) for l, v in rows if v is not None]
+        if not rows:
+            return
+        out.append("# HELP %s %s" % (name, help_))
+        out.append("# TYPE %s %s" % (name, typ))
+        for labels, v in rows:
+            lab = ",".join('%s="%s"' % (k, _mesc(x)) for k, x in labels.items())
+            out.append("%s%s %s" % (name, "{%s}" % lab if lab else "", repr(float(v)) if not isinstance(v, int) else v))
+
+    put("nicetunnel_info", "gauge", "Panel version and host name", [({"version": APP_VERSION, "host": host_label()}, 1)])
+    put("nicetunnel_cpu_percent", "gauge", "CPU use of this server", [({}, _res["cpu"])])
+    put("nicetunnel_memory_percent", "gauge", "Memory use of this server", [({}, _res["mem"])])
+    put("nicetunnel_disk_percent", "gauge", "Disk use of this server", [({}, _res["disk"])])
+    rx, tx = _net_totals()
+    put("nicetunnel_network_receive_bytes_total", "counter", "Bytes received on all interfaces", [({}, rx)])
+    put("nicetunnel_network_transmit_bytes_total", "counter", "Bytes sent on all interfaces", [({}, tx)])
+    slots = slots_with_stats()
+    base = lambda s: {"slot": s["slot"], "kind": s["kind"], "peer": s.get("peer_ip", "")}
+    put("nicetunnel_tunnel_up", "gauge", "1 when the tunnel service is active", [(base(s), 1 if s["state"] == "active" else 0) for s in slots])
+    put("nicetunnel_tunnel_receive_bytes_total", "counter", "Bytes received by the tunnel", [(base(s), s.get("rx_total")) for s in slots])
+    put("nicetunnel_tunnel_transmit_bytes_total", "counter", "Bytes sent by the tunnel", [(base(s), s.get("tx_total")) for s in slots])
+    put("nicetunnel_tunnel_receive_bytes_per_second", "gauge", "Current receive rate", [(base(s), s.get("rx_rate")) for s in slots])
+    put("nicetunnel_tunnel_transmit_bytes_per_second", "gauge", "Current send rate", [(base(s), s.get("tx_rate")) for s in slots])
+    put("nicetunnel_tunnel_connections", "gauge", "Open TCP connections", [(base(s), s.get("conns")) for s in slots])
+    put("nicetunnel_tunnel_latency_ms", "gauge", "Ping to the peer", [(base(s), s.get("lat")) for s in slots])
+    put("nicetunnel_tunnel_packet_loss_percent", "gauge", "Packet loss to the peer", [(base(s), s.get("loss")) for s in slots])
+    put("nicetunnel_tunnel_uptime_percent_24h", "gauge", "Share of the last 24 hours the tunnel was active", [(base(s), s.get("up24")) for s in slots])
+    lims = [(s, s.get("lim")) for s in slots if s.get("lim")]
+    put("nicetunnel_tunnel_quota_bytes", "gauge", "Traffic quota", [(base(s), l["quota"]) for s, l in lims if l["quota"]])
+    put("nicetunnel_tunnel_quota_used_bytes", "gauge", "Traffic counted against the quota", [(base(s), l["used"]) for s, l in lims if l["quota"]])
+    put("nicetunnel_tunnel_expires_days", "gauge", "Days until the tunnel expires", [(base(s), l["days_left"]) for s, l in lims if l["days_left"] is not None])
+    put("nicetunnel_tunnel_blocked", "gauge", "1 when a quota or expiry limit stopped the tunnel", [(base(s), 1 if l["blocked"] else 0) for s, l in lims])
+    put("nicetunnel_server_up", "gauge", "1 when another managed panel answers", [({"name": f["name"]}, 1 if f["ok"] else 0) for f in fleet_view()])
+    return "\n".join(out) + "\n"
+
+
+# -- speed caps (outgoing traffic, nftables) -----------------------------------------------------------------
+def nft_available():
+    return shutil.which("nft") is not None
+
+
+def cap_rules(caps):
+    """caps: {slot: (cgroup_path, mbit)} -> nftables text for one dedicated table."""
+    lines = ["table inet %s {" % NFT_TABLE, "  chain out {", "    type filter hook output priority filter; policy accept;"]
+    for n, (cg, mbit) in sorted(caps.items()):
+        parts = [p for p in cg.strip("/").split("/") if p]
+        lines.append('    socket cgroupv2 level %d "%s" limit rate over %d kbytes/second drop' % (len(parts), "/".join(parts), max(1, int(mbit * 125))))
+    lines += ["  }", "}"]
+    return "\n".join(lines) + "\n"
+
+
+def caps_apply():
+    """Rebuilds the dedicated nftables table from the saved limits. Returns an error text or None."""
+    conf = load_panel_conf()
+    caps = {}
+    for k, v in (conf.get("limits") or {}).items():
+        if v.get("mbit") and k.isdigit() and os.path.exists(slot_file(int(k))):
+            n = int(k)
+            cg = (slot_stats.get(n) or {}).get("cg") or "/system.slice/system-nicetunnel.slice/nicetunnel@%d.service" % n
+            caps[n] = (cg, float(v["mbit"]))
+    if not caps:
+        if nft_available():
+            run(["nft", "delete", "table", "inet", NFT_TABLE])
+        return None
+    if not nft_available():
+        return "nftables is not installed on this server (apt install nftables)"
+    text = "table inet %s\ndelete table inet %s\n%s" % (NFT_TABLE, NFT_TABLE, cap_rules(caps))
+    path = os.path.join(CONF_DIR, "cap.nft")
+    try:
+        _atomic_write(path, text)
+    except OSError as exc:
+        return "could not write the rules: %s" % exc
+    code, out = run(["nft", "-c", "-f", path])
+    if code != 0:
+        return "nftables rejected the rule: %s" % out.strip()[-200:]
+    code, out = run(["nft", "-f", path])
+    if code != 0:
+        return "nftables could not apply the rule: %s" % out.strip()[-200:]
+    return None
+
+
+_absent = {}
+
+
+def cleanup_orphans(seen):
+    """Forgets limits, auto-repair flags and customer links of tunnels that stayed gone for 15 seconds."""
+    changed = []
+    for n in list(_absent):
+        if n in seen:
+            _absent.pop(n)
+    with conf_lock:
+        conf = load_panel_conf()
+        for key in ("limits", "heal", "shares"):
+            d = conf.get(key) or {}
+            gone = []
+            for k in d:
+                if k.isdigit() and int(k) not in seen:
+                    _absent[int(k)] = _absent.get(int(k), 0) + 1
+                    if _absent[int(k)] >= 3:
+                        gone.append(k)
+            for k in gone:
+                d.pop(k)
+            if gone:
+                conf[key] = d
+                changed.append(key)
+        if changed:
+            save_panel_conf(conf)
+    if "limits" in changed:
+        caps_apply()
+
+
+# -- how many tunnels this server may hold ------------------------------------------------------------------
+def max_slots():
+    if _max_slots["v"] is None:
+        try:
+            v = int(load_panel_conf().get("max_slots", MAX_SLOT))
+        except (TypeError, ValueError):
+            v = MAX_SLOT
+        _max_slots["v"] = min(100, max(1, v))
+    return _max_slots["v"]
+
+
+def set_max_slots(v):
+    try:
+        v = int(v)
+    except (TypeError, ValueError):
+        raise ValueError("the number of tunnels must be a whole number")
+    if not 1 <= v <= 100:
+        raise ValueError("the number of tunnels must be between 1 and 100")
+    highest = max([int(m.group(1)) for f in os.listdir(CONF_DIR) for m in [re.fullmatch(r"slot(\d+)\.env", f)] if m] or [0]) \
+        if os.path.isdir(CONF_DIR) else 0
+    if v < highest:
+        raise ValueError("tunnel number %d already exists, delete it first or choose at least %d" % (highest, highest))
+    with conf_lock:
+        conf = load_panel_conf()
+        conf["max_slots"] = v
+        save_panel_conf(conf)
+    _max_slots["v"] = v
+
+
+# -- IPv6 for the panel itself -----------------------------------------------------------------------------------
+class V6Server(http.server.ThreadingHTTPServer):
+    address_family = socket.AF_INET6
+
+    def server_bind(self):
+        try:
+            self.socket.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)   # accept IPv4 too on ::
+        except (OSError, AttributeError):
+            pass
+        super().server_bind()
+
+
 class Handler(http.server.BaseHTTPRequestHandler):
     server_version = "NiceTunnelPanel"
 
@@ -3612,19 +4359,81 @@ class Handler(http.server.BaseHTTPRequestHandler):
         m = SESSION_RE.search(self.headers.get("Cookie", ""))
         return m.group(1) if m else None
 
+    def request_key(self):
+        k = self.headers.get("X-API-Key")
+        if k:
+            return k
+        a = self.headers.get("Authorization") or ""
+        return a[7:].strip() if a.startswith("Bearer nt_") else ""
+
+    def ip_gate(self):
+        """Optional allowlist for browser access. Requests with an API key are checked against the key's own list."""
+        lst = load_panel_conf().get("allow_ips")
+        if not lst or self.request_key():
+            return True
+        if ip_allowed(self.client_address[0], lst):
+            return True
+        self.send_json({"error": "your IP address is not allowed"}, 403)
+        return False
+
+    def viewer_gate(self, path, method):
+        """Viewer accounts may only read. Returns True when it already answered."""
+        sid = self.session_id()
+        if not sid or getattr(self, "_apikey", False):
+            return False
+        if not str(sess_owner.get(sid, "")).startswith("viewer:"):
+            return False
+        ok = (path == "/" or VIEWER_GET.fullmatch(path)) if method == "GET" else path in ("/api/login", "/api/logout")
+        if ok:
+            return False
+        self.send_json({"error": "this is a view-only account"}, 403)
+        return True
+
+    def share_serve(self, tok, is_json):
+        ip = self.client_address[0]
+        with lock:
+            cnt, first = share_fails.get(ip, [0, time.time()])
+            if time.time() - first > 900:
+                cnt, first = 0, time.time()
+            if cnt >= 30:
+                return self.send_json({"error": "too many attempts"}, 429)
+        hit = share_find(tok)
+        if not hit:
+            with lock:
+                share_fails[ip] = [cnt + 1, first]
+            return self.send_json({"error": "not found"}, 404)
+        if is_json:
+            return self.send_json(share_data(*hit))
+        data = SHARE_HTML.encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(data)))
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Referrer-Policy", "no-referrer")
+        self.send_header("Content-Security-Policy", "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'")
+        self.end_headers()
+        self.wfile.write(data)
+
     def key_gate(self, path, method):
         ip = self.client_address[0]
         with lock:
-            cnt, first = fails.get(ip, [0, time.time()])
+            cnt, first = key_fails.get(ip, [0, time.time()])
             if time.time() - first > 900:
                 cnt, first = 0, time.time()
             if cnt >= 20:
                 self.send_json({"error": "too many attempts"}, 429)
                 return False
-        perm = apikey_check(self.headers.get("X-API-Key", ""))
+        kent = apikey_match(self.request_key())
+        if kent and not key_ip_ok(kent, ip):
+            with lock:
+                key_fails[ip] = [cnt + 1, first]
+            self.send_json({"error": "this API key is not allowed from %s" % ip}, 403)
+            return False
+        perm = (kent.get("perm", "manage") if kent else "")
         if not perm:
             with lock:
-                fails[ip] = [cnt + 1, first]
+                key_fails[ip] = [cnt + 1, first]
             time.sleep(0.5)
             self.send_json({"error": "invalid API key"}, 401)
             return False
@@ -3673,17 +4482,52 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
     # -- GET -----------------------------------------------------------------
     def do_GET(self):
-        path = route_path(urlparse(self.path).path)
+        raw = urlparse(self.path).path
+        m = SHARE_RE.fullmatch(raw)
+        if m:
+            return self.share_serve(m.group(1), bool(m.group(2)))
+        path = route_path(raw)
         if path is None:
             return self.send_json({"error": "not found"}, 404)
         self._apikey = False
-        if self.headers.get("X-API-Key") is not None:
+        if not self.ip_gate():
+            return
+        if self.request_key():
             if not self.key_gate(path, "GET"):
                 return
+        if self.viewer_gate(path, "GET"):
+            return
         if path == "/api/audit":
             if not self.require_admin():
                 return
             return self.send_json({"list": audit_log[-300:][::-1]})
+        if path == "/metrics":
+            if not self.require_login():
+                return
+            data = metrics_text().encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "text/plain; version=0.0.4; charset=utf-8")
+            self.send_header("Content-Length", str(len(data)))
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write(data)
+            return
+        if path == "/api/alerts":
+            if not self.require_admin():
+                return
+            return self.send_json(alerts_view())
+        if path == "/api/allowips":
+            if not self.require_admin():
+                return
+            return self.send_json({"list": load_panel_conf().get("allow_ips", []), "you": self.client_address[0]})
+        if path == "/api/viewers":
+            if not self.require_admin():
+                return
+            return self.send_json({"list": [{"name": v["name"], "t": v.get("t", 0)} for v in load_panel_conf().get("viewers", [])]})
+        if path == "/api/advanced":
+            if not self.require_admin():
+                return
+            return self.send_json({"max_slots": max_slots(), "nft": nft_available(), "version": APP_VERSION})
         if path == "/api/ping":
             if not self.require_login():
                 return
@@ -3740,7 +4584,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if path == "/api/state":
             conf = load_panel_conf()
             logged = self.session_ok()
-            role = "admin" if sess_owner.get(self.session_id()) == "admin" else "user"
+            own = str(sess_owner.get(self.session_id(), ""))
+            role = "admin" if own == "admin" else ("viewer" if own.startswith("viewer:") else "user")
             return self.send_json({"logged": logged, "role": role, "needSetup": "password" not in conf,
                                    "username": conf.get("username", "admin") if logged else ""})
         if path == "/api/devices":
@@ -3764,7 +4609,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             t = tg.get("token", "")
             return self.send_json({"has": bool(t), "masked": (t[:4] + "…" + t[-4:]) if t else "", "chat": tg.get("chat", ""),
                                    "api": tg.get("api", ""), "on": tg.get("on", True),
-                                   "events": tg.get("events", ["tunnel", "login", "backup", "resource", "ssl", "health"]), "th": tg.get("th", 90)})
+                                   "events": tg.get("events", ["tunnel", "login", "backup", "resource", "ssl", "health"]), "th": tg.get("th", 90), "proxy": mask_proxy(tg.get("proxy", ""))})
         if path == "/api/tune":
             if not self.require_login():
                 return
@@ -3832,9 +4677,13 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return self.send_json({"error": "not found"}, 404)
         self._apikey = False
         self._path = path
-        if self.headers.get("X-API-Key") is not None:
+        if not self.ip_gate():
+            return
+        if self.request_key():
             if not self.key_gate(path, "POST"):
                 return
+        if self.viewer_gate(path, "POST"):
+            return
         if not self.same_origin_ok():
             return self.send_json({"error": "cross-site request refused"}, 403)
         try:
@@ -3843,6 +4692,65 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return self.send_json({"error": "bad request body"}, 400)
 
         self._body = body
+        if path == "/api/alerts":
+            if not self.require_admin():
+                return
+            try:
+                return self.send_json(alerts_save(body))
+            except ValueError as exc:
+                return self.send_json({"error": str(exc)}, 400)
+        if path == "/api/alerts/test":
+            if not self.require_admin():
+                return
+            ok, msg = alert_test(str(body.get("channel", "")))
+            return self.send_json({"ok": bool(ok), "msg": str(msg)[:200]})
+        if path == "/api/allowips":
+            if not self.require_admin():
+                return
+            try:
+                lst = parse_ip_list(body.get("list", ""))
+            except ValueError as exc:
+                return self.send_json({"error": str(exc)}, 400)
+            me = self.client_address[0]
+            if lst and not ip_allowed(me, lst):
+                return self.send_json({"error": "this would lock you out: your own address %s is not in the list" % me}, 400)
+            with conf_lock:
+                conf = load_panel_conf()
+                if lst:
+                    conf["allow_ips"] = lst
+                else:
+                    conf.pop("allow_ips", None)
+                save_panel_conf(conf)
+            return self.send_json({"ok": True, "list": lst, "you": me})
+        if path == "/api/viewers/add":
+            if not self.require_admin():
+                return
+            try:
+                viewer_add(str(body.get("name", "")), str(body.get("password", "")))
+            except ValueError as exc:
+                return self.send_json({"error": str(exc)}, 400)
+            return self.send_json({"ok": True})
+        if path == "/api/viewers/delete":
+            if not self.require_admin():
+                return
+            viewer_delete(str(body.get("name", "")))
+            return self.send_json({"ok": True})
+        if path == "/api/advanced":
+            if not self.require_admin():
+                return
+            try:
+                set_max_slots(body.get("max_slots"))
+            except ValueError as exc:
+                return self.send_json({"error": str(exc)}, 400)
+            return self.send_json({"ok": True, "max_slots": max_slots()})
+        m = re.fullmatch(r"/api/slot/(\d+)/share", path)
+        if m:
+            if not self.require_admin():
+                return
+            n = int(m.group(1))
+            if not valid_slot(n):
+                return self.send_json({"error": "no such tunnel"}, 404)
+            return self.send_json({"ok": True, "share": share_set(n, bool(body.get("on", True)), body.get("label"), bool(body.get("regen")))})
         m = re.fullmatch(r"/api/slot/(\d+)/(limits|heal)", path)
         if m:
             if not self.require_admin():
@@ -3923,7 +4831,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             if not self.require_admin():
                 return
             try:
-                kid, key = apikey_create(body.get("name", ""), bool(body.get("full")))
+                kid, key = apikey_create(body.get("name", ""), bool(body.get("full")), body.get("ips", ""))
             except ValueError as exc:
                 return self.send_json({"error": str(exc)}, 400)
             return self.send_json({"ok": True, "id": kid, "key": key})
@@ -4003,6 +4911,13 @@ class Handler(http.server.BaseHTTPRequestHandler):
             elif conf.get("password") and hmac.compare_digest(
                     str(body.get("username", "")), conf.get("username", "admin")) and check_password(pw, conf["password"]):
                 owner = "admin"
+            if not owner and not body.get("link"):
+                vname = str(body.get("username", ""))
+                for v in conf.get("viewers", []):
+                    if hmac.compare_digest(v["name"], vname):
+                        if check_password(pw, v["hash"]):
+                            owner, how = "viewer:" + v["name"], "viewer"
+                        break
             bad_otp = False
             if owner and how == "password" and tfa_enabled(conf):
                 otp = str(body.get("otp", "")).strip()
@@ -4127,12 +5042,21 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 return self.send_json({"error": "bad API address"}, 400)
             tg["api"] = api
             tg["on"] = bool(body.get("on", True))
-            ev = [e for e in body.get("events", []) if e in ("tunnel", "login", "backup", "resource", "ssl", "health")]
-            try:
-                tg["th"] = min(99, max(50, int(body.get("th", 90))))
-            except (TypeError, ValueError):
-                tg["th"] = 90
-            tg["events"] = ev
+            if "events" in body:
+                tg["events"] = [e for e in body.get("events", []) if e in DEFAULT_EVENTS]
+            if "th" in body:
+                try:
+                    tg["th"] = min(99, max(50, int(body.get("th", 90))))
+                except (TypeError, ValueError):
+                    tg["th"] = 90
+            if "proxy" in body:
+                px = str(body.get("proxy") or "").strip()
+                if not px:
+                    tg.pop("proxy", None)
+                elif px != mask_proxy(tg.get("proxy", "")):
+                    if not valid_proxy(px):
+                        return self.send_json({"error": "the proxy must look like socks5://host:1080 or http://host:8080"}, 400)
+                    tg["proxy"] = px
             conf["tg"] = tg
             save_panel_conf(conf)
             return self.send_json({"ok": True})
@@ -4217,7 +5141,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 return self.send_json({"error": err}, 400)
             n = first_free_slot()
             if n is None:
-                return self.send_json({"error": "no free slot (max %d)" % MAX_SLOT}, 400)
+                return self.send_json({"error": "no free slot (max %d)" % max_slots()}, 400)
             write_reverse_slot(n, clean)
             run(["systemctl", "daemon-reload"])
             run(["systemctl", "enable", "nicetunnel@%d" % n])
@@ -4233,7 +5157,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 return self.send_json({"error": err}, 400)
             n = first_free_slot()
             if n is None:
-                return self.send_json({"error": "no free slot (max %d)" % MAX_SLOT}, 400)
+                return self.send_json({"error": "no free slot (max %d)" % max_slots()}, 400)
             write_spoof_slot(n, clean)
             run(["systemctl", "daemon-reload"])
             run(["systemctl", "enable", "nicetunnel@%d" % n])
@@ -4521,7 +5445,7 @@ def cmd_serve(args):
         h = load_panel_conf().get("host") or public_ip_detect()
         if not make_self_signed(h, args.cert, args.key):
             sys.exit("error: certificate missing and could not be created")
-    srv = http.server.ThreadingHTTPServer((args.bind, args.port), Handler)
+    srv = (V6Server if ":" in args.bind else http.server.ThreadingHTTPServer)((args.bind, args.port), Handler)
     if args.cert and args.key:
         import ssl
         ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
@@ -4537,6 +5461,13 @@ def cmd_serve(args):
         pass
 
 
+def cmd_disable_allowlist(args):
+    conf = load_panel_conf()
+    conf.pop("allow_ips", None)
+    save_panel_conf(conf)
+    print("The IP allowlist is off: the panel now accepts any IP address.")
+
+
 def cmd_disable_2fa(args):
     tfa_disable()
     print("Two-factor login is now off.")
@@ -4548,6 +5479,7 @@ def main():
     sub.add_parser("set-password", help="set or change the panel password").set_defaults(func=cmd_set_password)
     sub.add_parser("install", help="install and start the panel service").set_defaults(func=cmd_install)
     sub.add_parser("uninstall", help="remove the panel service").set_defaults(func=cmd_uninstall)
+    sub.add_parser("disable-allowlist", help="turn off the panel IP allowlist (locked out)").set_defaults(func=cmd_disable_allowlist)
     sub.add_parser("disable-2fa", help="turn off two-factor login (lost phone)").set_defaults(func=cmd_disable_2fa)
     sub.add_parser("update", help="download the latest panel and restart").set_defaults(func=cmd_update)
     s = sub.add_parser("serve", help="run the web panel")
