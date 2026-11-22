@@ -233,8 +233,8 @@ def write_spoof_slot(n, p):
         "TYPE=spoof\n"
         "ROLE=%(role)s\nTRANSPORT=%(transport)s\nTPORT=%(port)d\nPEER_IP=%(peer)s\n"
         "SPOOF_IPS=%(spoof_ips)s\nLISTEN_PORT=%(listen_port)s\nFORWARD=%(forward)s\n"
-        "NICETUNNEL_TOKEN=%(token)s\nRT_ARGS=\"%(args)s\"\n"
-    ) % dict(p, args=args)
+        "NICETUNNEL_TOKEN=%(token)s\nENGINE=%(engine)s\nRT_ARGS=\"%(args)s\"\n"
+    ) % dict(p, args=args, engine=p.get("engine") or "python")
     os.makedirs(CONF_DIR, mode=0o700, exist_ok=True)
     fd = os.open(slot_file(n), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
     with os.fdopen(fd, "w") as fh:
@@ -252,8 +252,8 @@ def write_reverse_slot(n, p):
         "TYPE=tcp\n"
         "ROLE=%(role)s\nBRIDGE=%(bridge)s\nPORTS=%(ports)s\n"
         "SERVER_IP=%(server_ip)s\nTARGET_HOST=%(target_host)s\n"
-        "NICETUNNEL_TOKEN=%(token)s\nRT_ARGS=\"%(args)s\"\n"
-    ) % dict(p, args=args)
+        "NICETUNNEL_TOKEN=%(token)s\nENGINE=%(engine)s\nRT_ARGS=\"%(args)s\"\n"
+    ) % dict(p, args=args, engine=p.get("engine") or "python")
     os.makedirs(CONF_DIR, mode=0o700, exist_ok=True)
     fd = os.open(slot_file(n), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
     with os.fdopen(fd, "w") as fh:
@@ -283,8 +283,11 @@ def validate_spoof(d):
     token = str(d.get("token", "")).strip() or secrets.token_hex(16)
     if len(token) < 16 or not re.fullmatch(r"[A-Za-z0-9._~+=-]+", token):
         return None, "token must be at least 16 characters (letters, digits, . _ ~ + = -)"
+    engine = str(d.get("engine", "python")).strip().lower()
+    if engine not in ("python", "rust"):
+        engine = "python"
     clean = {"role": role, "transport": transport, "peer": peer, "spoof_ips": spoof_ips,
-             "port": port, "token": token, "listen_port": 0, "forward": ""}
+             "port": port, "token": token, "listen_port": 0, "forward": "", "engine": engine}
     if role == "server":
         try:
             lp = int(d.get("listen_port", 0))
@@ -342,8 +345,11 @@ def validate_reverse(d):
     token = str(d.get("token", "")).strip() or secrets.token_hex(16)
     if len(token) < 16 or not re.fullmatch(r"[A-Za-z0-9._~+=-]+", token):
         return None, "token must be at least 16 characters (letters, digits, . _ ~ + = -)"
+    engine = str(d.get("engine", "python")).strip().lower()
+    if engine not in ("python", "rust"):
+        engine = "python"
     clean = {"role": role, "bridge": bridge, "ports": "", "server_ip": "",
-             "target_host": "", "token": token}
+             "target_host": "", "token": token, "engine": engine}
     if role == "server":
         ports = re.sub(r"\s+", "", str(d.get("ports", "")))
         if not valid_ports_list(ports):
@@ -1215,6 +1221,9 @@ function shell(){
       <div id="rports"><label>Ports to forward</label><input id="rport" placeholder="80,443,2000-2010"></div>
       <div id="rsip" class="hide"><label>Iran server real IP</label><input id="rserver" placeholder="203.0.113.5"></div>
       <div id="rth" class="hide"><label>Forward to HOST:PORT</label><input id="rtarget" value="127.0.0.1:80" placeholder="127.0.0.1:80"></div>
+      <div><label>${L("Engine","موتور")}</label><select id="rengine">
+        <option value="python">${L("Python (stable)","پایتون (پایدار)")}</option>
+        <option value="rust">${L("Rust (experimental)","راست (آزمایشی)")}</option></select></div>
       <div><label>${L("Create on","ساخت روی")}</label><select id="rpair"><option value="">${L("This server only","فقط این سرور")}</option></select></div>
       <div><label>Token (empty = generate)</label><input id="rtoken" placeholder="min 16 chars"></div>
     </div><p><button class="ok" id="rcreate">Create and connect</button></p><div id="rnew"></div></div>
@@ -1236,6 +1245,9 @@ function shell(){
       <div><label>Fake source IPs (from Spoof tester)</label><input id="spoof_ips" placeholder="10.0.0.0/28 or 1.2.3.4,5.5.5.1-5.5.5.9"></div>
       <div id="lp"><label>Listen UDP port (apps send here)</label><input id="listen_port" value="51820"></div>
       <div id="fw" class="hide"><label>Forward to HOST:PORT</label><input id="forward" value="127.0.0.1:51820"></div>
+      <div><label>${L("Engine","موتور")}</label><select id="engine">
+        <option value="python">${L("Python (stable)","پایتون (پایدار)")}</option>
+        <option value="rust">${L("Rust (experimental)","راست (آزمایشی)")}</option></select></div>
       <div><label>${L("Create on","ساخت روی")}</label><select id="spair"><option value="">${L("This server only","فقط این سرور")}</option></select></div>
       <div><label>Token (empty = generate)</label><input id="token" placeholder="min 16 chars"></div>
     </div><p><button class="ok" id="create">Create and connect</button></p><div id="newtoken"></div></div></div>
@@ -1817,13 +1829,13 @@ function pairLayout(){
 }
 document.addEventListener('change',e=>{ if(['rpair','spair','rrole','role'].includes(e.target.id)) setTimeout(pairLayout,0); });
 async function create(){
-  const body={role:$('#role').value, peer:$('#peer').value.trim(), transport:$('#transport').value, port:$('#port').value, spoof_ips:$('#spoof_ips').value, listen_port:$('#listen_port').value, forward:$('#forward').value, token:$('#token').value.trim()}, pair=$('#spair').value;
+  const body={role:$('#role').value, peer:$('#peer').value.trim(), transport:$('#transport').value, port:$('#port').value, spoof_ips:$('#spoof_ips').value, listen_port:$('#listen_port').value, forward:$('#forward').value, token:$('#token').value.trim(), engine:$('#engine').value}, pair=$('#spair').value;
   try{
     if(pair){ const r=await api('/api/pair/create',Object.assign({kind:'spoof',server_id:pair},body)); $('#newtoken').innerHTML=`<div class="msg good">${L('Created on both servers','روی هر دو سرور ساخته شد')}: #${r.local_slot} ⇄ ${esc(r.server)} #${r.remote_slot}</div>`; }
     else { const r=await api('/api/spoof',body); $('#newtoken').innerHTML=`<div class="msg good">Tunnel ${r.slot} created. Token (copy it to the other server):<br><code>${esc(r.token)}</code></div>`; }
     refresh(); _dsig=''; } catch(e){ msg(e.message,false); } }
 async function createRev(){
-  const body={role:$('#rrole').value, bridge:$('#rbridge').value, ports:$('#rport').value, server_ip:$('#rserver').value.trim(), target_host:$('#rtarget').value.trim(), token:$('#rtoken').value.trim()}, pair=$('#rpair').value;
+  const body={role:$('#rrole').value, bridge:$('#rbridge').value, ports:$('#rport').value, server_ip:$('#rserver').value.trim(), target_host:$('#rtarget').value.trim(), token:$('#rtoken').value.trim(), engine:$('#rengine').value}, pair=$('#rpair').value;
   try{
     if(pair){ const r=await api('/api/pair/create',Object.assign({kind:'reverse',server_id:pair},body)); $('#rnew').innerHTML=`<div class="msg good">${L('Created on both servers','روی هر دو سرور ساخته شد')}: #${r.local_slot} ⇄ ${esc(r.server)} #${r.remote_slot}</div>`; }
     else { const r=await api('/api/reverse',body); $('#rnew').innerHTML=`<div class="msg good">Tunnel ${r.slot} created. Token (copy it to the other server):<br><code>${esc(r.token)}</code></div>`; }
@@ -3347,12 +3359,12 @@ def pair_create(d):
     if kind == "spoof":
         base = {"transport": d.get("transport", "udp"), "spoof_ips": d.get("spoof_ips", ""), "port": d.get("port", 4500),
                 "listen_port": d.get("listen_port", 0), "forward": d.get("forward") or "127.0.0.1:51820",
-                "token": str(d.get("token", "")).strip()}
+                "token": str(d.get("token", "")).strip(), "engine": d.get("engine", "python")}
         loc, rem = dict(base, role=role, peer=remote_ip), dict(base, role=other, peer=local_ip)
         check, route = validate_spoof, "/api/spoof"
     else:
         srv_ip = local_ip if role == "server" else remote_ip
-        base = {"bridge": d.get("bridge", 7000), "token": str(d.get("token", "")).strip()}
+        base = {"bridge": d.get("bridge", 7000), "token": str(d.get("token", "")).strip(), "engine": d.get("engine", "python")}
         side = {"server": {"role": "server", "ports": d.get("ports", "")},
                 "client": {"role": "client", "server_ip": srv_ip, "target_host": d.get("target_host") or "127.0.0.1"}}
         loc, rem = dict(base, **side[role]), dict(base, **side[other])
