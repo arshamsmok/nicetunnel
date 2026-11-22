@@ -9,12 +9,11 @@
 #   NICETUNNEL_SIMPLE=1                         numbered prompts instead of arrow-key lists
 #   NO_COLOR=1                                  no colors at all
 
-VERSION="1.2.0"
+VERSION="1.3.0"
 CONF_DIR="${NICETUNNEL_CONF_DIR:-/etc/nicetunnel}"
 APP_DIR="${NICETUNNEL_APP_DIR:-/opt/nicetunnel}"
 BIN_PATH="${NICETUNNEL_BIN:-/usr/local/bin/nicetunnel}"
 UNIT_FILE="${NICETUNNEL_UNIT_DIR:-/etc/systemd/system}/nicetunnel@.service"
-PANEL_UNIT="${NICETUNNEL_UNIT_DIR:-/etc/systemd/system}/nicetunnel-panel.service"
 SYSCTL_FILE="${NICETUNNEL_SYSCTL_DIR:-/etc/sysctl.d}/99-nicetunnel.conf"
 TTY="${NICETUNNEL_TTY:-/dev/tty}"
 MAX_SLOT=10
@@ -278,18 +277,21 @@ first_free_slot() {
 
 load_slot() {
   TYPE=tcp; ROLE=""; BRIDGE=""; PORTS=""; SERVER_IP=""; TARGET_HOST=""; NICETUNNEL_TOKEN=""
-  TRANSPORT=""; TPORT=""; PEER_IP=""; SPOOF_IPS=""; LISTEN_PORT=""; FORWARD=""
+  TRANSPORT=""; TPORT=""; PEER_IP=""; SPOOF_IPS=""; LISTEN_PORT=""; FORWARD=""; ENGINE=python
   # shellcheck disable=SC1090
   . "$(slot_file "$1")"
 }
 
-write_slot() { # slot role bridge ports server_ip target_host token   (reverse TCP tunnel)
+rust_available() { [ -x "$APP_DIR/nicetunnel-rs" ]; }
+
+write_slot() { # slot role bridge ports server_ip target_host token engine   (reverse TCP tunnel)
   local args
   if [ "$2" = server ]; then
     args="server --bridge $3 --ports $4"
   else
     args="client --server $5 --bridge $3 --target-host $6"
   fi
+  args="$args --slot $1 --stats-dir $CONF_DIR/stats"
   mkdir -p "$CONF_DIR" && chmod 700 "$CONF_DIR" || return 1
   (
     umask 077
@@ -301,12 +303,13 @@ PORTS=$4
 SERVER_IP=$5
 TARGET_HOST=$6
 NICETUNNEL_TOKEN=$7
+ENGINE=${8:-python}
 RT_ARGS="$args"
 EOF
   )
 }
 
-# slot role transport port peer_ip spoof_ips listen_port forward token   (spoof tunnel)
+# slot role transport port peer_ip spoof_ips listen_port forward token engine  (spoof tunnel)
 #   role server = Iran side (entry, apps send UDP to listen_port)
 #   role client = foreign side (exit, forwards to "forward" = host:port)
 write_spoof_slot() {
@@ -317,6 +320,7 @@ write_spoof_slot() {
   else
     args="spoof-exit $args --forward $8"
   fi
+  args="$args --slot $1 --stats-dir $CONF_DIR/stats"
   mkdir -p "$CONF_DIR" && chmod 700 "$CONF_DIR" || return 1
   (
     umask 077
@@ -330,9 +334,71 @@ SPOOF_IPS=$6
 LISTEN_PORT=$7
 FORWARD=$8
 NICETUNNEL_TOKEN=$9
+ENGINE=${10:-python}
 RT_ARGS="$args"
 EOF
   )
+}
+
+panel_conf_json() { echo "$CONF_DIR/panel.json"; }
+
+panel_port() {
+  [ -f "$(panel_conf_json)" ] || return 0
+  python3 -c '
+import json, sys
+try:
+    print(json.load(open(sys.argv[1])).get("port", ""))
+except Exception:
+    pass
+' "$(panel_conf_json)" 2>/dev/null
+}
+
+panel_status() { systemctl is-enabled nicetunnel-panel >/dev/null 2>&1 && echo enabled || echo disabled; }
+
+# The panel manages its own password, port and systemd service (install/set-password/
+# uninstall/update subcommands) - nicetunnel.sh just forwards to it and lets it talk
+# to this terminal directly (it asks for the password itself).
+panel_run() { python3 "$APP_DIR/nicetunnel_panel.py" "$@"; }
+
+panel_setup() {
+  header
+  say "  The web panel is a password-protected page that shows and controls your tunnels."
+  say "  It listens on plain HTTP (no TLS) on a random port, reachable from the internet -"
+  say "  pick a real password, and prefer reaching it over SSH port-forwarding or a VPN"
+  say "  when you can, since the password itself travels unencrypted."
+  echo
+  panel_run install
+}
+
+panel_change_password() {
+  header
+  panel_run set-password
+}
+
+panel_disable() {
+  panel_run uninstall
+  ok "  Panel turned off and removed."
+}
+
+panel_menu() {
+  local st
+  while true; do
+    header
+    st="$(panel_status)"
+    if [ "$st" = enabled ]; then say "  Status: on, port $(panel_port)"; else say "  Status: off"; fi
+    echo
+    select_menu "Web panel" \
+      "1|Turn on / install|random port, set your password" \
+      "2|Change password|" \
+      "3|Turn off / remove|" \
+      "0|Back|" || return 0
+    case "$SEL" in
+      1) panel_setup; pause ;;
+      2) panel_change_password; pause ;;
+      3) panel_disable; pause ;;
+      0) return 0 ;;
+    esac
+  done
 }
 
 role_name() { if [ "$1" = server ]; then echo "Iran"; else echo "Foreign"; fi; }
@@ -364,6 +430,7 @@ show_settings() {
   kv "Slot" "$1"
   kv "Type" "$(type_name "$TYPE") tunnel"
   kv "Side" "$(role_name "$ROLE") server"
+  kv "Engine" "$([ "$ENGINE" = rust ] && echo "Rust (experimental)" || echo "Python (stable)")"
   if [ "$TYPE" = spoof ]; then
     kv "Packet type" "$TRANSPORT"
     [ "$TRANSPORT" = icmp ] || kv "Tunnel port" "$TPORT"
@@ -434,7 +501,7 @@ wiz_screen() { # step total
 }
 
 create_tunnel() {
-  local type="" role="" slot="" bridge="" ports="" server_ip="" target="" token="" gen
+  local type="" role="" slot="" bridge="" ports="" server_ip="" target="" token="" gen engine=python
   local transport="" tport="" peer="" spoofs="" lport="" forward="" cnt="" chk=""
   local i=0 total kind msg="" item p saved=0
   local -a items open_ports steps
@@ -446,13 +513,13 @@ create_tunnel() {
   # local variables of create_tunnel).
   wiz_plan() {
     if [ "$type" = spoof ]; then
-      steps=(type role slot peer transport)
+      steps=(type role slot engine peer transport)
       [ "$transport" = icmp ] || steps+=(tport)
       steps+=(spoofs)
       if [ "$role" = client ]; then steps+=(forward); else steps+=(lport); fi
       steps+=(token confirm)
     else
-      steps=(type role slot bridge)
+      steps=(type role slot engine bridge)
       if [ "$role" = client ]; then steps+=(serverip token target confirm); else steps+=(ports token confirm); fi
     fi
   }
@@ -500,6 +567,17 @@ create_tunnel() {
           msg="Slot must be a number from 1 to $MAX_SLOT."; continue
         fi
         slot="$REPLY"; hist_add "Slot number" "$slot"; wiz_next ;;
+
+      engine)
+        if rust_available; then
+          select_menu "Which engine should run this tunnel?" \
+            "1|Python (stable)|the original, fully tested engine" \
+            "2|Rust (experimental)|newer, faster - help test it; same wire protocol" || { wiz_back; continue; }
+          if [ "$SEL" = 1 ]; then engine=python; else engine=rust; fi
+        else
+          engine=python
+        fi
+        hist_add "Engine" "$([ "$engine" = rust ] && echo Rust || echo Python)"; wiz_next ;;
 
       bridge)
         ask "Bridge port (same on both servers)" "${bridge:-7000}" || { wiz_back; continue; }
@@ -581,6 +659,7 @@ create_tunnel() {
           kv "Type" "Spoof tunnel"
           kv "Side" "$(role_name "$role") server"
           kv "Slot" "$slot"
+          kv "Engine" "$([ "$engine" = rust ] && echo "Rust (experimental)" || echo "Python (stable)")"
           kv "Other server" "$peer"
           kv "Packet type" "$transport"
           [ "$transport" = icmp ] || kv "Tunnel port" "$tport"
@@ -594,6 +673,7 @@ create_tunnel() {
           kv "Type" "TCP tunnel"
           kv "Side" "$(role_name "$role") server"
           kv "Slot" "$slot"
+          kv "Engine" "$([ "$engine" = rust ] && echo "Rust (experimental)" || echo "Python (stable)")"
           kv "Bridge port" "$bridge"
           if [ "$role" = server ]; then
             kv "Public ports" "$ports"
@@ -632,10 +712,10 @@ create_tunnel() {
 
   slot_exists "$slot" && systemctl stop "nicetunnel@$slot" >/dev/null 2>&1
   if [ "$type" = spoof ]; then
-    write_spoof_slot "$slot" "$role" "$transport" "$tport" "$peer" "$spoofs" "$lport" "$forward" "$token" && saved=1
+    write_spoof_slot "$slot" "$role" "$transport" "$tport" "$peer" "$spoofs" "$lport" "$forward" "$token" "$engine" && saved=1
   else
     [ -n "$target" ] || target=127.0.0.1
-    write_slot "$slot" "$role" "$bridge" "$ports" "$server_ip" "$target" "$token" && saved=1
+    write_slot "$slot" "$role" "$bridge" "$ports" "$server_ip" "$target" "$token" "$engine" && saved=1
   fi
   if [ "$saved" != 1 ]; then
     header
@@ -804,8 +884,7 @@ uninstall_all() {
   [ "$REPLY" = yes ] || { say "  Cancelled."; return; }
   for n in $(list_slots); do systemctl disable --now "nicetunnel@$n" >/dev/null 2>&1; done
   systemctl disable --now nicetunnel-panel >/dev/null 2>&1
-  rm -f "$PANEL_UNIT"
-  rm -f "$UNIT_FILE"
+  rm -f "$UNIT_FILE" "${NICETUNNEL_UNIT_DIR:-/etc/systemd/system}/nicetunnel-panel.service"
   systemctl daemon-reload >/dev/null 2>&1
   rm -rf "$CONF_DIR" "$APP_DIR"
   rm -f "$BIN_PATH"
@@ -898,97 +977,6 @@ check_this_server() {
   say "  Whether the hosting network lets fake source addresses leave is what Receive/Send find out."
 }
 
-# --------------------------------------------------------------------------
-# web panel (reverse + spoof tunnels, browser UI on 127.0.0.1)
-# --------------------------------------------------------------------------
-panel_installed() { [ -f "$APP_DIR/nicetunnel_panel.py" ] && [ -f "$PANEL_UNIT" ]; }
-
-panel_state() {
-  if ! panel_installed; then echo "not installed"; return; fi
-  systemctl is-active nicetunnel-panel >/dev/null 2>&1 && echo "running" || echo "stopped"
-}
-
-panel_menu() {
-  while true; do
-    header
-    say "  Web panel: manage reverse and spoof tunnels from a browser."
-    say "  State: $(panel_state)"
-    echo
-    select_menu "Web panel" \
-      "1|Install / repair|download the panel and start it as a service" \
-      "2|Show access info|how to open it through an SSH tunnel" \
-      "3|Change password|set a new panel password" \
-      "4|Restart|restart the panel service" \
-      "5|Remove|stop the panel and delete its service" \
-      "0|Back|" || return 0
-    case "$SEL" in
-      1) panel_install; pause ;;
-      2) panel_info; pause ;;
-      3) panel_password; pause ;;
-      4) systemctl restart nicetunnel-panel 2>/dev/null && ok "  $CHK Restarted." || err "  Panel is not installed."; pause ;;
-      5) panel_remove; pause ;;
-      0) return 0 ;;
-    esac
-  done
-}
-
-panel_fetch() { # downloads nicetunnel_panel.py into $1 (uses REPO_RAW from source.conf)
-  local dest="$1" src
-  if [ -f "$APP_DIR/nicetunnel_panel.py" ] && [ ! -f "$CONF_DIR/source.conf" ]; then
-    cp "$APP_DIR/nicetunnel_panel.py" "$dest"; return 0
-  fi
-  if [ -f "$CONF_DIR/source.conf" ]; then . "$CONF_DIR/source.conf"; fi
-  src="${REPO_RAW:-}"
-  [ -n "$src" ] || { err "  No GitHub source is recorded on this server."; return 1; }
-  curl -fsSL --retry 3 --connect-timeout 15 "$src/nicetunnel_panel.py" -o "$dest" || return 1
-  python3 -c 'import ast,sys; ast.parse(open(sys.argv[1]).read())' "$dest" 2>/dev/null
-}
-
-panel_install() {
-  local tmp
-  header
-  tmp="$(mktemp -d)"
-  say "  Downloading the panel..."
-  if ! panel_fetch "$tmp/nicetunnel_panel.py"; then
-    err "  Could not download nicetunnel_panel.py. Check the network or copy the file to $APP_DIR."
-    rm -rf "$tmp"; return 1
-  fi
-  install -d -m 755 "$APP_DIR"
-  install -m 755 "$tmp/nicetunnel_panel.py" "$APP_DIR/nicetunnel_panel.py"
-  rm -rf "$tmp"
-  NICETUNNEL_APP_DIR="$APP_DIR" NICETUNNEL_CONF_DIR="$CONF_DIR" python3 "$APP_DIR/nicetunnel_panel.py" install <&3
-}
-
-panel_info() {
-  header
-  if ! panel_installed; then err "  The panel is not installed. Choose \"Install / repair\" first."; return; fi
-  local ip
-  ip="$(hostname -I 2>/dev/null | tr ' ' '\n' | grep -v : | grep -v '^127\.' | head -n1)"
-  say "  State: $(panel_state)"
-  echo
-  local port user
-  port="$(python3 -c "import json;print(json.load(open('$CONF_DIR/panel.json')).get('port',''))" 2>/dev/null)"
-  user="$(python3 -c "import json;print(json.load(open('$CONF_DIR/panel.json')).get('username','admin'))" 2>/dev/null)"
-  say "  Open in your browser:"
-  ok  "    http://${ip:-SERVER_IP}:${port}"
-  say "  Username: ${user}   (open TCP port ${port} in your provider firewall)"
-}
-
-panel_password() {
-  header
-  if ! panel_installed; then err "  The panel is not installed."; return; fi
-  NICETUNNEL_CONF_DIR="$CONF_DIR" python3 "$APP_DIR/nicetunnel_panel.py" set-password <&3
-}
-
-panel_remove() {
-  header
-  ask "Type yes to remove the web panel (tunnels are kept)"
-  [ "$REPLY" = yes ] || { say "  Cancelled."; return; }
-  NICETUNNEL_APP_DIR="$APP_DIR" NICETUNNEL_CONF_DIR="$CONF_DIR" python3 "$APP_DIR/nicetunnel_panel.py" uninstall
-  rm -f "$APP_DIR/nicetunnel_panel.py"
-  ok "  $CHK Web panel removed."
-}
-
 spoof_tester() {
   while true; do
     header
@@ -1017,7 +1005,7 @@ main_menu() {
       "1|Create tunnel|TCP tunnel or spoof tunnel, Iran or foreign side" \
       "2|Manage tunnels|start, stop, logs, delete" \
       "3|Spoof tester|find out which fake source IPs get through" \
-      "4|Web panel|manage spoof tunnels from a browser" \
+      "4|Web panel|password-protected page to monitor and control tunnels" \
       "5|Optimize server|turn on BBR congestion control" \
       "6|Theme|change the colors of this menu" \
       "7|Update|get the newest version from GitHub" \

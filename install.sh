@@ -8,7 +8,7 @@
 # downloading (handy when a server cannot reach GitHub):  bash install.sh
 set -euo pipefail
 
-GITHUB_USER="arshamsmok"   # <-- EDIT: your GitHub username
+GITHUB_USER="YOUR_GITHUB_USERNAME"   # <-- EDIT: your GitHub username
 GITHUB_REPO="nicetunnel"             # <-- EDIT only if your repository has another name
 REPO_RAW="${NICETUNNEL_RAW:-https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/main}"
 
@@ -32,6 +32,10 @@ if ! need python3; then
 fi
 
 # --- get the files ----------------------------------------------------------
+# nicetunnel-rs (the optional Rust engine) is fetched best-effort: if it is
+# missing or fails to download, installation still completes fully and every
+# tunnel just uses the Python engine, exactly as before - nicetunnel-rs only
+# unlocks the "Engine: Rust" choice per tunnel in the menu.
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd || true)"
 LOCAL=0
 if [ -n "$HERE" ] && [ -f "$HERE/nicetunnel.py" ] && [ -f "$HERE/nicetunnel.sh" ] && [ -f "$HERE/nicetunnel_panel.py" ]; then
@@ -44,6 +48,7 @@ trap 'rm -rf "$WORK"' EXIT
 if [ "$LOCAL" = 1 ]; then
   echo "Installing from local files in $HERE"
   cp "$HERE/nicetunnel.py" "$HERE/nicetunnel.sh" "$HERE/nicetunnel_panel.py" "$WORK/"
+  [ -f "$HERE/nicetunnel-rs" ] && cp "$HERE/nicetunnel-rs" "$WORK/"
 else
   case "$REPO_RAW" in
     *YOUR_GITHUB_USERNAME*) die "open install.sh and set GITHUB_USER to your GitHub username first." ;;
@@ -56,6 +61,10 @@ else
     curl -fsSL --retry 3 --connect-timeout 15 "$REPO_RAW/$f" -o "$WORK/$f" \
       || die "could not download $f. If this server cannot reach GitHub, copy the files here with scp and run: bash install.sh"
   done
+  if ! curl -fsSL --retry 3 --connect-timeout 15 "$REPO_RAW/nicetunnel-rs" -o "$WORK/nicetunnel-rs" 2>/dev/null; then
+    echo "Note: nicetunnel-rs (optional, experimental) not found/downloaded - every tunnel will use the Python engine." >&2
+    rm -f "$WORK/nicetunnel-rs"
+  fi
 fi
 
 python3 -c 'import ast,sys; ast.parse(open(sys.argv[1]).read())' "$WORK/nicetunnel.py" \
@@ -63,6 +72,10 @@ python3 -c 'import ast,sys; ast.parse(open(sys.argv[1]).read())' "$WORK/nicetunn
 python3 -c 'import ast,sys; ast.parse(open(sys.argv[1]).read())' "$WORK/nicetunnel_panel.py" \
   || die "nicetunnel_panel.py is not valid Python (incomplete download?)."
 bash -n "$WORK/nicetunnel.sh" || die "nicetunnel.sh is not a valid script (incomplete download?)."
+if [ -f "$WORK/nicetunnel-rs" ] && [ ! -s "$WORK/nicetunnel-rs" ]; then
+  echo "Note: nicetunnel-rs downloaded empty - ignoring it, every tunnel will use the Python engine." >&2
+  rm -f "$WORK/nicetunnel-rs"
+fi
 
 # --- install ----------------------------------------------------------------
 install -d -m 755 "$APP_DIR" "$UNIT_DIR" "$(dirname "$BIN_PATH")"
@@ -71,8 +84,17 @@ install -d -m 700 "$CONF_DIR"
 install -m 755 "$WORK/nicetunnel.py" "$APP_DIR/nicetunnel.py.new" && mv -f "$APP_DIR/nicetunnel.py.new" "$APP_DIR/nicetunnel.py"
 install -m 755 "$WORK/nicetunnel_panel.py" "$APP_DIR/nicetunnel_panel.py.new" && mv -f "$APP_DIR/nicetunnel_panel.py.new" "$APP_DIR/nicetunnel_panel.py"
 install -m 755 "$WORK/nicetunnel.sh" "$BIN_PATH.new" && mv -f "$BIN_PATH.new" "$BIN_PATH"
+if [ -f "$WORK/nicetunnel-rs" ]; then
+  install -m 755 "$WORK/nicetunnel-rs" "$APP_DIR/nicetunnel-rs.new" && mv -f "$APP_DIR/nicetunnel-rs.new" "$APP_DIR/nicetunnel-rs"
+  echo "nicetunnel-rs (experimental Rust engine) installed - selectable per tunnel in the menu."
+fi
 
 PYBIN="$(command -v python3)"
+# ExecStart picks the engine per slot from ENGINE in slot%i.env (set by the
+# menu's "Create tunnel" wizard). Slots saved before this engine choice
+# existed have no ENGINE value, which is empty/unset here too, so the
+# comparison below falls through to Python automatically - unchanged
+# behavior for every tunnel created with an older version of nicetunnel.sh.
 cat >"$UNIT_DIR/nicetunnel@.service" <<EOF
 [Unit]
 Description=nicetunnel slot %i
@@ -81,7 +103,7 @@ Wants=network-online.target
 
 [Service]
 EnvironmentFile=$CONF_DIR/slot%i.env
-ExecStart=$PYBIN $APP_DIR/nicetunnel.py \$RT_ARGS
+ExecStart=/bin/sh -c 'if [ "\$ENGINE" = rust ] && [ -x "$APP_DIR/nicetunnel-rs" ]; then exec "$APP_DIR/nicetunnel-rs" \$RT_ARGS; else exec "$PYBIN" "$APP_DIR/nicetunnel.py" \$RT_ARGS; fi'
 Restart=always
 RestartSec=3
 LimitNOFILE=1048576
