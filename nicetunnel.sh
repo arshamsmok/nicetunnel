@@ -278,18 +278,21 @@ first_free_slot() {
 
 load_slot() {
   TYPE=tcp; ROLE=""; BRIDGE=""; PORTS=""; SERVER_IP=""; TARGET_HOST=""; NICETUNNEL_TOKEN=""
-  TRANSPORT=""; TPORT=""; PEER_IP=""; SPOOF_IPS=""; LISTEN_PORT=""; FORWARD=""
+  TRANSPORT=""; TPORT=""; PEER_IP=""; SPOOF_IPS=""; LISTEN_PORT=""; FORWARD=""; ENGINE=python
   # shellcheck disable=SC1090
   . "$(slot_file "$1")"
 }
 
-write_slot() { # slot role bridge ports server_ip target_host token   (reverse TCP tunnel)
+rust_available() { [ -x "$APP_DIR/nicetunnel-rs" ]; }
+
+write_slot() { # slot role bridge ports server_ip target_host token engine   (reverse TCP tunnel)
   local args
   if [ "$2" = server ]; then
     args="server --bridge $3 --ports $4"
   else
     args="client --server $5 --bridge $3 --target-host $6"
   fi
+  args="$args --slot $1 --stats-dir $CONF_DIR/stats"
   mkdir -p "$CONF_DIR" && chmod 700 "$CONF_DIR" || return 1
   (
     umask 077
@@ -301,12 +304,13 @@ PORTS=$4
 SERVER_IP=$5
 TARGET_HOST=$6
 NICETUNNEL_TOKEN=$7
+ENGINE=${8:-python}
 RT_ARGS="$args"
 EOF
   )
 }
 
-# slot role transport port peer_ip spoof_ips listen_port forward token   (spoof tunnel)
+# slot role transport port peer_ip spoof_ips listen_port forward token engine  (spoof tunnel)
 #   role server = Iran side (entry, apps send UDP to listen_port)
 #   role client = foreign side (exit, forwards to "forward" = host:port)
 write_spoof_slot() {
@@ -317,6 +321,7 @@ write_spoof_slot() {
   else
     args="spoof-exit $args --forward $8"
   fi
+  args="$args --slot $1 --stats-dir $CONF_DIR/stats"
   mkdir -p "$CONF_DIR" && chmod 700 "$CONF_DIR" || return 1
   (
     umask 077
@@ -330,6 +335,7 @@ SPOOF_IPS=$6
 LISTEN_PORT=$7
 FORWARD=$8
 NICETUNNEL_TOKEN=$9
+ENGINE=${10:-python}
 RT_ARGS="$args"
 EOF
   )
@@ -364,6 +370,7 @@ show_settings() {
   kv "Slot" "$1"
   kv "Type" "$(type_name "$TYPE") tunnel"
   kv "Side" "$(role_name "$ROLE") server"
+  kv "Engine" "$([ "$ENGINE" = rust ] && echo "Rust (experimental)" || echo "Python (stable)")"
   if [ "$TYPE" = spoof ]; then
     kv "Packet type" "$TRANSPORT"
     [ "$TRANSPORT" = icmp ] || kv "Tunnel port" "$TPORT"
@@ -434,7 +441,7 @@ wiz_screen() { # step total
 }
 
 create_tunnel() {
-  local type="" role="" slot="" bridge="" ports="" server_ip="" target="" token="" gen
+  local type="" role="" slot="" bridge="" ports="" server_ip="" target="" token="" gen engine=python
   local transport="" tport="" peer="" spoofs="" lport="" forward="" cnt="" chk=""
   local i=0 total kind msg="" item p saved=0
   local -a items open_ports steps
@@ -446,13 +453,13 @@ create_tunnel() {
   # local variables of create_tunnel).
   wiz_plan() {
     if [ "$type" = spoof ]; then
-      steps=(type role slot peer transport)
+      steps=(type role slot engine peer transport)
       [ "$transport" = icmp ] || steps+=(tport)
       steps+=(spoofs)
       if [ "$role" = client ]; then steps+=(forward); else steps+=(lport); fi
       steps+=(token confirm)
     else
-      steps=(type role slot bridge)
+      steps=(type role slot engine bridge)
       if [ "$role" = client ]; then steps+=(serverip token target confirm); else steps+=(ports token confirm); fi
     fi
   }
@@ -500,6 +507,17 @@ create_tunnel() {
           msg="Slot must be a number from 1 to $MAX_SLOT."; continue
         fi
         slot="$REPLY"; hist_add "Slot number" "$slot"; wiz_next ;;
+
+      engine)
+        if rust_available; then
+          select_menu "Which engine should run this tunnel?" \
+            "1|Python (stable)|the original, fully tested engine" \
+            "2|Rust (experimental)|newer, faster - help test it; same wire protocol" || { wiz_back; continue; }
+          if [ "$SEL" = 1 ]; then engine=python; else engine=rust; fi
+        else
+          engine=python
+        fi
+        hist_add "Engine" "$([ "$engine" = rust ] && echo Rust || echo Python)"; wiz_next ;;
 
       bridge)
         ask "Bridge port (same on both servers)" "${bridge:-7000}" || { wiz_back; continue; }
@@ -581,6 +599,7 @@ create_tunnel() {
           kv "Type" "Spoof tunnel"
           kv "Side" "$(role_name "$role") server"
           kv "Slot" "$slot"
+          kv "Engine" "$([ "$engine" = rust ] && echo "Rust (experimental)" || echo "Python (stable)")"
           kv "Other server" "$peer"
           kv "Packet type" "$transport"
           [ "$transport" = icmp ] || kv "Tunnel port" "$tport"
@@ -594,6 +613,7 @@ create_tunnel() {
           kv "Type" "TCP tunnel"
           kv "Side" "$(role_name "$role") server"
           kv "Slot" "$slot"
+          kv "Engine" "$([ "$engine" = rust ] && echo "Rust (experimental)" || echo "Python (stable)")"
           kv "Bridge port" "$bridge"
           if [ "$role" = server ]; then
             kv "Public ports" "$ports"
@@ -632,10 +652,10 @@ create_tunnel() {
 
   slot_exists "$slot" && systemctl stop "nicetunnel@$slot" >/dev/null 2>&1
   if [ "$type" = spoof ]; then
-    write_spoof_slot "$slot" "$role" "$transport" "$tport" "$peer" "$spoofs" "$lport" "$forward" "$token" && saved=1
+    write_spoof_slot "$slot" "$role" "$transport" "$tport" "$peer" "$spoofs" "$lport" "$forward" "$token" "$engine" && saved=1
   else
     [ -n "$target" ] || target=127.0.0.1
-    write_slot "$slot" "$role" "$bridge" "$ports" "$server_ip" "$target" "$token" && saved=1
+    write_slot "$slot" "$role" "$bridge" "$ports" "$server_ip" "$target" "$token" "$engine" && saved=1
   fi
   if [ "$saved" != 1 ]; then
     header
