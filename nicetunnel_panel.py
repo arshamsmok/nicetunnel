@@ -47,6 +47,7 @@ APP_DIR = os.environ.get("NICETUNNEL_APP_DIR", "/opt/nicetunnel")
 CONF_DIR = os.environ.get("NICETUNNEL_CONF_DIR", "/etc/nicetunnel")
 PANEL_CONF = os.path.join(CONF_DIR, "panel.json")
 ENGINE = os.path.join(APP_DIR, "nicetunnel.py")
+RUST_BIN = os.path.join(APP_DIR, "nicetunnel-rs")
 MAX_SLOT = 10
 SESSION_TTL = 12 * 3600
 LOGIN_FAILS_MAX = 5
@@ -190,6 +191,7 @@ def list_slots(spoof_only=False):
                 "spoof_ips": env.get("SPOOF_IPS", ""),
                 "listen_port": env.get("LISTEN_PORT", ""),
                 "forward": env.get("FORWARD", ""),
+                "engine": env.get("ENGINE", "python"),
                 "state": state,
             })
         else:
@@ -201,6 +203,8 @@ def list_slots(spoof_only=False):
                 "ports": env.get("PORTS", ""),
                 "server_ip": env.get("SERVER_IP", ""),
                 "target_host": env.get("TARGET_HOST", ""),
+                "engine": env.get("ENGINE", "python"),
+                "udp_ports": env.get("UDP_PORTS", ""),
                 "state": state,
             })
     return out
@@ -245,6 +249,8 @@ def write_reverse_slot(n, p):
     """Same file format as nicetunnel.sh write_slot(), so the menu understands it."""
     if p["role"] == "server":
         args = "server --bridge %s --ports %s" % (p["bridge"], p["ports"])
+        if p.get("udp_ports"):
+            args += " --udp-ports %s" % p["udp_ports"]
     else:
         args = "client --server %s --bridge %s --target-host %s" % (
             p["server_ip"], p["bridge"], p["target_host"])
@@ -252,12 +258,34 @@ def write_reverse_slot(n, p):
         "TYPE=tcp\n"
         "ROLE=%(role)s\nBRIDGE=%(bridge)s\nPORTS=%(ports)s\n"
         "SERVER_IP=%(server_ip)s\nTARGET_HOST=%(target_host)s\n"
-        "NICETUNNEL_TOKEN=%(token)s\nENGINE=%(engine)s\nRT_ARGS=\"%(args)s\"\n"
-    ) % dict(p, args=args, engine=p.get("engine") or "python")
+        "NICETUNNEL_TOKEN=%(token)s\nENGINE=%(engine)s\nUDP_PORTS=%(udp_ports)s\nRT_ARGS=\"%(args)s\"\n"
+    ) % dict(p, args=args, engine=p.get("engine") or "python", udp_ports=p.get("udp_ports") or "")
     os.makedirs(CONF_DIR, mode=0o700, exist_ok=True)
     fd = os.open(slot_file(n), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
     with os.fdopen(fd, "w") as fh:
         fh.write(body)
+
+
+def rust_available():
+    """True if nicetunnel-rs is installed and runnable on THIS server. Same check
+    as nicetunnel.sh's rust_available() - every server validates its own binary,
+    which matters for pairing: the local half and the remote half are checked by
+    their own panel process, on their own filesystem."""
+    try:
+        return os.path.isfile(RUST_BIN) and os.access(RUST_BIN, os.X_OK)
+    except OSError:
+        return False
+
+
+def engine_missing_binary(clean):
+    """None if clean['engine'] can actually run here, else a ready-to-show error.
+    Call this right before writing+starting a slot (create, edit, and the local
+    half of pairing) so a missing Rust binary is a clear error BEFORE anything is
+    written or (re)started - not a vague 'saved but could not start' afterwards."""
+    if clean.get("engine") == "rust" and not rust_available():
+        return ("the Rust engine (nicetunnel-rs) is not installed on this server - "
+                "install it first (see the menu's update step), or pick Python instead")
+    return None
 
 
 def validate_spoof(d):
@@ -349,12 +377,19 @@ def validate_reverse(d):
     if engine not in ("python", "rust"):
         engine = "python"
     clean = {"role": role, "bridge": bridge, "ports": "", "server_ip": "",
-             "target_host": "", "token": token, "engine": engine}
+             "target_host": "", "token": token, "engine": engine, "udp_ports": ""}
     if role == "server":
         ports = re.sub(r"\s+", "", str(d.get("ports", "")))
         if not valid_ports_list(ports):
             return None, "ports must look like 80,443,2000-2010"
         clean["ports"] = ports
+        udp_ports = re.sub(r"\s+", "", str(d.get("udp_ports", "")))
+        if udp_ports:
+            if not valid_ports_list(udp_ports):
+                return None, "UDP (gaming) ports must look like 80,443,2000-2010"
+            if engine != "rust":
+                return None, "UDP gaming ports need the Rust engine - pick Rust, or clear the UDP ports field"
+        clean["udp_ports"] = udp_ports
     else:
         sip = str(d.get("server_ip", "")).strip()
         if not valid_ipv4(sip):
@@ -1219,11 +1254,12 @@ function shell(){
         <option value="client">Foreign (client: connects to Iran)</option></select></div>
       <div><label>Bridge port (both sides)</label><input id="rbridge" value="7000"></div>
       <div id="rports"><label>Ports to forward</label><input id="rport" placeholder="80,443,2000-2010"></div>
+      <div id="rudp" class="hide"><label>${L("Gaming UDP ports (optional, Rust only)","پورت‌های UDP گیمینگ (اختیاری، فقط Rust)")}</label><input id="rudpports" placeholder="19132,27015:27016"></div>
       <div id="rsip" class="hide"><label>Iran server real IP</label><input id="rserver" placeholder="203.0.113.5"></div>
       <div id="rth" class="hide"><label>Forward to HOST:PORT</label><input id="rtarget" value="127.0.0.1:80" placeholder="127.0.0.1:80"></div>
       <div><label>${L("Engine","موتور")}</label><select id="rengine">
         <option value="python">${L("Python (stable)","پایتون (پایدار)")}</option>
-        <option value="rust">${L("Rust (experimental)","راست (آزمایشی)")}</option></select></div>
+        <option value="rust">${L("Rust (experimental)","راست (آزمایشی)")}</option></select><small id="rengine_hint" class="dnote"></small></div>
       <div><label>${L("Create on","ساخت روی")}</label><select id="rpair"><option value="">${L("This server only","فقط این سرور")}</option></select></div>
       <div><label>Token (empty = generate)</label><input id="rtoken" placeholder="min 16 chars"></div>
     </div><p><button class="ok" id="rcreate">Create and connect</button></p><div id="rnew"></div></div>
@@ -1247,7 +1283,7 @@ function shell(){
       <div id="fw" class="hide"><label>Forward to HOST:PORT</label><input id="forward" value="127.0.0.1:51820"></div>
       <div><label>${L("Engine","موتور")}</label><select id="engine">
         <option value="python">${L("Python (stable)","پایتون (پایدار)")}</option>
-        <option value="rust">${L("Rust (experimental)","راست (آزمایشی)")}</option></select></div>
+        <option value="rust">${L("Rust (experimental)","راست (آزمایشی)")}</option></select><small id="engine_hint" class="dnote"></small></div>
       <div><label>${L("Create on","ساخت روی")}</label><select id="spair"><option value="">${L("This server only","فقط این سرور")}</option></select></div>
       <div><label>Token (empty = generate)</label><input id="token" placeholder="min 16 chars"></div>
     </div><p><button class="ok" id="create">Create and connect</button></p><div id="newtoken"></div></div></div>
@@ -1382,8 +1418,10 @@ function shell(){
   document.querySelectorAll('.tab').forEach(e=>e.onclick=()=>sub(e.dataset.t));
   $('#lo').onclick = logout;
   $('#role').onchange = () => { const s=$('#role').value==='server'; $('#lp').classList.toggle('hide',!s); $('#fw').classList.toggle('hide',s); };
-  $('#rrole').onchange = () => { const s=$('#rrole').value==='server';
-    $('#rports').classList.toggle('hide',!s); $('#rsip').classList.toggle('hide',s); $('#rth').classList.toggle('hide',s); };
+  const rrVis = () => { const s=$('#rrole').value==='server';
+    $('#rports').classList.toggle('hide',!s); $('#rsip').classList.toggle('hide',s); $('#rth').classList.toggle('hide',s);
+    $('#rudp').classList.toggle('hide', !(s && $('#rengine').value==='rust')); };
+  $('#rrole').onchange = rrVis; $('#rengine').onchange = rrVis;
   $('#create').onclick = create; $('#rcreate').onclick = createRev; $('#ssave').onclick = saveAccount;
   $('#sinfo').textContent = location.origin + (BASE||'/');
   const segSet=(id,cur,fn)=>{ const g=$(id); g.querySelectorAll('button').forEach(b=>{ b.classList.toggle('on',b.dataset.v===cur); b.onclick=()=>{ fn(b.dataset.v); g.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b)); }; }); };
@@ -1500,7 +1538,7 @@ function stCls(s){ return s==='active'?'active':s==='failed'?'failed':'off'; }
 function stTxt(s){ return s==='active'?L('Flowing','جاری'):s==='failed'?L('Broken','قطع'):(s==='inactive'||s==='unknown')?L('Stopped','خاموش'):esc(s); }
 function slotProto(s){ return s.kind==='reverse' ? 'tcp:'+(s.bridge||'') : (s.transport||'spoof')+':'+(s.port||''); }
 function slotDetail(s){
-  if(s.kind==='reverse') return 'reverse '+slotProto(s)+' · '+(s.role==='server' ? 'listen '+(s.ports||'-') : 'forward '+(s.target_host||'-'));
+  if(s.kind==='reverse') return 'reverse '+slotProto(s)+' · '+(s.role==='server' ? 'listen '+(s.ports||'-') : 'forward '+(s.target_host||'-'))+(s.udp_ports?' · '+L('gaming UDP','گیمینگ UDP')+' '+s.udp_ports:'');
   return 'spoof '+slotProto(s)+' · '+(s.role==='server' ? 'UDP '+(s.listen_port||'-') : '→ '+(s.forward||'-'))+(s.spoof_ips?' · src '+s.spoof_ips:'');
 }
 const latCls=s=>s.lat==null?'':(s.loss>=20||s.lat>300)?'bad':(s.lat>150?'warn':'good');
@@ -1619,9 +1657,15 @@ function splash(){
 }
 function goLogs(n){ dmClose(); _lgsel=String(n); _lgsig=''; const s=$('#lgsel'); if(s) s.dataset.o=''; go('logs'); }
 function slotBtns(n){ return `<button class="sm" onclick="openDetail(${n})">${L('Details','جزئیات')}</button><button class="sm ok" onclick="act(${n},'start')">${L('Connect','اتصال')}</button><button class="sm" onclick="act(${n},'restart')">${L('Restart','ری‌استارت')}</button><button class="sm" onclick="act(${n},'stop')">${L('Stop','توقف')}</button><button class="sm" onclick="goLogs(${n})">${L('Logs','لاگ')}</button><button class="sm danger" onclick="del(${n})">${L('Delete','حذف')}</button>`; }
+function engineHints(){
+  const ok = window._st && window._st.rust_available;
+  const txt = ok ? '' : L('Rust is not installed on this server - the menu\'s update step installs it, or pick Python.',
+                           'موتور Rust روی این سرور نصب نیست - از مرحله آپدیت منو نصبش کن، یا پایتون رو انتخاب کن.');
+  ['rengine_hint','engine_hint'].forEach(id=>{ const e=$('#'+id); if(e) e.textContent = txt; });
+}
 function slotTable(slots, full){
   if(!slots.length) return `<div class="dempty">${L('No tunnel yet. Open Create to add one.','هنوز تونلی نیست. از بخش ساخت یکی بسازید.')}</div>`;
-  return '<div class="tcards">'+slots.map(s=>`<div class="tcard"><div class="tch"><i class="tb ${stCls(s.state)}"></i><div class="tm"><b>#${s.slot} · ${esc(peerOf(s))}<em class="tg">${esc(s.side)}</em></b><span>${esc(slotDetail(s))}</span></div><div class="tp ${stCls(s.state)}">${stTxt(s.state)}</div></div>${mxChips(s)?`<div class="mxs">${mxChips(s)}</div>`:''}${full?`<div class="tact">${slotBtns(s.slot)}</div>`:''}</div>`).join('')+'</div>';
+  return '<div class="tcards">'+slots.map(s=>`<div class="tcard"><div class="tch"><i class="tb ${stCls(s.state)}"></i><div class="tm"><b>#${s.slot} · ${esc(peerOf(s))}<em class="tg">${esc(s.side)}</em>${s.engine==='rust'?'<em class="tg">Rust</em>':''}</b><span>${esc(slotDetail(s))}</span></div><div class="tp ${stCls(s.state)}">${stTxt(s.state)}</div></div>${mxChips(s)?`<div class="mxs">${mxChips(s)}</div>`:''}${full?`<div class="tact">${slotBtns(s.slot)}</div>`:''}</div>`).join('')+'</div>';
 }
 /* ---- charts ---- */
 function drawLines(cv, series, fmt){
@@ -1642,8 +1686,11 @@ function inp(id,label,val,extra){ return `<div class="ef"><label for="${id}">${l
 function editForm(s){
   const sp=s.kind==='spoof', srv=s.role==='server';
   const f= sp ? inp('ed_peer',L('Peer IP','آی‌پی طرف مقابل'),s.peer)+`<div class="ef"><label>${L('Packet type','نوع بسته')}</label><select id="ed_transport">${['udp','tcp','icmp'].map(t=>`<option ${t===s.transport?'selected':''}>${t}</option>`).join('')}</select></div>`+inp('ed_port',L('Tunnel port','پورت تونل'),s.port)+inp('ed_spoof_ips',L('Spoofed IPs','آی‌پی‌های جعلی'),s.spoof_ips)+(srv?inp('ed_listen_port',L('Listen port','پورت شنود'),s.listen_port):inp('ed_forward',L('Forward to (host:port)','فوروارد به (host:port)'),s.forward))
-   : inp('ed_bridge',L('Bridge port','پورت پل'),s.bridge)+(srv?inp('ed_ports',L('Forwarded ports','پورت‌های انتقالی'),s.ports):inp('ed_server_ip',L('Server IP','آی‌پی سرور'),s.server_ip)+inp('ed_target_host',L('Target host','مقصد'),s.target_host));
-  return f+inp('ed_token',L('Token','توکن'),'', `type="password" placeholder="${L('leave empty to keep','خالی = بدون تغییر')}" autocomplete="new-password"`);
+   : inp('ed_bridge',L('Bridge port','پورت پل'),s.bridge)+(srv?inp('ed_ports',L('Forwarded ports','پورت‌های انتقالی'),s.ports)+inp('ed_udp_ports',L('Gaming UDP ports (Rust only)','پورت‌های UDP گیمینگ (فقط Rust)'),s.udp_ports):inp('ed_server_ip',L('Server IP','آی‌پی سرور'),s.server_ip)+inp('ed_target_host',L('Target host','مقصد'),s.target_host));
+  const eng=`<div class="ef"><label>${L('Engine','موتور')}</label><select id="ed_engine">
+    <option value="python" ${s.engine==='rust'?'':'selected'}>${L('Python (stable)','پایتون (پایدار)')}</option>
+    <option value="rust" ${s.engine==='rust'?'selected':''}>${L('Rust (experimental)','راست (آزمایشی)')}</option></select>${(window._st&&!window._st.rust_available)?`<small class="dnote">${L('Rust is not installed on this server','Rust روی این سرور نصب نیست')}</small>`:''}</div>`;
+  return f+eng+inp('ed_token',L('Token','توکن'),'', `type="password" placeholder="${L('leave empty to keep','خالی = بدون تغییر')}" autocomplete="new-password"`);
 }
 async function openDetail(n){
   dmClose(); closeFly();
@@ -1674,7 +1721,7 @@ async function dmLoad(){
      <div class="tact">${slotBtns(n)}</div>`;
     wireDetailExtras(n,d);
     $('#dmprobe').onclick=async()=>{ const b=$('#dmprobe'); b.disabled=true; const r=await apiX('/api/slot/'+n+'/probe',{}); b.disabled=false; if(r.s!==200) alert(r.j.error||'error'); dmLoad(); };
-    $('#dmsave').onclick=async()=>{ const body={}; ['peer','transport','port','spoof_ips','listen_port','forward','bridge','ports','server_ip','target_host','token'].forEach(k=>{ const e=$('#ed_'+k); if(e&&e.value.trim()!=='') body[k]=e.value.trim(); }); const b=$('#dmsave'); b.disabled=true; const r=await apiX('/api/slot/'+n+'/edit',body); b.disabled=false; $('#dmmsg').style.color=r.s===200?'#34d0c3':'#f0707a'; $('#dmmsg').textContent=r.s===200?(L('Saved','ذخیره شد')+(r.j.restarted?' · '+L('restarted','ری‌استارت شد'):'')+(r.j.token_changed?' · '+L('token changed','توکن عوض شد'):'')):(r.j.error||'error'); if(r.s===200) refresh(); };
+    $('#dmsave').onclick=async()=>{ const body={}; ['peer','transport','port','spoof_ips','listen_port','forward','bridge','ports','udp_ports','server_ip','target_host','token','engine'].forEach(k=>{ const e=$('#ed_'+k); if(e&&e.value.trim()!=='') body[k]=e.value.trim(); }); const b=$('#dmsave'); b.disabled=true; const r=await apiX('/api/slot/'+n+'/edit',body); b.disabled=false; $('#dmmsg').style.color=r.s===200?'#34d0c3':'#f0707a'; $('#dmmsg').textContent=r.s===200?(L('Saved','ذخیره شد')+(r.j.restarted?' · '+L('restarted','ری‌استارت شد'):'')+(r.j.token_changed?' · '+L('token changed','توکن عوض شد'):'')):(r.j.error||'error'); if(r.s===200) refresh(); };
   }
   $('#dmstats').innerHTML=stats; $('#dmhl').innerHTML=hl; $('#dmev').innerHTML=evs; $('#dmlim').innerHTML=limHtml(d.limits); drawBars($('#dday'),d.days||[]); $('#dmdays').innerHTML=L('Last 30 days','۳۰ روز اخیر')+': <bdi dir="ltr">↓ '+fmtB((d.days||[]).reduce((a,x)=>a+x.rx,0))+' · ↑ '+fmtB((d.days||[]).reduce((a,x)=>a+x.tx,0))+'</bdi>';
   drawLines($('#dch'),[{data:d.hist.rx,color:'#34d0c3'},{data:d.hist.tx,color:'#e9c46a'}],v=>rateTxt(v));
@@ -1763,7 +1810,7 @@ document.addEventListener('click',e=>{ const b=e.target.closest&&e.target.closes
 function rowBtns(n){ return `<td><button class="sm ok" onclick="act(${n},'start')">Connect</button><button class="sm" onclick="act(${n},'restart')">Restart</button><button class="sm" onclick="act(${n},'stop')">Stop</button><button class="sm" onclick="logs(${n})">Logs</button><button class="sm danger" onclick="del(${n})">Delete</button></td>`; }
 async function refresh(){
   try {
-    const [st, sl, fl] = await Promise.all([api('/api/stats'), api('/api/slots'), api('/api/fleet').catch(()=>({servers:[]}))]); window._fleet=fl.servers||[]; window._st=st; pairFill();
+    const [st, sl, fl] = await Promise.all([api('/api/stats'), api('/api/slots'), api('/api/fleet').catch(()=>({servers:[]}))]); window._fleet=fl.servers||[]; window._st=st; pairFill(); engineHints();
     push(hist.cpu, st.cpu); push(hist.rx, st.rx_rate); push(hist.tx, st.tx_rate);
     const lv=$('#live'); if(lv){lv.classList.remove('off'); lv.querySelector('b').textContent=L('Online','آنلاین');}
     $('#host').textContent = st.hostname + ' · ' + st.ip;
@@ -1822,12 +1869,13 @@ function pairFill(){
 }
 function pairLayout(){
   const hide=(sel,on)=>{ const e=$(sel); if(e) e.classList.toggle('hide',on); };
-  if($('#rpair')){ const on=!!$('#rpair').value, srv=$('#rrole').value==='server';
-    hide('#rports',on?false:!srv); hide('#rth',on?false:srv); hide('#rsip',on?true:srv); }
+  if($('#rpair')){ const on=!!$('#rpair').value, srv=$('#rrole').value==='server', portsHidden=on?false:!srv;
+    hide('#rports',portsHidden); hide('#rth',on?false:srv); hide('#rsip',on?true:srv);
+    hide('#rudp', portsHidden || $('#rengine').value!=='rust'); }
   if($('#spair')){ const on=!!$('#spair').value, srv=$('#role').value==='server', pr=$('#peer')&&$('#peer').parentElement;
     hide('#lp',on?false:!srv); hide('#fw',on?false:srv); if(pr) pr.classList.toggle('hide',on); }
 }
-document.addEventListener('change',e=>{ if(['rpair','spair','rrole','role'].includes(e.target.id)) setTimeout(pairLayout,0); });
+document.addEventListener('change',e=>{ if(['rpair','spair','rrole','role','rengine'].includes(e.target.id)) setTimeout(pairLayout,0); });
 async function create(){
   const body={role:$('#role').value, peer:$('#peer').value.trim(), transport:$('#transport').value, port:$('#port').value, spoof_ips:$('#spoof_ips').value, listen_port:$('#listen_port').value, forward:$('#forward').value, token:$('#token').value.trim(), engine:$('#engine').value}, pair=$('#spair').value;
   try{
@@ -1835,7 +1883,7 @@ async function create(){
     else { const r=await api('/api/spoof',body); $('#newtoken').innerHTML=`<div class="msg good">Tunnel ${r.slot} created. Token (copy it to the other server):<br><code>${esc(r.token)}</code></div>`; }
     refresh(); _dsig=''; } catch(e){ msg(e.message,false); } }
 async function createRev(){
-  const body={role:$('#rrole').value, bridge:$('#rbridge').value, ports:$('#rport').value, server_ip:$('#rserver').value.trim(), target_host:$('#rtarget').value.trim(), token:$('#rtoken').value.trim(), engine:$('#rengine').value}, pair=$('#rpair').value;
+  const body={role:$('#rrole').value, bridge:$('#rbridge').value, ports:$('#rport').value, udp_ports:$('#rudpports').value.trim(), server_ip:$('#rserver').value.trim(), target_host:$('#rtarget').value.trim(), token:$('#rtoken').value.trim(), engine:$('#rengine').value}, pair=$('#rpair').value;
   try{
     if(pair){ const r=await api('/api/pair/create',Object.assign({kind:'reverse',server_id:pair},body)); $('#rnew').innerHTML=`<div class="msg good">${L('Created on both servers','روی هر دو سرور ساخته شد')}: #${r.local_slot} ⇄ ${esc(r.server)} #${r.remote_slot}</div>`; }
     else { const r=await api('/api/reverse',body); $('#rnew').innerHTML=`<div class="msg good">Tunnel ${r.slot} created. Token (copy it to the other server):<br><code>${esc(r.token)}</code></div>`; }
@@ -2046,6 +2094,7 @@ def collect_stats():
     st.update(rx_total=rx, tx_total=tx)
     st["hostname"] = socket.gethostname()
     st["ip"] = public_ip_guess()
+    st["rust_available"] = rust_available()
     return st
 
 
@@ -2900,17 +2949,21 @@ def slot_edit(n, d):
         base = {"role": role, "transport": env.get("TRANSPORT", "udp"), "peer": env.get("PEER_IP", ""),
                 "spoof_ips": env.get("SPOOF_IPS", ""), "port": env.get("TPORT", "4500"),
                 "listen_port": env.get("LISTEN_PORT", "0"), "forward": env.get("FORWARD", ""),
-                "token": env.get("NICETUNNEL_TOKEN", "")}
+                "token": env.get("NICETUNNEL_TOKEN", ""), "engine": env.get("ENGINE", "python")}
         check, writer = validate_spoof, write_spoof_slot
     else:
         base = {"role": role, "bridge": env.get("BRIDGE", "7000"), "ports": env.get("PORTS", ""),
                 "server_ip": env.get("SERVER_IP", ""), "target_host": env.get("TARGET_HOST", ""),
-                "token": env.get("NICETUNNEL_TOKEN", "")}
+                "token": env.get("NICETUNNEL_TOKEN", ""), "engine": env.get("ENGINE", "python"),
+                "udp_ports": env.get("UDP_PORTS", "")}
         check, writer = validate_reverse, write_reverse_slot
     for k, v in d.items():
         if k in base and k != "role" and v is not None and str(v).strip() != "":
             base[k] = v
     clean, err = check(base)
+    if err:
+        return None, err
+    err = engine_missing_binary(clean)
     if err:
         return None, err
     _, st = run(["systemctl", "is-active", "nicetunnel@%d" % n])
@@ -3326,6 +3379,9 @@ _audit_lock = threading.Lock()
 
 # -- create a tunnel on this server and on another one --------------------------
 def create_local(kind, clean):
+    err = engine_missing_binary(clean)
+    if err:
+        return None, err
     n = first_free_slot()
     if n is None:
         return None, "no free slot (max %d)" % max_slots()
@@ -3365,7 +3421,7 @@ def pair_create(d):
     else:
         srv_ip = local_ip if role == "server" else remote_ip
         base = {"bridge": d.get("bridge", 7000), "token": str(d.get("token", "")).strip(), "engine": d.get("engine", "python")}
-        side = {"server": {"role": "server", "ports": d.get("ports", "")},
+        side = {"server": {"role": "server", "ports": d.get("ports", ""), "udp_ports": d.get("udp_ports", "")},
                 "client": {"role": "client", "server_ip": srv_ip, "target_host": d.get("target_host") or "127.0.0.1"}}
         loc, rem = dict(base, **side[role]), dict(base, **side[other])
         check, route = validate_reverse, "/api/reverse"
@@ -5151,6 +5207,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
             clean, err = validate_reverse(body)
             if err:
                 return self.send_json({"error": err}, 400)
+            err = engine_missing_binary(clean)
+            if err:
+                return self.send_json({"error": err}, 400)
             n = first_free_slot()
             if n is None:
                 return self.send_json({"error": "no free slot (max %d)" % max_slots()}, 400)
@@ -5165,6 +5224,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
         if path == "/api/spoof":
             clean, err = validate_spoof(body)
+            if err:
+                return self.send_json({"error": err}, 400)
+            err = engine_missing_binary(clean)
             if err:
                 return self.send_json({"error": err}, 400)
             n = first_free_slot()

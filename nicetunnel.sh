@@ -279,16 +279,18 @@ first_free_slot() {
 load_slot() {
   TYPE=tcp; ROLE=""; BRIDGE=""; PORTS=""; SERVER_IP=""; TARGET_HOST=""; NICETUNNEL_TOKEN=""
   TRANSPORT=""; TPORT=""; PEER_IP=""; SPOOF_IPS=""; LISTEN_PORT=""; FORWARD=""; ENGINE=python
+  UDP_PORTS=""
   # shellcheck disable=SC1090
   . "$(slot_file "$1")"
 }
 
 rust_available() { [ -x "$APP_DIR/nicetunnel-rs" ]; }
 
-write_slot() { # slot role bridge ports server_ip target_host token engine   (reverse TCP tunnel)
+write_slot() { # slot role bridge ports server_ip target_host token engine udp_ports   (reverse TCP tunnel)
   local args
   if [ "$2" = server ]; then
     args="server --bridge $3 --ports $4"
+    [ -n "${9:-}" ] && args="$args --udp-ports $9"
   else
     args="client --server $5 --bridge $3 --target-host $6"
   fi
@@ -305,6 +307,7 @@ SERVER_IP=$5
 TARGET_HOST=$6
 NICETUNNEL_TOKEN=$7
 ENGINE=${8:-python}
+UDP_PORTS=${9:-}
 RT_ARGS="$args"
 EOF
   )
@@ -385,6 +388,7 @@ show_settings() {
     kv "Bridge port" "$BRIDGE"
     if [ "$ROLE" = server ]; then
       kv "Public ports" "$PORTS"
+      [ -n "$UDP_PORTS" ] && kv "Gaming UDP ports" "$UDP_PORTS"
     else
       kv "Iran server" "$SERVER_IP"
       kv "Forwards to" "$TARGET_HOST"
@@ -442,7 +446,7 @@ wiz_screen() { # step total
 
 create_tunnel() {
   local type="" role="" slot="" bridge="" ports="" server_ip="" target="" token="" gen engine=python
-  local transport="" tport="" peer="" spoofs="" lport="" forward="" cnt="" chk=""
+  local transport="" tport="" peer="" spoofs="" lport="" forward="" cnt="" chk="" udp_ports=""
   local i=0 total kind msg="" item p saved=0
   local -a items open_ports steps
 
@@ -460,7 +464,13 @@ create_tunnel() {
       steps+=(token confirm)
     else
       steps=(type role slot engine bridge)
-      if [ "$role" = client ]; then steps+=(serverip token target confirm); else steps+=(ports token confirm); fi
+      if [ "$role" = client ]; then
+        steps+=(serverip token target confirm)
+      else
+        steps+=(ports)
+        [ "$engine" = rust ] && steps+=(udpports)
+        steps+=(token confirm)
+      fi
     fi
   }
   wiz_back() { hist_pop; i=$((i - 1)); }
@@ -513,7 +523,7 @@ create_tunnel() {
           select_menu "Which engine should run this tunnel?" \
             "1|Python (stable)|the original, fully tested engine" \
             "2|Rust (experimental)|newer, faster - help test it; same wire protocol" || { wiz_back; continue; }
-          if [ "$SEL" = 1 ]; then engine=python; else engine=rust; fi
+          if [ "$SEL" = 1 ]; then engine=python; udp_ports=""; else engine=rust; fi
         else
           engine=python
         fi
@@ -528,6 +538,16 @@ create_tunnel() {
         ask "Public ports users connect to (e.g. 443 or 443,8443:8080)" "$ports" || { wiz_back; continue; }
         valid_ports "$REPLY" || { msg="Invalid ports. Use numbers like 443 or 8443:8080, separated by commas."; continue; }
         ports="$REPLY"; hist_add "Public ports" "$ports"; wiz_next ;;
+
+      udpports)
+        printf '  %sFor gaming/low-latency UDP traffic (no IP spoofing, no censorship-evasion -%s\n' "$DM" "$NC"
+        printf '  %sjust a fast forward). Needs the Rust engine on both servers. Leave blank for none.%s\n\n' "$DM" "$NC"
+        ask "Also forward UDP ports (e.g. 19132 or 27015:27016)" "$udp_ports" || { wiz_back; continue; }
+        if [ -n "$REPLY" ]; then
+          valid_ports "$REPLY" || { msg="Invalid ports. Use numbers like 19132 or 27015:27016, separated by commas."; continue; }
+        fi
+        udp_ports="$REPLY"
+        hist_add "Gaming UDP ports" "${udp_ports:-none}"; wiz_next ;;
 
       serverip)
         ask "IP address or hostname of the Iran server" "$server_ip" || { wiz_back; continue; }
@@ -617,6 +637,7 @@ create_tunnel() {
           kv "Bridge port" "$bridge"
           if [ "$role" = server ]; then
             kv "Public ports" "$ports"
+            [ -n "$udp_ports" ] && kv "Gaming UDP ports" "$udp_ports"
           else
             kv "Iran server" "$server_ip:$bridge"
             kv "Forwards to" "${target:-127.0.0.1}"
@@ -638,6 +659,13 @@ create_tunnel() {
           for p in "${open_ports[@]}"; do
             if port_in_use "$p"; then warn "  Port $p is already in use by another program."; fi
           done
+          if [ -n "$udp_ports" ]; then
+            IFS=',' read -ra items <<<"$udp_ports"
+            for item in "${items[@]}"; do
+              p="${item%%:*}"
+              if udp_port_in_use "$p"; then warn "  UDP port $p is already in use by another program."; fi
+            done
+          fi
         elif [ "$type" = spoof ] && [ "$role" = server ]; then
           if udp_port_in_use "$lport"; then warn "  UDP port $lport is already in use by another program."; fi
         fi
@@ -655,7 +683,7 @@ create_tunnel() {
     write_spoof_slot "$slot" "$role" "$transport" "$tport" "$peer" "$spoofs" "$lport" "$forward" "$token" "$engine" && saved=1
   else
     [ -n "$target" ] || target=127.0.0.1
-    write_slot "$slot" "$role" "$bridge" "$ports" "$server_ip" "$target" "$token" "$engine" && saved=1
+    write_slot "$slot" "$role" "$bridge" "$ports" "$server_ip" "$target" "$token" "$engine" "$udp_ports" && saved=1
   fi
   if [ "$saved" != 1 ]; then
     header
